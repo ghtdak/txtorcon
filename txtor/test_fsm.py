@@ -1,10 +1,10 @@
-
 import spaghetti
 from spaghetti import *
 from twisted.trial import unittest
 
 import tempfile
 import os
+
 
 class FsmTests(unittest.TestCase):
 
@@ -18,13 +18,16 @@ class FsmTests(unittest.TestCase):
         not really 'testing' here, going for code-coverage to simply
         call the __str__ methods to ensure they don't explode
         """
-        
+
         a = State("A")
         b = State("B")
+
         def match(x):
             pass
+
         def action(x):
             pass
+
         tran = Transition(b, match, action)
         a.add_transition(tran)
         fsm = FSM([a, b])
@@ -38,16 +41,16 @@ class FsmTests(unittest.TestCase):
     def test_no_init(self):
         fsm = FSM([])
         self.assertRaises(Exception, fsm.process, "")
-    
+
     def test_no_init_ctor(self):
         fsm = FSM([])
         idle = State("I")
         foo = str(idle)
-        
+
         fsm.add_state(idle)
         self.assertWarns(RuntimeWarning, "No next state", spaghetti.__file__,
                          fsm.process, "")
-    
+
     def test_no_matcher(self):
         idle = State("I")
         other = State("O")
@@ -58,7 +61,7 @@ class FsmTests(unittest.TestCase):
 
     def test_bad_transition(self):
         self.assertRaises(Exception, Transition, None, self.match, None)
-        
+
     def test_dotty(self):
         idle = State("I")
         fsm = FSM([idle])
@@ -72,27 +75,24 @@ class FsmTests(unittest.TestCase):
     def test_handler_state(self):
         idle = State("I")
         cmd = State("C")
+
         def handler(x):
             return idle
 
-        idle.add_transitions([Transition(cmd,
-                                         self.match,
-                                         handler)])
-        
+        idle.add_transitions([Transition(cmd, self.match, handler)])
+
         fsm = FSM([idle, cmd])
         self.commands = []
         self.assertTrue(fsm.state == idle)
         fsm.process("250 OK\n")
         self.assertTrue(fsm.state == idle)
-    
+
     def test_simple_machine(self):
         idle = State("I")
         cmd = State("C")
 
-        idle.add_transitions([Transition(cmd,
-                                         self.match,
-                                         None)])
-        
+        idle.add_transitions([Transition(cmd, self.match, None)])
+
         fsm = FSM([idle, cmd])
         self.commands = []
         self.assertTrue(fsm.state == idle)
@@ -100,4 +100,4 @@ class FsmTests(unittest.TestCase):
         self.assertTrue(fsm.state == cmd)
 
     def doCommand(self, data):
-        print "transition:",data
+        print "transition:", data

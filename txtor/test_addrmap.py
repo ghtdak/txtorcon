@@ -1,4 +1,3 @@
-
 import time
 import datetime
 from twisted.trial import unittest
@@ -10,6 +9,7 @@ from twisted.internet.interfaces import IReactorTime
 from txtor.addrmap import AddrMap
 from txtor.addrmap import Addr
 
+
 class AddrMapTests(unittest.TestCase):
 
     fmt = '%Y-%m-%d %H:%M:%S'
@@ -18,15 +18,16 @@ class AddrMapTests(unittest.TestCase):
         """
         Make sure it's parsing things properly.
         """
-        
+
         now = datetime.datetime.now() + datetime.timedelta(seconds=10)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
         ## we need to not-barf on extra args as per control-spec.txt
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s" FOO=bar BAR=baz' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s" FOO=bar BAR=baz' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
         am = AddrMap()
         am.update(line)
         addr = am.find('www.example.com')
-        
+
         self.assertTrue(addr.ip.exploded == '72.30.2.43')
         ## maybe not the most robust, should convert to
         ## seconds-since-epoch instead? the net result of the parsing
@@ -42,15 +43,16 @@ class AddrMapTests(unittest.TestCase):
         """
         Test simply expiry case
         """
-        
+
         clock = task.Clock()
         am = AddrMap()
         am.scheduler = IReactorTime(clock)
-        
+
         now = datetime.datetime.now() + datetime.timedelta(seconds=10)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
-        
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
+
         am.update(line)
 
         self.assertTrue(am.addr.has_key('www.example.com'))
@@ -63,15 +65,15 @@ class AddrMapTests(unittest.TestCase):
         Test a NEVER expires line, as in what we'd get a startup for a
         configured address-mapping.
         """
-        
+
         clock = task.Clock()
         am = AddrMap()
         am.scheduler = IReactorTime(clock)
-        
+
         now = datetime.datetime.now() + datetime.timedelta(seconds=10)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
         line = 'www.example.com 72.30.2.43 "NEVER"'
-        
+
         am.update(line)
 
         self.assertTrue(am.addr.has_key('www.example.com'))
@@ -81,14 +83,15 @@ class AddrMapTests(unittest.TestCase):
         """
         Test something that expires before "now"
         """
-        
+
         clock = task.Clock()
         am = AddrMap()
         am.scheduler = IReactorTime(clock)
-        
+
         now = datetime.datetime.now() + datetime.timedelta(seconds=-10)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=-10)
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
 
         am.update(line)
         self.assertTrue(am.addr.has_key('www.example.com'))
@@ -107,18 +110,20 @@ class AddrMapTests(unittest.TestCase):
         clock = task.Clock()
         am = AddrMap()
         am.scheduler = IReactorTime(clock)
-        
+
         ## now do an actual update to an existing Addr entry.
         now = datetime.datetime.now() + datetime.timedelta(seconds=10)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
         am.update(line)
         self.assertTrue(am.find('www.example.com'))
 
         ## the update
         now = datetime.datetime.now() + datetime.timedelta(seconds=20)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=20)
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
         am.update(line)
         self.assertTrue(am.addr.has_key('www.example.com'))
 

@@ -14,6 +14,7 @@ from zope.interface import implements
 
 from txtor import TorProtocolFactory, TorConfig, DEFAULT_VALUE
 
+
 def setup_complete(config):
     print "Got config"
     keys = config.config.keys()
@@ -24,38 +25,42 @@ def setup_complete(config):
             for hs in config.config[k]:
                 for xx in ['dir', 'version', 'authorize_client']:
                     if getattr(hs, xx):
-                        print 'HiddenService%s %s' % (xx.capitalize(), getattr(hs, xx))
+                        print 'HiddenService%s %s' % (xx.capitalize(), getattr(
+                            hs, xx))
                 for port in hs.ports:
-                    print 'HiddenServicePort',port
+                    print 'HiddenServicePort', port
             continue
 
         v = getattr(config, k)
         if isinstance(v, types.ListType):
             for val in v:
                 if val != DEFAULT_VALUE:
-                    print k,val
-                    
+                    print k, val
+
         elif v == DEFAULT_VALUE:
             defaults.append(k)
-            
+
         else:
-            print k,v
+            print k, v
 
     if 'defaults' in sys.argv:
         print "Set to default value:"
         for k in defaults:
             print "# %s" % k
-            
+
     reactor.stop()
-    
+
+
 def setup_failed(arg):
-    print "SETUP FAILED",arg
+    print "SETUP FAILED", arg
     reactor.stop()
+
 
 def bootstrap(c):
     conf = TorConfig(c)
     conf.post_bootstrap.addCallback(setup_complete).addErrback(setup_failed)
     print "Connection is live, bootstrapping state..."
+
 
 point = TCP4ClientEndpoint(reactor, "localhost", 9051)
 d = point.connect(TorProtocolFactory())

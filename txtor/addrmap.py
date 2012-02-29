@@ -1,4 +1,3 @@
-
 from twisted.internet.interfaces import IReactorTime
 from twisted.internet import reactor
 import ipaddr
@@ -6,18 +5,19 @@ import ipaddr
 import datetime
 import shlex
 
+
 class Addr(object):
     """
     One address mapping (e.g. example.com -> 127.0.0.1)
     """
-    
+
     def __init__(self, map):
         """
         map is an AddrMap instance, used for scheduling expiries and updating the map.
         """
-        
+
         self.map = map
-        
+
         self.ip = None
         self.name = None
         self.expiry = None
@@ -33,7 +33,7 @@ class Addr(object):
             (name, ip, gmtexpires) = args
         else:
             (name, ip, _, gmtexpires) = args[:4]
-        self.name = name                # "www.example.com"
+        self.name = name  # "www.example.com"
         self.ip = ipaddr.IPAddress(ip)  # IPV4Address instance, probably
         fmt = "%Y-%m-%d %H:%M:%S"
 
@@ -41,7 +41,7 @@ class Addr(object):
         ## properly delay our timeout
 
         oldexpires = self.expires
-        
+
         key = 'EXPIRES='
         if gmtexpires.find(key) == 0:
             gmtexpires = gmtexpires[len(key):]
@@ -59,7 +59,8 @@ class Addr(object):
                     diff = datetime.timedelta(seconds=0)
                 else:
                     diff = self.expires - self.created
-                self.expiry = self.map.scheduler.callLater(diff.seconds, self._expire)
+                self.expiry = self.map.scheduler.callLater(diff.seconds,
+                                                           self._expire)
 
             else:
                 diff = self.expires - oldexpires
@@ -71,10 +72,12 @@ class Addr(object):
         """
         del self.map.addr[self.name]
 
+
 class AddrMap(object):
     """
     A collection of Addr objects mapping domains to addresses, with automatic expiry.
     """
+
     def __init__(self):
         self.addr = {}
         self.scheduler = IReactorTime(reactor)
@@ -84,7 +87,7 @@ class AddrMap(object):
         Deal with an update from Tor; either creates a new Addr object
         or find existing one and calls update() on it.
         """
-        
+
         params = shlex.split(update)
         if self.addr.has_key(params[0]):
             self.addr[params[0]].update(*params)
@@ -96,5 +99,3 @@ class AddrMap(object):
     def find(self, name_or_ip):
         "FIXME should make this class a dict-like (or subclass?)"
         return self.addr[name_or_ip]
-
-    

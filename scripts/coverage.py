@@ -16,11 +16,11 @@ uncovered = 0
 
 thedir = './_trial_temp/coverage'
 for file in os.listdir(thedir):
-    file = os.path.join(thedir,file)
+    file = os.path.join(thedir, file)
     if 'txtor' in file and 'test' not in file:
         this_cover = 0
         this_uncover = 0
-        for line in open(file,'r').readlines():
+        for line in open(file, 'r').readlines():
             if len(line) < 6:
                 continue
             elif line[:6] == '>>>>>>':
@@ -30,10 +30,11 @@ for file in os.listdir(thedir):
                 int(line[:5])
                 covered += 1
                 this_cover += 1
-        this_cover = (float(this_cover)-this_uncover)/this_cover * 100.0
-        print '%65s: %03d of %03d (%02.1f%%)' % (file, this_cover, (this_uncover+this_cover), this_cover)
+        this_cover = (float(this_cover) - this_uncover) / this_cover * 100.0
+        print '%65s: %03d of %03d (%02.1f%%)' % (file, this_cover, (
+            this_uncover + this_cover), this_cover)
 
-print "  covered:",covered
-print "uncovered:",uncovered
-coverage = (float(covered)-uncovered)/covered * 100.0
+print "  covered:", covered
+print "uncovered:", uncovered
+coverage = (float(covered) - uncovered) / covered * 100.0
 print "%02.2f%% test coverage" % coverage

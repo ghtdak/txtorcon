@@ -1,4 +1,3 @@
-
 from twisted.python import log, failure
 from twisted.internet import defer, reactor
 from twisted.internet.interfaces import IProtocolFactory
@@ -23,6 +22,7 @@ import types
 DEBUG = False
 DEFAULT_VALUE = 'DEFAULT'
 
+
 class TorProtocolFactory(object):
     """
     Builds TorControlProtocol objects. Implements IProtocolFactory for
@@ -32,9 +32,9 @@ class TorProtocolFactory(object):
     you should supply a password. FIXME: should supply a
     password-getting method, instead.
     """
-    
+
     implements(IProtocolFactory)
-    
+
     def __init__(self, password=None):
         """
         Builds protocols to talk to a Tor client on the specified address. For example:
@@ -54,12 +54,13 @@ class TorProtocolFactory(object):
 
     def doStop(self):
         "IProtocolFactory API"
-        
+
     def buildProtocol(self, addr):
         "IProtocolFactory API"
         proto = TorControlProtocol(self.password)
         proto.factory = self
         return proto
+
 
 class ITorControlProtocol(Interface):
     """
@@ -101,19 +102,20 @@ class ITorControlProtocol(Interface):
         all new circuits as well as all existing ones (you won't,
         however, get circuit_new calls for the existing ones)
         """
-        
+
     def add_stream_listener(self, istreamlistener):
         """
         Add an implementor of IStreamListener which will be added to
         all new circuits as well as all existing ones (you won't,
         however, get stream_new calls for the existing ones)
         """
-        
+
     def add_event_listener(self, evt, callback):
         """
         Add a listener to an Event object. This may be called multiple
         times for the same event.
         """
+
 
 class Event(object):
     """
@@ -124,6 +126,7 @@ class Event(object):
     TorController.add_event The callbacks will be called every time
     the event in question is received.
     """
+
     def __init__(self, name):
         self.name = name
         self.callbacks = []
@@ -138,6 +141,7 @@ class Event(object):
         #print self.name,"got_update:",data
         for cb in self.callbacks:
             cb(data)
+
 
 def parse_keywords(lines):
     "Utility method to parse name=value pairs (GETINFO etc)"
@@ -157,7 +161,7 @@ def parse_keywords(lines):
                 else:
                     rtn[key] = value
             (key, value) = line.split('=')
-            
+
         else:
             if key is None:
                 rtn[line.strip()] = DEFAULT_VALUE
@@ -173,6 +177,7 @@ def parse_keywords(lines):
         else:
             rtn[key] = value
     return rtn
+
 
 class TorControlProtocol(LineOnlyReceiver):
     """
@@ -214,17 +219,17 @@ class TorControlProtocol(LineOnlyReceiver):
 
         self.is_owned = None
         """If not None, this is the PID of the Tor process we own (TAKEOWNERSHIP, etc)."""
-        
+
         self.events = {}
         """events we've subscribed to (keyed by name like "GUARD", "STREAM")"""
-        
+
         self.valid_events = {}
         """all valid events (name -> Event instance)"""
-        
+
         self.valid_signals = []
         """A list of all valid signals we accept from Tor"""
 
-        self.log = open('torcontrollerfoo.log','w')
+        self.log = open('torcontrollerfoo.log', 'w')
 
         self.post_bootstrap = defer.Deferred()
         """
@@ -242,46 +247,39 @@ class TorControlProtocol(LineOnlyReceiver):
             TCP4ClientEndpoint(reactor, "localhost", 9051).connect(TorProtocolFactory())
             d.addCallback(setup).addErrback(setup_failed)          
         """
-        
+
         ## variables related to the state machine
-        self.defer = None               # Deferred we returned for the current command
+        self.defer = None  # Deferred we returned for the current command
         self.response = ''
         self.code = None
-        self.command = None             # currently processing this command
-        self.commands = []              # queued commands
+        self.command = None  # currently processing this command
+        self.commands = []  # queued commands
 
         ## Here we build up the state machine. Mostly it's pretty
         ## simply, confounded by the fact that 600's (notify) can come
         ## at any time AND can be multi-line itself. Luckily, these
         ## can't be nested, nor can the responses be interleaved.
-        
+
         idle = State("IDLE")
         recv = State("RECV")
         recvmulti = State("RECV_PLUS")
         recvnotify = State("NOTIFY_MULTILINE")
 
-        idle.add_transition(Transition(idle,
-                                       self.isSingleLineResponse,
+        idle.add_transition(Transition(idle, self.isSingleLineResponse,
                                        self.broadcastResponse))
-        idle.add_transition(Transition(recvmulti,
-                                       self.isMultiLine,
+        idle.add_transition(Transition(recvmulti, self.isMultiLine,
                                        self.startCommand))
-        idle.add_transition(Transition(recv,
-                                       self.isContinuationLine,
+        idle.add_transition(Transition(recv, self.isContinuationLine,
                                        self.startCommand))
-        
-        recv.add_transition(Transition(recv,
-                                       self.isContinuationLine,
+
+        recv.add_transition(Transition(recv, self.isContinuationLine,
                                        self.accumulateResponse))
-        recv.add_transition(Transition(idle,
-                                       self.isFinishLine,
+        recv.add_transition(Transition(idle, self.isFinishLine,
                                        self.broadcastResponse))
 
-        recvmulti.add_transition(Transition(recv,
-                                            self.isEndLine,
+        recvmulti.add_transition(Transition(recv, self.isEndLine,
                                             lambda x: None))
-        recvmulti.add_transition(Transition(recvmulti,
-                                            self.isNotEndLine,
+        recvmulti.add_transition(Transition(recvmulti, self.isNotEndLine,
                                             self.accumulateMultiResponse))
 
         self.fsm = FSM([recvnotify, idle, recvmulti, recv])
@@ -290,7 +288,7 @@ class TorControlProtocol(LineOnlyReceiver):
         ## list; the above looks nice in dotty though
         self.fsm.state = idle
         if DEBUG:
-            open("fsm.dot","w").write(self.fsm.dotty())
+            open("fsm.dot", "w").write(self.fsm.dotty())
 
     ## see end of file for all the state machine matcher and
     ## transition methods.
@@ -301,7 +299,7 @@ class TorControlProtocol(LineOnlyReceiver):
         the GETINFO command. @see: get_info
         """
         info = ' '.join(map(lambda x: str(x), list(args)))
-        return self.queue_command('GETINFO %s'%info)
+        return self.queue_command('GETINFO %s' % info)
 
     ## The following methods are the main TorController API and
     ## probably the most interesting for users.
@@ -323,7 +321,8 @@ class TorControlProtocol(LineOnlyReceiver):
             in the callback chain; if you want to avoid the parsing
             into a dict, you can use get_info_raw instead.
         """
-        return self.get_info_raw(*args).addCallback(parse_keywords).addErrback(log.err)
+        return self.get_info_raw(
+            *args).addCallback(parse_keywords).addErrback(log.err)
 
     def get_conf(self, *args):
         """
@@ -347,13 +346,15 @@ class TorControlProtocol(LineOnlyReceiver):
         DEFAULT_VALUE for the default value case, or an empty string
         otherwise.
         """
-        return self.queue_command('GETCONF %s' % ' '.join(args)).addCallback(parse_keywords).addErrback(log.err)
+        return self.queue_command(
+            'GETCONF %s' %
+            ' '.join(args)).addCallback(parse_keywords).addErrback(log.err)
 
     def get_conf_raw(self, *args):
         """
         Same as get_conf, except that the results are not parsed into a dict
         """
-        
+
         return self.queue_command('GETCONF %s' % ' '.join(args))
 
     def set_conf(self, *args):
@@ -370,7 +371,7 @@ class TorControlProtocol(LineOnlyReceiver):
         strargs = map(lambda x: str(x), args)
         keys = [strargs[i] for i in range(0, len(strargs), 2)]
         values = [strargs[i] for i in range(1, len(strargs), 2)]
-        args = ' '.join(map(lambda x,y:'%s=%s'%(x,y), keys, values))
+        args = ' '.join(map(lambda x, y: '%s=%s' % (x, y), keys, values))
         return self.queue_command('SETCONF ' + args)
 
     def signal(self, nm):
@@ -418,31 +419,32 @@ class TorControlProtocol(LineOnlyReceiver):
     def protocolinfo(self):
         "Returns a Deferred which will give you PROTOCOLINFO; see control-spec"
         return self.queue_command("PROTOCOLINFO 1")
-    
+
     def authenticate(self, passphrase):
         """Call the AUTHENTICATE command."""
         return self.queue_command('AUTHENTICATE "%s"' % passphrase)
 
     def quit(self):
         return self.queue_command('QUIT')
-    
+
     ## the remaining methods are internal API implementations,
     ## callbacks and state-tracking methods -- you shouldn't have any
     ## need to call them.
 
     def lineReceived(self, line):
         "LineOnlyReceiver API"
-#        print "LINE:",line
-        self.log.write(line+'\n')
+        #        print "LINE:",line
+        self.log.write(line + '\n')
         self.log.flush()
 
         self.fsm.process(line)
         return
-    
+
     def connectionMade(self):
         "LineOnlyReceiver API (or parent?)"
         if DEBUG: print "got connection, authenticating"
-        self.protocolinfo().addCallback(self.doAuthenticate).addErrback(self.auth_failed)
+        self.protocolinfo().addCallback(self.doAuthenticate).addErrback(
+            self.auth_failed)
 
     def handle_notify(self, code, rest):
         "Internal method to deal with 600-level responses."
@@ -450,9 +452,9 @@ class TorControlProtocol(LineOnlyReceiver):
         firstline = rest[:rest.find('\n')]
         args = firstline.split()
         if self.events.has_key(args[0]):
-            self.events[args[0]].got_update(rest[len(args[0])+1:])
+            self.events[args[0]].got_update(rest[len(args[0]) + 1:])
             return
-        
+
         raise RuntimeError("Wasn't listening for event of type " + args[0])
 
     def maybe_issue_command(self):
@@ -465,13 +467,13 @@ class TorControlProtocol(LineOnlyReceiver):
             return
 
         if len(self.commands):
-            (d,cmd) = self.commands[0]
+            (d, cmd) = self.commands[0]
             self.commands = self.commands[1:]
             self.command = (d, cmd)
             self.defer = d
-            if DEBUG and 'AUTH' not in cmd: print "issue:",cmd
+            if DEBUG and 'AUTH' not in cmd: print "issue:", cmd
             self.transport.write(cmd + '\r\n')
-            self.log.write(cmd+'\n')
+            self.log.write(cmd + '\n')
 
     def auth_failed(self, fail):
         "Errback if authentication fails."
@@ -486,15 +488,17 @@ class TorControlProtocol(LineOnlyReceiver):
         "Callback on PROTOCOLINFO to actually authenticate once we know what's supported."
         if 'COOKIE' in protoinfo:
             cookie = re.search('COOKIEFILE="(.*)"', protoinfo).group(1)
-            data = open(cookie,'r').read()
-            if DEBUG: print "Using COOKIE authentication",cookie,len(data),"bytes"
+            data = open(cookie, 'r').read()
+            if DEBUG:
+                print "Using COOKIE authentication", cookie, len(data), "bytes"
             self.authenticate(data).addErrback(self.auth_failed)
 
         else:
             if self.password:
                 self.authenticate(self.password).addErrback(self.auth_failed)
             else:
-                raise RuntimeError("The Tor I connected to doesn't support COOKIE authentication and I have no password.")
+                raise RuntimeError(
+                    "The Tor I connected to doesn't support COOKIE authentication and I have no password.")
 
         self.bootstrap()
 
@@ -517,11 +521,12 @@ class TorControlProtocol(LineOnlyReceiver):
         ## tor like the events...so this was taken from some version
         ## of the control-spec and must be kept up-to-date (or accpet
         ## any signal name and just wait for the reply?
-        self.valid_signals = ["RELOAD", "DUMP", "DEBUG", "NEWNYM", "CLEARDNSCACHE"]
+        self.valid_signals = ["RELOAD", "DUMP", "DEBUG", "NEWNYM",
+                              "CLEARDNSCACHE"]
 
         self.version = yield self.get_info('version')
         self.version = self.version['version']
-        if DEBUG: print "Connected to a Tor with VERSION",self.version
+        if DEBUG: print "Connected to a Tor with VERSION", self.version
         eventnames = yield self.get_info('events/names')
         eventnames = eventnames['events/names']
         self.set_valid_events(eventnames)
@@ -536,7 +541,7 @@ class TorControlProtocol(LineOnlyReceiver):
         """
         returns a Deferred which will fire with the response data when we get it
         """
-        
+
         d = defer.Deferred()
         self.commands.append((d, cmd))
         self.maybe_issue_command()
@@ -554,16 +559,16 @@ class TorControlProtocol(LineOnlyReceiver):
     def isNotEndLine(self, line):
         "for FSM"
         return not self.isEndLine(line)
-    
+
     def isSingleLineResponse(self, line):
         "for FSM"
         try:
             code = int(line[:3])
         except:
             return False
-        
+
         sl = len(line) > 3 and line[3] == ' '
-#        print "single line?",line,sl
+        #        print "single line?",line,sl
         if sl:
             self.code = code
             return True
@@ -571,33 +576,35 @@ class TorControlProtocol(LineOnlyReceiver):
 
     def startCommand(self, line):
         "for FSM"
-#        print "startCommand",self.code,line
+        #        print "startCommand",self.code,line
         self.code = int(line[:3])
-#        print "startCommand:",self.code
+        #        print "startCommand:",self.code
         self.response = line[4:] + '\n'
         return None
-        
+
     def isContinuationLine(self, line):
         "for FSM"
-#        print "isContinuationLine",self.code,line
+        #        print "isContinuationLine",self.code,line
         code = int(line[:3])
         if self.code and self.code != code:
-            raise RuntimeError("Unexpected code %d, wanted %d" % (code,self.code))
+            raise RuntimeError("Unexpected code %d, wanted %d" %
+                               (code, self.code))
         return line[3] == '-'
-        
+
     def isMultiLine(self, line):
         "for FSM"
-#        print "isMultiLine",self.code,line,line[3] == '+'
+        #        print "isMultiLine",self.code,line,line[3] == '+'
         code = int(line[:3])
         if self.code and self.code != code:
-            raise RuntimeError("Unexpected code %d, wanted %d" % (code,self.code))
+            raise RuntimeError("Unexpected code %d, wanted %d" %
+                               (code, self.code))
         return line[3] == '+'
 
     def accumulateMultiResponse(self, line):
         "for FSM"
         self.response += (line + '\n')
         return None
-    
+
     def accumulateResponse(self, line):
         "for FSM"
         self.response += (line[4:] + '\n')
@@ -605,7 +612,7 @@ class TorControlProtocol(LineOnlyReceiver):
 
     def isFinishLine(self, line):
         "for FSM"
-#        print "isFinish",line
+        #        print "isFinish",line
         if len(line) < 1:
             return False
         if line[0] == '.':
@@ -616,7 +623,7 @@ class TorControlProtocol(LineOnlyReceiver):
 
     def broadcastResponse(self, line):
         "for FSM"
-#        print "BCAST",line
+        #        print "BCAST",line
         if len(line) > 3:
             resp = self.response + line[4:]
         else:
@@ -633,7 +640,8 @@ class TorControlProtocol(LineOnlyReceiver):
         elif self.code is None:
             raise RuntimeError("No code set yet in broadcast response.")
         else:
-            raise RuntimeError("Unknown code in broadcast response %d." % self.code)
+            raise RuntimeError("Unknown code in broadcast response %d." %
+                               self.code)
 
         self.command = None
         self.code = None

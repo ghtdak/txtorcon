@@ -7,8 +7,10 @@ import os
 import tempfile
 import subprocess
 
+
 class FakeState:
     tor_pid = -1
+
 
 class TestProcessFromUtil(unittest.TestCase):
 
@@ -19,7 +21,8 @@ class TestProcessFromUtil(unittest.TestCase):
         self.assertTrue(process_from_address(None, 80, self.fakestate) == None)
 
     def test_internal(self):
-        self.assertTrue(process_from_address('(Tor_internal)', 80, self.fakestate) == self.fakestate.tor_pid)
+        self.assertTrue(process_from_address(
+            '(Tor_internal)', 80, self.fakestate) == self.fakestate.tor_pid)
 
     def test_real_addr(self):
         ## FIXME should choose a port which definitely isn't used.
@@ -27,6 +30,7 @@ class TestProcessFromUtil(unittest.TestCase):
         pid = process_from_address('127.0.0.1', 9887, self.fakestate)
         self.assertTrue(pid == proc.pid)
         proc.terminate()
+
 
 class TestDelete(unittest.TestCase):
 
@@ -46,10 +50,9 @@ class TestDelete(unittest.TestCase):
 
         self.assertTrue(os.path.exists(d))
         self.assertTrue(os.path.isdir(d))
-        self.assertTrue(os.path.exists(os.path.join(d,'foo')))
-        
-        delete_file_or_tree(d)
-        
-        self.assertTrue(not os.path.exists(d))
-        self.assertTrue(not os.path.exists(os.path.join(d,'foo')))
+        self.assertTrue(os.path.exists(os.path.join(d, 'foo')))
 
+        delete_file_or_tree(d)
+
+        self.assertTrue(not os.path.exists(d))
+        self.assertTrue(not os.path.exists(os.path.join(d, 'foo')))

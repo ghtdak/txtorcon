@@ -13,6 +13,7 @@ from zope.interface import Interface
 from circuit import ICircuitContainer
 import ipaddr
 
+
 class IStreamListener(Interface):
     """
     Notifications about changes to a L{Stream}.
@@ -20,13 +21,13 @@ class IStreamListener(Interface):
     If you wish for your listener to be added to *all* new streams,
     see L{TorState.add_stream_listener}.
     """
-    
+
     def stream_new(self, stream):
         "a new stream has been created"
-    
+
     def stream_succeeded(self, stream):
         "stream has succeeded"
-    
+
     def stream_attach(self, stream, circuit):
         "the stream has been attached to a circuit"
 
@@ -38,6 +39,7 @@ class IStreamListener(Interface):
 
     def stream_failed(self, stream, reason, remote_reason):
         "stream failed for some reason (won't be in controller's list anymore)"
+
 
 class IStreamAttacher(Interface):
     """
@@ -77,6 +79,7 @@ class IStreamAttacher(Interface):
         that ends in .exit or .onion -- Tor won't let you specify how
         to attach .onion addresses anyway.
         """
+
 
 class Stream(object):
     """
@@ -118,28 +121,28 @@ class Stream(object):
 
         self.id = None
         """An int, Tor's ID for this Circuit"""
-        
+
         self.state = None
         """A string, Tor's idea of the state of this Circuit"""
-        
+
         self.target_host = None
         """Usually a hostname, but sometimes an IP address (e.g. when we query existing state from Tor)"""
-        
+
         self.target_addr = None
         """If available, the IP address we're connecting to (if None, see target_host instead)."""
-        
+
         self.target_port = 0
         """The port we're connecting to."""
-        
+
         self.circuit = None
         """If we've attached to a Circuit, this will be an instance of Circuit (otherwise None)."""
-        
+
         self.listeners = []
         """A list of all connected ICircuitListeners"""
-        
+
         self.source_addr = None
         """If available, the address from which this Stream originated (e.g. local process, etc). See get_process() also."""
-        
+
         self.source_port = 0
         """If available, the port from which this Stream originated. See get_process() also."""
 
@@ -148,7 +151,7 @@ class Stream(object):
         kw = {}
         for x in args:
             if '=' in x:
-                (k,v) = x.split('=',1)
+                (k, v) = x.split('=', 1)
                 kw[k] = v
         return kw
 
@@ -161,7 +164,7 @@ class Stream(object):
         @param listen: something that knows IStreamListener
 
         """
-        
+
         listener = IStreamListener(listen)
         if listener not in self.listeners:
             self.listeners.append(listener)
@@ -185,15 +188,15 @@ class Stream(object):
             self.source_addr = kw['SOURCE_ADDR'][:last_colon]
             if self.source_addr != '(Tor_internal)':
                 self.source_addr = ipaddr.IPAddress(self.source_addr)
-            self.source_port = int(kw['SOURCE_ADDR'][last_colon+1:])
+            self.source_port = int(kw['SOURCE_ADDR'][last_colon + 1:])
 
         self.state = args[1]
         if self.state in ['NEW', 'SUCCEEDED']:
             if self.target_host is None:
                 last_colon = args[3].rfind(':')
                 self.target_host = args[3][:last_colon]
-                self.target_port = int(args[3][last_colon+1:])
-                
+                self.target_port = int(args[3][last_colon + 1:])
+
             self.target_port = int(self.target_port)
             if self.state == 'NEW':
                 if self.circuit != None:
@@ -201,7 +204,7 @@ class Stream(object):
                 [x.stream_new(self) for x in self.listeners]
             else:
                 [x.stream_succeeded(self) for x in self.listeners]
-            
+
         elif self.state == 'REMAP':
             self.target_addr = ipaddr.IPAddress(args[3][:args[3].rfind(':')])
 
@@ -218,14 +221,15 @@ class Stream(object):
                 remote_reason = kw['REMOTE_REASON']
             if kw.has_key('REASON'):
                 reason = kw['REASON']
-                
+
             if self.circuit:
                 self.circuit.streams.remove(self)
             self.circuit = None
-            [x.stream_failed(self, reason, remote_reason) for x in self.listeners]
+            [x.stream_failed(self, reason, remote_reason)
+             for x in self.listeners]
 
         elif self.state == 'SENTCONNECT':
-            pass#print 'SENTCONNECT',self,args
+            pass  #print 'SENTCONNECT',self,args
 
         elif self.state == 'DETACHED':
             reason = ''
@@ -235,15 +239,15 @@ class Stream(object):
             if self.circuit:
                 self.circuit.streams.remove(self)
                 self.circuit = None
-                    
+
             [x.stream_detach(self, reason) for x in self.listeners]
 
         elif self.state == 'NEWRESOLVE':
-            pass#print 'NEWRESOLVE',self,args
+            pass  #print 'NEWRESOLVE',self,args
 
         elif self.state == 'SENTRESOLVE':
-            pass#print 'SENTRESOLVE',self,args
-            
+            pass  #print 'SENTRESOLVE',self,args
+
         else:
             raise Exception("Unknown state: %s" % self.state)
 
@@ -263,17 +267,17 @@ class Stream(object):
                     self.circuit = self.circuit_container.find_circuit(cid)
                     if self not in self.circuit.streams:
                         self.circuit.streams.append(self)
-                        [x.stream_attach(self, self.circuit) for x in self.listeners]
+                        [x.stream_attach(self, self.circuit)
+                         for x in self.listeners]
                 else:
                     if self.circuit.id != cid:
-                        log.err(Exception('Circuit ID changed from %d to %d.' % (self.circuit.id, cid)))
-            
-        
+                        log.err(Exception('Circuit ID changed from %d to %d.' %
+                                          (self.circuit.id, cid)))
 
     def __str__(self):
         c = ''
         if self.circuit:
             c = 'on %d ' % self.circuit.id
-        return "<Stream %s %d %s%s -> %s port %d>" % (self.state, self.id, c, self.target_host, str(self.target_addr), self.target_port)
-
-
+        return "<Stream %s %d %s%s -> %s port %d>" % (
+            self.state, self.id, c, self.target_host, str(self.target_addr),
+            self.target_port)

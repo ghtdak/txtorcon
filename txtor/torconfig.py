@@ -1,4 +1,3 @@
-
 from twisted.python import log, failure
 from twisted.internet import defer, process, error, protocol
 from twisted.internet.interfaces import IProtocolFactory
@@ -28,18 +27,20 @@ import shlex
 
 DEBUG = False
 
+
 def find_keywords(args):
     """FIXME: dup of the one in circuit, stream; move somewhere shared"""
     kw = {}
     for x in args:
         if '=' in x:
-            (k,v) = x.split('=',1)
+            (k, v) = x.split('=', 1)
             kw[k] = v
     return kw
 
+
 class TorProcessProtocol(protocol.ProcessProtocol):
 
-    def __init__(self, connection_creator, progress_updates = None):
+    def __init__(self, connection_creator, progress_updates=None):
         """
         This will read the output from a tor process and attempt a
         connection to its control por when it sees any 'Bootstrapped'
@@ -55,7 +56,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
 
         self.connection_creator = connection_creator
         self.progress_updates = progress_updates
-        
+
         self.connected_cb = defer.Deferred()
         self.attempted_connect = False
         self.to_delete = []
@@ -68,7 +69,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         """
 
         self.stdout.append(data)
-        
+
         ## minor hack: we can't try this in connectionMade because
         ## that's when the process first starts up so Tor hasn't
         ## opened any ports properly yet. So, we presume that after
@@ -92,13 +93,14 @@ class TorProcessProtocol(protocol.ProcessProtocol):
 
         self.stderr.append(data)
         self.transport.loseConnection()
-        raise RuntimeError("Received stderr output from slave Tor process: " + data)
+        raise RuntimeError("Received stderr output from slave Tor process: " +
+                           data)
 
     def cleanup(self):
         """
         Clean up my temporary files.
         """
-        
+
         [delete_file_or_tree(f) for f in self.to_delete]
         self.to_delete = []
 
@@ -108,11 +110,13 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         """
 
         self.cleanup()
-        
+
         if isinstance(status.value, error.ProcessDone):
             return
-        
-        raise RuntimeError('\n'.join(self.stdout) + "\n\nTor exited with error-code %d" % status.value.exitCode)
+
+        raise RuntimeError('\n'.join(
+            self.stdout) + "\n\nTor exited with error-code %d" %
+                           status.value.exitCode)
 
     def progress(self, percent, tag, summary):
         """
@@ -124,7 +128,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
             self.progress_updates(percent, tag, summary)
 
     ## the below are all callbacks
-        
+
     def tor_connection_failed(self, fail):
         ## FIXME more robust error-handling please, like a timeout so
         ## we don't just wait forever after 100% bootstrapped.
@@ -135,27 +139,29 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         args = shlex.split(arg)
         if args[1] != 'BOOTSTRAP':
             return
-        
+
         kw = find_keywords(args)
         prog = int(kw['PROGRESS'])
         tag = kw['TAG']
         summary = kw['SUMMARY']
         self.progress(prog, tag, summary)
-        
+
         if prog == 100:
             self.connected_cb.callback(self)
 
     def tor_connected(self, proto):
-        if DEBUG: print "tor_connected",proto
-        
+        if DEBUG: print "tor_connected", proto
+
         self.tor_protocol = proto
         self.tor_protocol.is_owned = self.transport.pid
-        self.tor_protocol.post_bootstrap.addCallback(self.protocol_bootstrapped).addErrback(log.err)
+        self.tor_protocol.post_bootstrap.addCallback(
+            self.protocol_bootstrapped).addErrback(log.err)
 
     def protocol_bootstrapped(self, proto):
         if DEBUG: print "Protocol is bootstrapped"
-        
-        self.tor_protocol.add_event_listener('STATUS_CLIENT', self.status_client)
+
+        self.tor_protocol.add_event_listener('STATUS_CLIENT',
+                                             self.status_client)
 
         ## FIXME: should really listen for these to complete as well
         ## as bootstrap etc. For now, we'll be optimistic.
@@ -163,11 +169,12 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         self.tor_protocol.queue_command('RESETCONF __OwningControllerProcess')
 
 
-def launch_tor(config, reactor,
+def launch_tor(config,
+               reactor,
                control_port=9052,
                data_directory=None,
                tor_binary='/usr/sbin/tor',
-               progress_updates = None,
+               progress_updates=None,
                connection_creator=None):
     """
     launches a new Tor process with the given config. Right after
@@ -226,7 +233,7 @@ def launch_tor(config, reactor,
 
     if data_directory is None:
         data_directory = tempfile.mkdtemp(prefix='tortmp')
-        
+
     (fd, torrc) = tempfile.mkstemp(prefix='tortmp')
 
     config.DataDirectory = data_directory
@@ -238,11 +245,12 @@ def launch_tor(config, reactor,
     os.write(fd, config.create_torrc())
     os.close(fd)
 
-    if DEBUG: print 'Running with config:\n',open(torrc, 'r').read()
+    if DEBUG: print 'Running with config:\n', open(torrc, 'r').read()
 
     if connection_creator is None:
-        connection_creator = functools.partial(TCP4ClientEndpoint(reactor, 'localhost', control_port).connect,
-                                               TorProtocolFactory())
+        connection_creator = functools.partial(
+            TCP4ClientEndpoint(reactor, 'localhost', control_port).connect,
+            TorProtocolFactory())
     process_protocol = TorProcessProtocol(connection_creator, progress_updates)
 
     # we do both because this process might be shut down way before
@@ -250,37 +258,38 @@ def launch_tor(config, reactor,
     # getting closed cleanly, we'll want the system shutdown events
     # triggered
     process_protocol.to_delete = [torrc, data_directory]
-    reactor.addSystemEventTrigger('before', 'shutdown',
-                                  functools.partial(delete_file_or_tree, torrc, data_directory))
+    reactor.addSystemEventTrigger(
+        'before', 'shutdown',
+        functools.partial(delete_file_or_tree, torrc, data_directory))
 
     try:
-        transport = reactor.spawnProcess(process_protocol, tor_binary,
+        transport = reactor.spawnProcess(process_protocol,
+                                         tor_binary,
                                          args=(tor_binary, '-f', torrc),
                                          env={'HOME': data_directory},
                                          path=data_directory)
         #FIXME? don't need rest of the args: uid, gid, usePTY, childFDs)
         transport.closeStdin()
-        
+
     except RuntimeError, e:
         process_protocol.connected_cb.errback(e)
 
     return process_protocol.connected_cb
 
-    
 
 class TorConfigType(object):
     """
     Base class for all configuration types, which function as parsers
     and un-parsers.
     """
-    
+
     def parse(self, s):
         """
         Given the string s, this should return a parsed representation
         of it.
         """
         return s
-    
+
     def validate(self, s, instance, name):
         """
         If s is not a valid type for this object, an exception should
@@ -288,63 +297,85 @@ class TorConfigType(object):
         """
         return s
 
+
 class Boolean(TorConfigType):
+
     def parse(self, s):
         if int(s):
             return True
         return False
 
+
 class Integer(TorConfigType):
+
     def parse(self, s):
         return int(s)
+
 
 class Port(Integer):
     pass
 
+
 class TimeInterval(Integer):
     pass
+
 
 ## not actually used?
 class TimeMsecInterval(TorConfigType):
     pass
 
+
 class DataSize(Integer):
     pass
 
+
 class Float(TorConfigType):
+
     def parse(self, s):
         return float(s)
+
 
 ## unused also?
 class Time(TorConfigType):
     pass
 
+
 class CommaList(TorConfigType):
+
     def parse(self, s):
         return map(string.strip, s.split(','))
+
 
 ## FIXME: is this really a comma-list?
 class RouterList(CommaList):
     pass
 
+
 class String(TorConfigType):
     pass
+
 
 class Filename(String):
     pass
 
+
 class LineList(TorConfigType):
+
     def parse(self, s):
         if isinstance(s, types.ListType):
             return map(str, s)
         return map(string.strip, s.split('\n'))
-    
+
     def validate(self, obj, instance, name):
         if not isinstance(obj, types.ListType):
             raise ValueError("Not valid for %s: %s" % (self.__class__, obj))
         return _ListWrapper(obj, functools.partial(instance.mark_unsaved, name))
 
-config_types = [Boolean, LineList, Integer, Port, TimeInterval, TimeMsecInterval, DataSize, Float, Time, CommaList, String, LineList, Filename, RouterList]
+
+config_types = [Boolean, LineList, Integer, Port, TimeInterval,
+                TimeMsecInterval, DataSize, Float, Time, CommaList, String,
+                LineList, Filename, RouterList]
+
 
 def _wrapture(orig):
     """
@@ -354,13 +385,15 @@ def _wrapture(orig):
     the list.
     """
 
-#    @functools.wraps(orig)
+    #    @functools.wraps(orig)
     def foo(*args):
         obj = args[0]
         obj.on_modify()
         return orig(*args)
+
     return foo
-        
+
+
 class _ListWrapper(list):
     """
     Do some voodoo to wrap lists so that if you do anything to modify
@@ -369,7 +402,7 @@ class _ListWrapper(list):
     FIXME: really worth it to preserve attribute-style access? seems
     to be okay from an exterior API perspective....
     """
-    
+
     def __init__(self, thelist, on_modify_cb):
         list.__init__(self, thelist)
         self.on_modify = on_modify_cb
@@ -384,6 +417,7 @@ class _ListWrapper(list):
 
     def __repr__(self):
         return '_ListWrapper' + super(_ListWrapper, self).__repr__()
+
 
 class HiddenService(object):
     """
@@ -413,7 +447,7 @@ class HiddenService(object):
         and ver corresponds to HiddenServiceVersion and is always 2
         right now.
         """
-        
+
         self.conf = config
         self.dir = thedir
         self.version = ver
@@ -424,10 +458,11 @@ class HiddenService(object):
         ## accessed. Note that after a SETCONF has returned '250 OK'
         ## it seems from tor code that the keys will always have been
         ## created on disk by that point
-        
+
         if not isinstance(ports, types.ListType):
             ports = [ports]
-        self.ports = _ListWrapper(ports, functools.partial(self.conf.mark_unsaved, 'HiddenServices'))
+        self.ports = _ListWrapper(ports, functools.partial(
+            self.conf.mark_unsaved, 'HiddenServices'))
 
     def __setattr__(self, name, value):
         """
@@ -435,23 +470,26 @@ class HiddenService(object):
         HiddenServices as unsaved in our TorConfig object if anything
         is changed.
         """
-        
-        if name in ['dir', 'version', 'authorize_client', 'ports'] and self.conf:
+
+        if name in ['dir', 'version', 'authorize_client', 'ports'
+                   ] and self.conf:
             self.conf.mark_unsaved('HiddenServices')
         if isinstance(value, types.ListType):
-            value = _ListWrapper(value, functools.partial(self.conf.mark_unsaved, 'HiddenServices'))
+            value = _ListWrapper(value, functools.partial(
+                self.conf.mark_unsaved, 'HiddenServices'))
         self.__dict__[name] = value
 
     def __getattr__(self, name):
         if name in ['hostname', 'private_key']:
-            self.__dict__[name] = open(os.path.join(self.dir, name)).read().strip()
+            self.__dict__[name] = open(os.path.join(self.dir, name)).read(
+            ).strip()
         return self.__dict__[name]
 
     def config_attributes(self):
         """
         Helper method used by y TorConfig when generating a torrc file.
         """
-    
+
         rtn = [('HiddenServiceDir', self.dir)]
         for x in self.ports:
             rtn.append(('HiddenServicePort', x))
@@ -460,6 +498,7 @@ class HiddenService(object):
         if self.authorize_client:
             rtn.append(('HiddenServiceAuthorizeClient', self.authorize_client))
         return rtn
+
 
 class TorConfig(object):
     """
@@ -507,17 +546,18 @@ class TorConfig(object):
 
         self.config = {}
         '''Current configuration, by keys.'''
-        
+
         self.unsaved = {}
         '''Configuration that has been changed since last save().'''
-        
+
         self.parsers = {}
         '''Instances of the parser classes, subclasses of TorConfigType'''
 
         self.post_bootstrap = defer.Deferred()
         if self.protocol:
             if self.protocol.post_bootstrap:
-                self.protocol.post_bootstrap.addCallback(self.bootstrap).addErrback(log.err)
+                self.protocol.post_bootstrap.addCallback(
+                    self.bootstrap).addErrback(log.err)
             else:
                 self.bootstrap()
 
@@ -532,7 +572,7 @@ class TorConfig(object):
     ## unfortunately. the _setup_ thing is so that we can set up the
     ## attributes we need in the constructor without uusing __dict__
     ## all over the place.
-        
+
     def __setattr__(self, name, value):
         if self.__dict__.has_key('_setup_'):
             if name.lower() != 'hiddenservices':
@@ -540,7 +580,8 @@ class TorConfig(object):
                 if not self.__dict__.has_key('_slutty_'):
                     value = self.parsers[name].validate(value, self, name)
                 if isinstance(value, types.ListType):
-                    value = _ListWrapper(value, functools.partial(self.mark_unsaved, name))
+                    value = _ListWrapper(value, functools.partial(
+                        self.mark_unsaved, name))
 
             name = self._find_real_name(name)
             self.unsaved[name] = value
@@ -552,13 +593,15 @@ class TorConfig(object):
     ## because I want the config to represent the running Tor not
     ## "things which might get into the running Tor if save() were to
     ## be called"
-            
+
     def __getattr__(self, name):
         return self.config[self._find_real_name(name)]
 
     def bootstrap(self, *args):
-##        self.protocol.add_event_listener('CONF_CHANGED', self._conf_changed)
-        return self.protocol.get_info_raw("config/names").addCallbacks(self._do_setup, log.err).addCallback(self.doPostbootstrap).addErrback(log.err)
+        ##        self.protocol.add_event_listener('CONF_CHANGED', self._conf_changed)
+        return self.protocol.get_info_raw("config/names").addCallbacks(
+            self._do_setup,
+            log.err).addCallback(self.doPostbootstrap).addErrback(log.err)
 
     def doPostbootstrap(self, *args):
         self.post_bootstrap.callback(self)
@@ -578,7 +621,7 @@ class TorConfig(object):
         errback if Tor was unhappy with anything, or callback with
         this TorConfig object on success.
         """
-        
+
         if not self.needs_save():
             d = defer.Deferred()
             d.callback(self)
@@ -603,12 +646,12 @@ class TorConfig(object):
                         args.append('HiddenServiceAuthorizeClient')
                         args.append(hs.authorize_client)
                 continue
-            
+
             if isinstance(value, types.ListType):
                 for x in value:
                     args.append(key)
                     args.append(str(x))
-                    
+
             else:
                 args.append(key)
                 args.append(value)
@@ -625,7 +668,7 @@ class TorConfig(object):
             d.addCallback(self._save_completed)
             d.addErrback(log.err)
             return d
-        
+
         else:
             return defer.succeed(self)
 
@@ -648,13 +691,14 @@ class TorConfig(object):
             (name, value) = line.split()
             if name == 'HiddenServiceOptions':
                 ## set up the "special-case" hidden service stuff
-                servicelines = yield self.protocol.get_conf_raw('HiddenServiceOptions')
+                servicelines = yield self.protocol.get_conf_raw(
+                    'HiddenServiceOptions')
                 self._setup_hidden_services(servicelines)
                 continue
-            
+
             if value == 'Dependant':
                 continue
-            
+
             inst = None
             # FIXME: put parser classes in dict instead?
             for cls in config_types:
@@ -664,16 +708,19 @@ class TorConfig(object):
                 raise RuntimeError("Don't have a parser for: " + value)
             v = yield self.protocol.get_conf(name)
             v = v[name]
-            
+
             self.parsers[name] = inst
-            
+
             if value == 'LineList':
                 ## FIXME should move to the parse() method, but it
                 ## doesn't have access to conf object etc.
-                self.config[self._find_real_name(name)] = _ListWrapper(self.parsers[name].parse(v), functools.partial(self.mark_unsaved, name))
-                
+                self.config[self._find_real_name(name)] = _ListWrapper(
+                    self.parsers[name].parse(v), functools.partial(
+                        self.mark_unsaved, name))
+
             else:
-                self.config[self._find_real_name(name)] = self.parsers[name].parse(v)
+                self.config[self._find_real_name(name)
+                           ] = self.parsers[name].parse(v)
 
         # can't just return in @inlineCallbacks-decorated methods
         defer.returnValue(self)
@@ -713,7 +760,8 @@ class TorConfig(object):
             hs.append(HiddenService(self, directory, ports, auth, ver))
 
         name = 'HiddenServices'
-        self.config[name] = _ListWrapper(hs, functools.partial(self.mark_unsaved, name))
+        self.config[name] = _ListWrapper(hs, functools.partial(
+            self.mark_unsaved, name))
 
     def create_torrc(self):
         rtn = StringIO()
@@ -728,7 +776,7 @@ class TorConfig(object):
                 else:
                     for x in v:
                         rtn.write('%s %s\n' % (k, x))
-                    
+
             else:
                 rtn.write('%s %s\n' % (k, v))
 

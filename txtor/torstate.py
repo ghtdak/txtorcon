@@ -1,4 +1,3 @@
-
 from twisted.python import log, failure
 from twisted.internet import defer
 from twisted.internet.interfaces import IProtocolFactory, IReactorCore
@@ -30,12 +29,15 @@ try:
 except ImportError:
     USE_PSUTIL = False
 
+
 def build_state(proto):
     state = TorState(proto)
     return state.post_bootstrap
 
+
 def wait_for_proto(proto):
     return proto.post_bootstrap
+
 
 def build_tor_connection(endpoint, buildstate=True):
     """
@@ -45,7 +47,7 @@ def build_tor_connection(endpoint, buildstate=True):
     (i.e. TorControlProtocol.post_bootstrap or TorState.post_bootstap
     has fired)
     """
-    
+
     from txtor import TorProtocolFactory
     d = endpoint.connect(TorProtocolFactory())
     if buildstate:
@@ -53,6 +55,7 @@ def build_tor_connection(endpoint, buildstate=True):
     else:
         d.addCallback(wait_for_proto)
     return d
+
 
 class TorState(object):
     """
@@ -68,12 +71,13 @@ class TorState(object):
     This is also a good example of the various listeners, and acts as
     an ICircuitContainer and IRouterContainer.
     """
-    
-    implements (ICircuitListener, ICircuitContainer, IRouterContainer, IStreamListener)
+
+    implements(ICircuitListener, ICircuitContainer, IRouterContainer,
+               IStreamListener)
 
     def __init__(self, protocol, bootstrap=True):
         self.protocol = ITorControlProtocol(protocol)
-        
+
         ## could override these to get your own Circuit/Stream subclasses
         ## to track these things
         self.circuit_factory = Circuit
@@ -81,28 +85,31 @@ class TorState(object):
 
         self.attacher = None
         """If set, provides :class:`txtor.IStreamAttacher` to attach new streams we hear about."""
-        
 
         self.circuit_listeners = []
         self.stream_listeners = []
-        
-        self.addrmap = AddrMap()
-        self.circuits = {}              # keys on id (integer)
-        self.streams = {}               # keys on id (integer)
-        
-        self.routers = {}               # keys by hexid (string) and by unique names
-        self.routers_by_name = {}       # keys on name, value always list (many duplicate "Unnamed" routers, for example)
-        self.guards = {}                # potentially-usable as entry guards, I think? (any router with 'Guard' flag)
-        self.entry_guards = {}          # from GETINFO entry-guards, our current entry guards
-        self.unusable_entry_guards = [] # list of entry guards we didn't parse out
-        self.authorities = {}           # keys by name
 
-        self.cleanup = None             # see set_attacher
+        self.addrmap = AddrMap()
+        self.circuits = {}  # keys on id (integer)
+        self.streams = {}  # keys on id (integer)
+
+        self.routers = {}  # keys by hexid (string) and by unique names
+        self.routers_by_name = {
+        }  # keys on name, value always list (many duplicate "Unnamed" routers, for example)
+        self.guards = {
+        }  # potentially-usable as entry guards, I think? (any router with 'Guard' flag)
+        self.entry_guards = {
+        }  # from GETINFO entry-guards, our current entry guards
+        self.unusable_entry_guards = []  # list of entry guards we didn't parse out
+        self.authorities = {}  # keys by name
+
+        self.cleanup = None  # see set_attacher
 
         self.post_bootstrap = defer.Deferred()
         if bootstrap:
             if self.protocol.post_bootstrap:
-                self.protocol.post_bootstrap.addCallback(self.bootstrap).addErrback(log.err)
+                self.protocol.post_bootstrap.addCallback(
+                    self.bootstrap).addErrback(log.err)
             else:
                 self.bootstrap()
 
@@ -126,11 +133,11 @@ class TorState(object):
         key = 'address-mappings/all'
         am = yield self.protocol.get_info_raw(key)
         ## strip addressmappsings/all= and OK\n from raw data
-        am = am[len(key)+1:]
+        am = am[len(key) + 1:]
         if am.strip() != 'OK':
             for line in am.split('\n')[:-1]:
                 if len(line.strip()) == 0:
-                    continue            # FIXME
+                    continue  # FIXME
                 self.addrmap.update(line)
 
         ## FIXME can we use yield in here too? not really a huge deal
@@ -152,7 +159,7 @@ class TorState(object):
             if status.lower() != 'up':
                 self.unusable_entry_guards.append(line)
                 continue
-                
+
             try:
                 self.entry_guards[name] = self.router_from_id(name)
             except KeyError:
@@ -162,7 +169,8 @@ class TorState(object):
         ## guess at the Tor otherwise, by taking PID of the only
         ## available "tor" process, not guessing at all if there's 0
         ## or > 1 tor processes.
-        pid = yield self.protocol.get_info_raw("process/pid").addErrback(self.guess_tor_pid)
+        pid = yield self.protocol.get_info_raw("process/pid").addErrback(
+            self.guess_tor_pid)
         if pid:
             self.tor_pid = pid
 
@@ -172,10 +180,10 @@ class TorState(object):
     def guess_tor_pid(self, *args):
         if self.protocol.is_owned:
             return self.protocol.is_owned
-        
+
         if USE_PSUTIL:
             return self.guess_tor_pid_psutil()
-        
+
         else:
             return self.guess_tor_pid_proc()
 
@@ -195,16 +203,15 @@ class TorState(object):
             if os.path.exists(p) and '/tor' in open(p, 'r').read():
                 self.tor_pid = int(pid)
         return None
-    
 
     def undo_attacher(self):
         """
         Shouldn't Tor handle this by turning this back to 0 if the
         controller that twiddled it disconnects?
         """
-        
+
         return self.protocol.set_conf("__LeaveStreamsUnattached", 0)
-    
+
     def set_attacher(self, attacher, myreactor):
         """
         Provide an IStreamAttacher to associate streams to
@@ -218,13 +225,13 @@ class TorState(object):
             self.attacher = IStreamAttacher(attacher)
         else:
             self.attacher = None
-        
+
         if self.attacher is None:
             self.undo_attacher()
             if self.cleanup:
                 react.removeSystemEventTrigger(self.cleanup)
                 self.cleanup = None
-            
+
         else:
             self.protocol.set_conf("__LeaveStreamsUnattached", "1")
             self.cleanup = react.addSystemEventTrigger('before', 'shutdown',
@@ -232,29 +239,31 @@ class TorState(object):
         return None
 
     stream_close_reasons = {
-        'REASON_MISC': 1,               # (catch-all for unlisted reasons)
-        'REASON_RESOLVEFAILED': 2,      # (couldn't look up hostname)
-        'REASON_CONNECTREFUSED': 3,     # (remote host refused connection) [*]
-        'REASON_EXITPOLICY': 4,         # (OR refuses to connect to host or port)
-        'REASON_DESTROY': 5,            # (Circuit is being destroyed)
-        'REASON_DONE': 6,               # (Anonymized TCP connection was closed)
-        'REASON_TIMEOUT': 7,            # (Connection timed out, or OR timed out while connecting)
-        'REASON_NOROUTE': 8,            # (Routing error while attempting to contact destination)
-        'REASON_HIBERNATING': 9,        # (OR is temporarily hibernating)
-        'REASON_INTERNAL': 10,          # (Internal error at the OR)
-        'REASON_RESOURCELIMIT': 11,     # (OR has no resources to fulfill request)
-        'REASON_CONNRESET': 12,         # (Connection was unexpectedly reset)
-        'REASON_TORPROTOCOL': 13,       # (Sent when closing connection because of Tor protocol violations.)
-        'REASON_NOTDIRECTORY': 14,      # (Client sent RELAY_BEGIN_DIR to a non-directory relay.)
-        }
+        'REASON_MISC': 1,  # (catch-all for unlisted reasons)
+        'REASON_RESOLVEFAILED': 2,  # (couldn't look up hostname)
+        'REASON_CONNECTREFUSED': 3,  # (remote host refused connection) [*]
+        'REASON_EXITPOLICY': 4,  # (OR refuses to connect to host or port)
+        'REASON_DESTROY': 5,  # (Circuit is being destroyed)
+        'REASON_DONE': 6,  # (Anonymized TCP connection was closed)
+        'REASON_TIMEOUT': 7,  # (Connection timed out, or OR timed out while connecting)
+        'REASON_NOROUTE': 8,  # (Routing error while attempting to contact destination)
+        'REASON_HIBERNATING': 9,  # (OR is temporarily hibernating)
+        'REASON_INTERNAL': 10,  # (Internal error at the OR)
+        'REASON_RESOURCELIMIT': 11,  # (OR has no resources to fulfill request)
+        'REASON_CONNRESET': 12,  # (Connection was unexpectedly reset)
+        'REASON_TORPROTOCOL': 13,  # (Sent when closing connection because of Tor protocol violations.)
+        'REASON_NOTDIRECTORY': 14,  # (Client sent RELAY_BEGIN_DIR to a non-directory relay.)
+    }
 
     def close_stream(self, stream, reason='REASON_MISC'):
         if not self.streams.has_key(stream.id):
             raise KeyError("No such stream: %d" % stream.id)
-            
-        return self.protocol.queue_command("CLOSESTREAM %d %d" % (stream.id, self.stream_close_reasons[reason]))
+
+        return self.protocol.queue_command("CLOSESTREAM %d %d" % (
+            stream.id, self.stream_close_reasons[reason]))
 
     DO_NOT_ATTACH = object()
+
     def maybe_attach(self, stream):
         """
         If we've got a custom stream-attachment instance (see
@@ -269,40 +278,51 @@ class TorState(object):
         cause the circuit attacher to simply ignore the stream
         (neither attaching it, nor telling Tor to attach it).
         """
-        
+
         if self.attacher:
             if stream.target_host is not None and '.exit' in stream.target_host:
                 ## we want to totally ignore .exit URIs as these are
                 ## used to specify a particular exit node, and trying
                 ## to do STREAMATTACH on them will fail with an error
                 ## from Tor anyway.
-                if DEBUG: print "ignore attacher:",stream
+                if DEBUG: print "ignore attacher:", stream
                 return
 
-            circ = IStreamAttacher(self.attacher).attach_stream(stream, self.circuits)
+            circ = IStreamAttacher(self.attacher).attach_stream(stream,
+                                                                self.circuits)
             if circ is self.DO_NOT_ATTACH:
                 return
-            
+
             if circ == None:
                 self.protocol.queue_command("ATTACHSTREAM %d 0" % stream.id)
-                
+
             else:
                 if isinstance(circ, defer.Deferred):
+
                     class IssueStreamAttach:
+
                         def __init__(self, state, streamid):
                             self.stream_id = streamid
                             self.state = state
+
                         def __call__(self, arg):
                             circid = arg.id
-                            self.state.protocol.queue_command("ATTACHSTREAM %d %d" % (self.stream_id, circid))
-                    circ.addCallback(IssueStreamAttach(self, stream.id)).addErrback(log.err)
+                            self.state.protocol.queue_command(
+                                "ATTACHSTREAM %d %d" % (self.stream_id, circid))
+
+                    circ.addCallback(IssueStreamAttach(
+                        self, stream.id)).addErrback(log.err)
 
                 else:
                     if not self.circuits.has_key(circ.id):
-                        raise Exception("Attacher returned a circuit unknown to me.")
+                        raise Exception(
+                            "Attacher returned a circuit unknown to me.")
                     if circ.state != 'BUILT':
-                        raise Exception("Can only attach to BUILT circuits; %d is in %s." % (circ.id, circ.state))
-                    self.protocol.queue_command("ATTACHSTREAM %d %d" % (stream.id, circ.id))
+                        raise Exception(
+                            "Can only attach to BUILT circuits; %d is in %s." %
+                            (circ.id, circ.state))
+                    self.protocol.queue_command("ATTACHSTREAM %d %d" %
+                                                (stream.id, circ.id))
 
     def circuit_status(self, data):
         "Used internally as a callback for updating Circuit information"
@@ -343,18 +363,18 @@ class TorState(object):
             args = line.split()
             if args[0] == 'r':
                 last = Router(self.protocol)
-                last.update(args[1],         # nickname
-                            args[2],         # idhash
-                            args[3],         # orhash
-                            datetime.datetime.strptime(args[4]+args[5], '%Y-%m-%f%H:%M:%S'),
-                            args[6],         # ip address
-                            args[7],         # ORPort
-                            args[8])         # DirPort
-                
+                last.update(args[1],  # nickname
+                            args[2],  # idhash
+                            args[3],  # orhash
+                            datetime.datetime.strptime(
+                                args[4] + args[5], '%Y-%m-%f%H:%M:%S'), args[6],  # ip address
+                            args[7],  # ORPort
+                            args[8])  # DirPort
+
                 if self.routers.has_key(last.id_hex):
                     last = self.routers[last.id_hex]
                     continue
-                
+
                 if self.routers_by_name.has_key(last.name):
                     self.routers_by_name[last.name].append(last)
                 else:
@@ -365,7 +385,7 @@ class TorState(object):
                 else:
                     self.routers[last.name] = last
                 self.routers[last.id_hex] = last
-                
+
             elif args[0] == 's':
                 last.set_flags(args[1:])
                 if 'guard' in last.flags:
@@ -375,20 +395,21 @@ class TorState(object):
 
             elif args[0] == 'w':
                 last.set_bandwidth(int(args[1].split('=')[1]))
-                
-            else:                       # args[0] == 'p'
+
+            else:  # args[0] == 'p'
                 last.set_policy(args[1:])
                 last = None
 
-        if DEBUG: print len(self.routers_by_name),"named routers found."
+        if DEBUG: print len(self.routers_by_name), "named routers found."
         ## remove any names we added that turned out to have dups
-        for (k,v) in self.routers.items():
+        for (k, v) in self.routers.items():
             if v is None:
-                if DEBUG: print len(self.routers_by_name[k]),"dups:",k ##,self.routers_by_name[k]
+                if DEBUG:
+                    print len(self.routers_by_name[k]), "dups:", k  ##,self.routers_by_name[k]
                 del self.routers[k]
 
-        if DEBUG: print len(self.guards),"GUARDs"
-                
+        if DEBUG: print len(self.guards), "GUARDs"
+
     def newdesc_update(self, args):
         """
         Callback used internall for ORCONN and NEWDESC events to update Router information.
@@ -399,16 +420,18 @@ class TorState(object):
 
         hsh = args[:41]
         if not self.routers.has_key(hsh):
-            if DEBUG: print "haven't seen",hsh,"yet!"
-        self.protocol.get_info_raw('ns/id/%s' % hsh[1:]).addCallback(self.update_network_status).addErrback(log.err)
-        if DEBUG: print "NEWDESC",args
-                
+            if DEBUG: print "haven't seen", hsh, "yet!"
+        self.protocol.get_info_raw(
+            'ns/id/%s' %
+            hsh[1:]).addCallback(self.update_network_status).addErrback(log.err)
+        if DEBUG: print "NEWDESC", args
+
     def circuit_update(self, line):
         "Used internally as a callback to update Circuit information from CIRC events."
         #print "circuit_update",line
         args = line.split()
         circ_id = int(args[0])
-        
+
         if not self.circuits.has_key(circ_id):
             c = self.circuit_factory(self)
             c.listen(self)
@@ -424,10 +447,10 @@ class TorState(object):
         if line.strip() == 'stream-status=':
             ## this happens if there are no active streams
             return
-        
+
         args = line.split()
         if len(args) < 3:
-            print "OH NO stream_update",args
+            print "OH NO stream_update", args
 
         stream_id = int(args[0])
         wasnew = False
@@ -438,7 +461,7 @@ class TorState(object):
             [stream.listen(x) for x in self.stream_listeners]
             wasnew = True
         self.streams[stream_id].update(args)
-        
+
         ## if the update closed the stream, it won't be in our list
         ## anymore. FIXME: how can we ever hit such a case as the
         ## first update being a CLOSE?
@@ -446,14 +469,14 @@ class TorState(object):
             self.maybe_attach(self.streams[stream_id])
 
     def guard_update(self, line):
-        print "guard_update",line
+        print "guard_update", line
 
     def status_general(self, update):
-        print "STATUS:",update
+        print "STATUS:", update
 
     def addr_map(self, addr):
         "Internal callback to update DNS cache. Listens to ADDRMAP."
-        if DEBUG: print " --> addr_map",addr
+        if DEBUG: print " --> addr_map", addr
         self.addrmap.update(addr)
 
     def add_circuit_listener(self, icircuitlistener):
@@ -468,15 +491,18 @@ class TorState(object):
             stream.listen(listen)
         self.stream_listeners.append(listen)
 
-    event_map = {'GUARD': guard_update,
-                 'STREAM': stream_update,
-                 'CIRC': circuit_update,
-                 'NS': update_network_status,
-                 'NEWCONSENSUS': update_network_status,
-                 'ORCONN': newdesc_update,
-                 'NEWDESC': newdesc_update,
-                 'ADDRMAP': addr_map,
-                 'STATUS_GENERAL': status_general}
+    event_map = {
+        'GUARD': guard_update,
+        'STREAM': stream_update,
+        'CIRC': circuit_update,
+        'NS': update_network_status,
+        'NEWCONSENSUS': update_network_status,
+        'ORCONN': newdesc_update,
+        'NEWDESC': newdesc_update,
+        'ADDRMAP': addr_map,
+        'STATUS_GENERAL': status_general
+    }
+
     @defer.inlineCallbacks
     def add_events(self):
         """
@@ -486,10 +512,11 @@ class TorState(object):
         for (event, func) in self.event_map.items():
             ## the map contains unbound methods, so we bind them
             ## to self so they call the right thing
-            yield self.protocol.add_event_listener(event, types.MethodType(func, self, TorState))
+            yield self.protocol.add_event_listener(event, types.MethodType(
+                func, self, TorState))
 
     ## ICircuitContainer
-        
+
     def find_circuit(self, circid):
         "ICircuitContainer API"
         return self.circuits[circid]
@@ -501,14 +528,14 @@ class TorState(object):
         return self.routers[routerid]
 
     ## implement IStreamListener
-    
+
     def stream_new(self, stream):
         "IStreamListener: a new stream has been created"
-        if DEBUG: print "stream_new",stream
+        if DEBUG: print "stream_new", stream
 
     def stream_succeeded(self, stream):
         "IStreamListener: stream has succeeded"
-        if DEBUG: print "stream_succeeded",stream
+        if DEBUG: print "stream_succeeded", stream
 
     def stream_attach(self, stream, circuit):
         """
@@ -516,66 +543,71 @@ class TorState(object):
         seems you get an attach to None followed by an attach to real
         circuit fairly frequently. Perhaps related to __LeaveStreamsUnattached?
         """
-        if DEBUG: print "stream_attach",stream.id,stream.target_host," -> ",circuit
+        if DEBUG:
+            print "stream_attach", stream.id, stream.target_host, " -> ", circuit
 
     def stream_detach(self, stream, circuit):
         """
         IStreamListener
         """
-        if DEBUG: print "stream_detach",stream.id
+        if DEBUG: print "stream_detach", stream.id
 
     def stream_closed(self, stream):
         "IStreamListener: stream has been closed (won't be in controller's list anymore)"
-        if DEBUG: print "stream_closed",stream.id
+        if DEBUG: print "stream_closed", stream.id
         del self.streams[stream.id]
 
     def stream_failed(self, stream, reason, remote_reason):
         "IStreamListener: stream failed for some reason (won't be in controller's list anymore)"
-        if DEBUG: print "stream_failed",stream.id
+        if DEBUG: print "stream_failed", stream.id
         del self.streams[stream.id]
 
     ## implement ICircuitListener
 
     def circuit_launched(self, circuit):
         "ICircuitListener API"
-        if DEBUG: print "circuit_launched",circuit.id
+        if DEBUG: print "circuit_launched", circuit.id
 
     def circuit_extend(self, circuit, router):
         "ICircuitListener API"
-        if DEBUG: print "circuit_extend:",circuit.id,router
-    
+        if DEBUG: print "circuit_extend:", circuit.id, router
+
     def circuit_built(self, circuit):
         "ICircuitListener API"
-        if DEBUG: print "circuit_built:",circuit.id,'->'.join(map(lambda x: x.name+'.'+str(x.location.countrycode), circuit.path)), circuit.streams
-    
+        if DEBUG:
+            print "circuit_built:", circuit.id, '->'.join(
+                map(lambda x: x.name + '.' + str(x.location.countrycode),
+                    circuit.path)), circuit.streams
+
     def circuit_new(self, circuit):
         "ICircuitListener API"
-        if DEBUG: print "circuit_new:",circuit.id
+        if DEBUG: print "circuit_new:", circuit.id
         self.circuits[circuit.id] = circuit
 
     def circuit_destroy(self, circuit):
         "For circuit_closed and circuit_failed"
-        if DEBUG: print "circuit_destroy:",circuit.id
+        if DEBUG: print "circuit_destroy:", circuit.id
         if not self.circuits.has_key(circuit.id):
             ## FIXME seems to happen not-infrequently; why?
             ## looks like "always" for the internal DIR_FECTH circuits at least...
-            warnings.warn("Circuit %s already destroyed." % circuit.id, RuntimeWarning)
+            warnings.warn("Circuit %s already destroyed." % circuit.id,
+                          RuntimeWarning)
         else:
             del self.circuits[circuit.id]
 
     def circuit_closed(self, circuit):
         "ICircuitListener API"
-        if DEBUG: print "circuit_closed",circuit
+        if DEBUG: print "circuit_closed", circuit
         self.circuit_destroy(circuit)
-        
+
     def circuit_failed(self, circuit, reason):
         "ICircuitListener API"
-        if DEBUG: print "circuit_failed",circuit,reason
+        if DEBUG: print "circuit_failed", circuit, reason
         self.circuit_destroy(circuit)
-        
+
     def circuit_launched(self, circuit):
         "ICircuitListener API"
-        if DEBUG: print "circuit_launched",circuit
+        if DEBUG: print "circuit_launched", circuit
         self.circuits[circuit.id] = circuit
 
     ## explicitly build a circuit
@@ -588,5 +620,7 @@ class TorState(object):
         will return the new circuit ID to you.
         """
         if routers[0] not in self.entry_guards.values():
-            warnings.warn("Building a circuit not starting with a guard: %s" % (str(routers),), RuntimeWarning)
-        return self.protocol.queue_command("EXTENDCIRCUIT 0 " + ','.join(map(lambda x: x.id_hex, routers)))
+            warnings.warn("Building a circuit not starting with a guard: %s" %
+                          (str(routers),), RuntimeWarning)
+        return self.protocol.queue_command("EXTENDCIRCUIT 0 " + ','.join(map(
+            lambda x: x.id_hex, routers)))

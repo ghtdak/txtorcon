@@ -1,4 +1,3 @@
-
 from zope.interface import implements
 from twisted.python import log
 from twisted.trial import unittest
@@ -11,22 +10,27 @@ from txtor import TorControlProtocol, TorProtocolFactory, TorState, IStreamAttac
 from txtor.torcontrolprotocol import parse_keywords, DEFAULT_VALUE
 import types
 
+
 def do_nothing(*args):
     pass
 
+
 class CallbackChecker:
+
     def __init__(self, expected):
         self.expected_value = expected
         self.called_back = False
-        
+
     def __call__(self, *args, **kwargs):
         v = args[0]
         if v != self.expected_value:
             print "WRONG"
-            raise Exception('Expected "%s" but got "%s"' % (self.expected_value, v))
+            raise Exception('Expected "%s" but got "%s"' %
+                            (self.expected_value, v))
         ##print "got correct value",v
         self.called_back = True
         return v
+
 
 class LogicTests(unittest.TestCase):
 
@@ -46,29 +50,35 @@ class LogicTests(unittest.TestCase):
         d.addErrback(lambda foo: True)
         return d
 
+
 class FactoryTests(unittest.TestCase):
+
     def test_create(self):
         TorProtocolFactory().buildProtocol(None)
-      
+
+
 class AuthenticationTests(unittest.TestCase):
+
     def setUp(self):
         self.protocol = TorControlProtocol()
         self.transport = proto_helpers.StringTransport()
 
     def send(self, line):
         self.protocol.dataReceived(line.strip() + "\r\n")
-        
+
     def test_authenticate_cookie(self):
         self.protocol.makeConnection(self.transport)
         self.assertTrue(self.transport.value() == 'PROTOCOLINFO 1\r\n')
         self.transport.clear()
         open('authcookie', 'w').write('cookiedata!')
         self.send('250-PROTOCOLINFO 1')
-        self.send('250-AUTH METHODS=COOKIE,HASHEDPASSWORD COOKIEFILE="authcookie"')
+        self.send(
+            '250-AUTH METHODS=COOKIE,HASHEDPASSWORD COOKIEFILE="authcookie"')
         self.send('250-VERSION Tor="0.2.2.34"')
         self.send('250 OK')
 
-        self.assertTrue(self.transport.value() == 'AUTHENTICATE "cookiedata!"\r\n')
+        self.assertTrue(self.transport.value() ==
+                        'AUTHENTICATE "cookiedata!"\r\n')
 
     def test_authenticate_password(self):
         self.protocol.password = 'foo'
@@ -84,20 +94,21 @@ class AuthenticationTests(unittest.TestCase):
 
     def confirmAuthFailed(self, *args):
         self.auth_failed = True
-        
+
     def test_authenticate_no_password(self):
         self.protocol.auth_failed = self.confirmAuthFailed
         self.auth_failed = False
-        
+
         self.protocol.makeConnection(self.transport)
         self.assertTrue(self.transport.value() == 'PROTOCOLINFO 1\r\n')
-        
+
         self.send('250-PROTOCOLINFO 1')
         self.send('250-AUTH METHODS=HASHEDPASSWORD')
         self.send('250-VERSION Tor="0.2.2.34"')
         self.send('250 OK')
 
         self.assertTrue(self.auth_failed)
+
 
 class ProtocolTests(unittest.TestCase):
 
@@ -161,7 +172,7 @@ class ProtocolTests(unittest.TestCase):
         self.got_auth_failed = False
         self.protocol.auth_failed = self.auth_failed
 
-        self.protocol.password='foo'
+        self.protocol.password = 'foo'
         self.protocol.doAuthenticate('''PROTOCOLINFO 1
 AUTH METHODS=HASHEDPASSWORD
 VERSION Tor="0.2.2.35"
@@ -171,15 +182,16 @@ OK''')
 
     def confirm_version_events(self, arg):
         self.assertTrue(self.protocol.version == 'foo')
-        events = 'GUARD STREAM CIRC NS NEWCONSENSUS ORCONN NEWDESC ADDRMAP STATUS_GENERAL'.split()
+        events = 'GUARD STREAM CIRC NS NEWCONSENSUS ORCONN NEWDESC ADDRMAP STATUS_GENERAL'.split(
+        )
         self.assertTrue(len(self.protocol.valid_events) == len(events))
         [self.assertTrue(self.protocol.valid_events.has_key(x)) for x in events]
-            
+
     def test_bootstrap_callback(self):
         d = self.protocol.post_bootstrap
         d.addCallback(CallbackChecker(self.protocol))
         d.addCallback(self.confirm_version_events)
-        
+
         events = 'GUARD STREAM CIRC NS NEWCONSENSUS ORCONN NEWDESC ADDRMAP STATUS_GENERAL'
         self.protocol.bootstrap()
 
@@ -189,11 +201,10 @@ OK''')
 
         self.send("250-events/names=" + events)
         self.send("250 OK")
-        
-        self.send("250 OK")             # for USEFEATURE
+
+        self.send("250 OK")  # for USEFEATURE
 
         return d
-
 
     def test_async(self):
         ## test the example from control-spec.txt to see that we
@@ -201,7 +212,7 @@ OK''')
         self.protocol.set_valid_events('CIRC')
         self.protocol.add_event_listener('CIRC', do_nothing)
         self.send("250 OK")
-        
+
         d = self.protocol.get_conf("SOCKSPORT ORPORT")
         self.send("650 CIRC 1000 EXTENDED moria1,moria2")
         self.send("250-SOCKSPORT=9050")
@@ -216,11 +227,12 @@ OK''')
         ## 650 ANONYMITY=high
 
         self.protocol.set_valid_events('CIRC')
-        self.protocol.add_event_listener('CIRC', CallbackChecker("1000 EXTENDED moria1,moria2\nEXTRAMAGIC=99\nANONYMITY=high"))
+        self.protocol.add_event_listener('CIRC', CallbackChecker(
+            "1000 EXTENDED moria1,moria2\nEXTRAMAGIC=99\nANONYMITY=high"))
         self.send("250 OK")
-        
+
         d = self.protocol.get_conf("SOCKSPORT ORPORT")
-        d.addCallback(CallbackChecker({"ORPORT":"0", "SOCKSPORT":"9050"}))
+        d.addCallback(CallbackChecker({"ORPORT": "0", "SOCKSPORT": "9050"}))
         self.send("650-CIRC 1000 EXTENDED moria1,moria2")
         self.send("650-EXTRAMAGIC=99")
         self.send("650 ANONYMITY=high")
@@ -230,8 +242,7 @@ OK''')
 
     def test_getconf(self):
         d = self.protocol.get_conf("SOCKSPORT ORPORT")
-        d.addCallback(CallbackChecker({'SocksPort':'9050',
-                                       'ORPort':'0'}))
+        d.addCallback(CallbackChecker({'SocksPort': '9050', 'ORPort': '0'}))
         self.send("250-SocksPort=9050")
         self.send("250 ORPort=0")
         return d
@@ -256,7 +267,7 @@ OK''')
         self.assertTrue(self.transport.value() == "SETCONF foo=bar baz=1\r\n")
 
     def error(self, failure):
-        print "ERROR",failure
+        print "ERROR", failure
         self.assertTrue(False)
 
     def test_twocommands(self):
@@ -289,11 +300,12 @@ OK''')
 
     def test_notify_after_getinfo(self):
         self.protocol.set_valid_events('CIRC')
-        self.protocol.add_event_listener('CIRC', CallbackChecker("1000 EXTENDED moria1,moria2"))
+        self.protocol.add_event_listener(
+            'CIRC', CallbackChecker("1000 EXTENDED moria1,moria2"))
         self.send("250 OK")
-        
+
         d = self.protocol.get_info("FOO")
-        d.addCallback(CallbackChecker({'a':'one'})).addErrback(self.fail)
+        d.addCallback(CallbackChecker({'a': 'one'})).addErrback(self.fail)
         self.send("250-a=one")
         self.send("250 OK")
         self.send("650 CIRC 1000 EXTENDED moria1,moria2")
@@ -306,13 +318,13 @@ OK''')
             self.send("650 CIRC 1000 EXTENDED moria1,moria2")
             self.assertTrue(False)
         except Exception, e:
-            self.assertTrue("Wasn't listening" in e.message )
+            self.assertTrue("Wasn't listening" in e.message)
 
     def test_getinfo(self):
         d = self.protocol.get_info("version")
-        d.addCallback(CallbackChecker({'version':'0.2.2.34'}))
+        d.addCallback(CallbackChecker({'version': '0.2.2.34'}))
         d.addErrback(self.fail)
-        
+
         self.send("250-version=0.2.2.34")
         self.send("250 OK")
 
@@ -321,14 +333,15 @@ OK''')
 
     def test_addevent(self):
         self.protocol.set_valid_events('FOO BAR')
-        
+
         self.protocol.add_event_listener('FOO', do_nothing)
         ## is it dangerous/ill-advised to depend on internal state of
         ## class under test?
         d = self.protocol.defer
         self.send("250 OK")
         self._wait(d)
-        self.assertTrue(self.transport.value().split('\r\n')[-2] == "SETEVENTS FOO")
+        self.assertTrue(self.transport.value().split('\r\n')[-2] ==
+                        "SETEVENTS FOO")
         self.transport.clear()
 
         self.protocol.add_event_listener('BAR', do_nothing)
@@ -346,13 +359,16 @@ OK''')
 
     def test_eventlistener(self):
         self.protocol.set_valid_events('STREAM')
+
         class EventListener(object):
             stream_events = 0
+
             def __call__(self, data):
                 self.stream_events += 1
+
         listener = EventListener()
         evt = self.protocol.add_event_listener('STREAM', listener)
-        
+
         d = self.protocol.defer
         self.send("250 OK")
         self._wait(d)
@@ -362,10 +378,13 @@ OK''')
 
     def test_remove_eventlistener(self):
         self.protocol.set_valid_events('STREAM')
+
         class EventListener(object):
             stream_events = 0
+
             def __call__(self, data):
                 self.stream_events += 1
+
         listener = EventListener()
         evt = self.protocol.add_event_listener('STREAM', listener)
         self.assertTrue(self.transport.value() == 'SETEVENTS STREAM\r\n')
@@ -376,10 +395,13 @@ OK''')
 
     def test_remove_eventlistener_multiple(self):
         self.protocol.set_valid_events('STREAM')
+
         class EventListener(object):
             stream_events = 0
+
             def __call__(self, data):
                 self.stream_events += 1
+
         listener0 = EventListener()
         listener1 = EventListener()
         evt = self.protocol.add_event_listener('STREAM', listener0)
@@ -395,7 +417,7 @@ OK''')
         self.assertTrue(self.transport.value() == '')
 
         ## remove the other one, NOW should issue a command
-        self.protocol.remove_event_listener('STREAM', listener1)        
+        self.protocol.remove_event_listener('STREAM', listener1)
         self.assertTrue(self.transport.value() == 'SETEVENTS \r\n')
 
         ## try removing invalid event
@@ -412,7 +434,7 @@ OK''')
         d = self.protocol.get_info_raw("key")
 
         d.addCallback(self.checkContinuation)
-        
+
         self.send("250+key=")
         self.send("value0")
         self.send("value1")
@@ -426,37 +448,45 @@ OK''')
         FIXME: this test is now maybe a little silly, it's just testing multiline GETINFO...
         (Real test is in TorStateTests.test_newdesc_parse)
         """
-        
-        self.protocol.get_info_raw('ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A')
+
+        self.protocol.get_info_raw(
+            'ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A')
         d = self.protocol.defer
-        d.addCallback(CallbackChecker("""ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A=
+        d.addCallback(CallbackChecker(
+            """ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A=
 r fake YkkmgCNRV1/35OPWDvo7+1bmfoo tanLV/4ZfzpYQW0xtGFqAa46foo 2011-12-12 16:29:16 12.45.56.78 443 80
 s Exit Fast Guard HSDir Named Running Stable V2Dir Valid
 w Bandwidth=518000
 p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863,2082-2083,2086-2087,2095-2096,3128,4321,5050,5190,5222-5223,6679,6697,7771,8000,8008,8080-8081,8090,8118,8123,8181,8300,8443,8888
 OK"""))
-        
+
         self.send("250+ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A=")
-        self.send("r fake YkkmgCNRV1/35OPWDvo7+1bmfoo tanLV/4ZfzpYQW0xtGFqAa46foo 2011-12-12 16:29:16 12.45.56.78 443 80")
+        self.send(
+            "r fake YkkmgCNRV1/35OPWDvo7+1bmfoo tanLV/4ZfzpYQW0xtGFqAa46foo 2011-12-12 16:29:16 12.45.56.78 443 80")
         self.send("s Exit Fast Guard HSDir Named Running Stable V2Dir Valid")
         self.send("w Bandwidth=518000")
-        self.send("p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863,2082-2083,2086-2087,2095-2096,3128,4321,5050,5190,5222-5223,6679,6697,7771,8000,8008,8080-8081,8090,8118,8123,8181,8300,8443,8888")
+        self.send(
+            "p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863,2082-2083,2086-2087,2095-2096,3128,4321,5050,5190,5222-5223,6679,6697,7771,8000,8008,8080-8081,8090,8118,8123,8181,8300,8443,8888")
         self.send(".")
         self.send("250 OK")
 
         return d
+
 
 class ParseTests(unittest.TestCase):
 
     def setUp(self):
         self.controller = TorState(TorControlProtocol())
         self.controller.connectionMade = do_nothing
-    
+
     def test_keywords(self):
-        x = parse_keywords("""events/names=CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET
+        x = parse_keywords(
+            """events/names=CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET
 OK""")
         self.assertTrue(x.has_key("events/names"))
-        self.assertTrue(x['events/names'] == 'CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
+        self.assertTrue(
+            x['events/names'] ==
+            'CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
         self.assertTrue(len(x.keys()) == 1)
 
     def test_default_keywords(self):
@@ -525,7 +555,8 @@ p reject 25,119,135-139,445,563,1214,4661-4666,6346-6429,6699,6881-6999
         self.controller.routers_by_name.clear()
 
     def test_circuit_status(self):
-        self.controller.update_network_status("""r wildnl f+Ty/+B6lgYr0Ntbf67O/L2M8ZI c1iK/kPPXKGZZvwXRWbvL9eCfSc 2011-12-02 19:07:05 209.159.142.164 9001 0
+        self.controller.update_network_status(
+            """r wildnl f+Ty/+B6lgYr0Ntbf67O/L2M8ZI c1iK/kPPXKGZZvwXRWbvL9eCfSc 2011-12-02 19:07:05 209.159.142.164 9001 0
 s Exit Fast Named Running Stable Valid
 w Bandwidth=1900
 p reject 25,119,135-139,445,563,1214,4661-4666,6346-6429,6699,6881-6999

@@ -1,4 +1,3 @@
-
 ##
 ## wrapper for GeoIP since the API for city vs. country is different.
 ##
@@ -32,20 +31,23 @@ except:
 
 country = GeoIP.new(GeoIP.GEOIP_STANDARD)
 
+
 def delete_file_or_tree(*args):
     """"
     For every path in args, try to delete is as a file or a directory tree
     """
-    
+
     for f in args:
         try:
             os.unlink(f)
         except OSError:
             shutil.rmtree(f, ignore_errors=True)
-                
+
+
 def ip_from_int(self, ip):
-        """ Convert long int back to dotted quad string """
-        return socket.inet_ntoa(struct.pack('>I', ip))
+    """ Convert long int back to dotted quad string """
+    return socket.inet_ntoa(struct.pack('>I', ip))
+
 
 def process_from_address(addr, port, torstate):
     """
@@ -64,8 +66,8 @@ def process_from_address(addr, port, torstate):
     if "(tor_internal)" == addr.lower():
         return process_factory(torstate.tor_pid)
 
-    proc = subprocess.Popen(['lsof','-i','4tcp@%s:%s' % (addr,port)],
-                            stdout = subprocess.PIPE)
+    proc = subprocess.Popen(['lsof', '-i', '4tcp@%s:%s' % (addr, port)],
+                            stdout=subprocess.PIPE)
     (stdout, stderr) = proc.communicate()
     lines = stdout.split('\n')
     if len(lines) > 1:
@@ -74,11 +76,10 @@ def process_from_address(addr, port, torstate):
 
     return None
 
-    
+    ##
+    ## classes
+    ##
 
-##
-## classes
-##
 
 class NetLocation:
     """
@@ -94,17 +95,16 @@ class NetLocation:
         self.countrycode = None
         self.city = None
         self.asn = None
-        
+
         if city:
             r = city.record_by_addr(self.ip)
             if r is not None:
                 self.countrycode = r['country_code']
                 self.latlng = (r['latitude'], r['longitude'])
                 self.city = (r['city'], r['region'])
-            
+
         else:
             self.countrycode = country.country_code_by_addr(ipaddr)
-            
+
         if asn:
             self.asn = asn.org_by_addr(self.ip)
-                

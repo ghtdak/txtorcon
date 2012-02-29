@@ -4,25 +4,27 @@ from twisted.python import log
 from zope.interface import Interface
 from router import IRouterContainer
 
+
 class ICircuitContainer(Interface):
     """
     An interface that contains a bunch of Circuit objects and can look
     them up by id.
     """
-    
+
     def find_circuit(self, id):
         "return a circuit for the id, or exception."
+
 
 class ICircuitListener(Interface):
     """
     An interface to listen for updates to Circuits.
     """
-    
+
     def circuit_new(self, circuit):
         """A new circuit has been created.  You'll always get one of
         these for every Circuit even if it doesn't go through the "launched"
         state."""
-        
+
     def circuit_launched(self, circuit):
         "A new circuit has been started."
 
@@ -34,7 +36,7 @@ class ICircuitListener(Interface):
 
     def circuit_closed(self, circuit):
         "A circuit has been closed cleanly (won't be in controller's list any more)."
-        
+
     def circuit_failed(self, circuit, reason):
         """A circuit has been closed because something went wrong.
 
@@ -47,6 +49,7 @@ class ICircuitListener(Interface):
 
         However, don't depend on that: it could be anything.        
         """
+
 
 class Circuit(object):
     """
@@ -107,13 +110,13 @@ class Circuit(object):
         self.purpose = None
         self.id = None
         self.state = 'UNKNOWN'
-        
+
     def find_keywords(self, args):
         """FIXME: dup of the one in stream, move somewhere shared"""
         kw = {}
         for x in args:
             if '=' in x:
-                (k,v) = x.split('=',1)
+                (k, v) = x.split('=', 1)
                 kw[k] = v
         return kw
 
@@ -123,7 +126,7 @@ class Circuit(object):
 
     def unlisten(self, listener):
         self.listeners.remove(listener)
-                    
+
     def update(self, args):
         ##print "Circuit.update:",args
         if self.id is None:
@@ -137,7 +140,7 @@ class Circuit(object):
         kw = self.find_keywords(args)
         if kw.has_key('PURPOSE'):
             self.purpose = kw['PURPOSE']
-            
+
         if self.state == 'LAUNCHED':
             self.path = []
             [x.circuit_launched(self) for x in self.listeners]
@@ -150,12 +153,14 @@ class Circuit(object):
 
         elif self.state == 'CLOSED':
             if len(self.streams) > 0:
-                log.err(Exception("Circuit is %s but still has %d streams" % (self.state, len(self.streams))))
+                log.err(Exception("Circuit is %s but still has %d streams" % (
+                    self.state, len(self.streams))))
             [x.circuit_closed(self) for x in self.listeners]
 
         elif self.state == 'FAILED':
             if len(self.streams) > 0:
-                log.err(Exception("Circuit is %s but still has %d streams" % (self.state, len(self.streams))))
+                log.err(Exception("Circuit is %s but still has %d streams" % (
+                    self.state, len(self.streams))))
             reason = 'unknown'
             if kw.has_key('REASON'):
                 reason = kw['REASON']
@@ -171,7 +176,9 @@ class Circuit(object):
             if len(self.path) > len(oldpath):
                 [x.circuit_extend(self, router) for x in self.listeners]
                 oldpath = self.path
-        
+
     def __str__(self):
         #return "<Circuit %d %s [%s]>" % (self.id, self.state, ' '.join(map(lambda x: x.name, self.path)))
-        return "<Circuit %d %s [%s] for %s>" % (self.id, self.state, ' '.join(map(lambda x: x.ip, self.path)), self.purpose)
+        return "<Circuit %d %s [%s] for %s>" % (
+            self.id, self.state, ' '.join(map(lambda x: x.ip, self.path)),
+            self.purpose)

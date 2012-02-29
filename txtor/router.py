@@ -1,25 +1,33 @@
 from util import NetLocation
 from zope.interface import Interface
 
+
 class IRouterContainer(Interface):
+
     def router_from_id(self, routerid):
         "Return a router by its ID."
+
 
 def hexIdFromHash(hash):
     "From the base-64 encoded hashes Tor uses, this produces the longer hex-encoded hashes."
     return '$' + (hash + "=").decode("base64").encode("hex").upper()
 
+
 class PortRange(object):
     "Represents a range of ports for Router policies."
+
     def __init__(self, a, b):
         self.min = a
         self.max = b
+
     def __cmp__(self, b):
         if b >= self.min and b <= self.max:
             return 0
         return 1
+
     def __str__(self):
         return "%d-%d" % (self.min, self.max)
+
 
 class Router(object):
     """
@@ -57,7 +65,8 @@ class Router(object):
         self.location = NetLocation(self.ip)
         if self.location.countrycode is None:
             ## see if Tor is magic and knows more...
-            self.controller.get_info_raw('ip-to-country/'+self.ip).addCallback(self.set_country)
+            self.controller.get_info_raw('ip-to-country/' +
+                                         self.ip).addCallback(self.set_country)
 
         self.id_hex = hexIdFromHash(self.id_hash)
 
@@ -82,7 +91,7 @@ class Router(object):
             self.accepted_ports = None
             self.rejected_ports = []
             target = self.rejected_ports
-            
+
         elif word == 'accept':
             self.accepted_ports = []
             self.rejected_ports = None
@@ -90,10 +99,10 @@ class Router(object):
 
         else:
             raise Exception("Don't understand policy word \"%s\"" % word)
-            
+
         for port in args[1].split(','):
             if '-' in port:
-                (a,b) = port.split('-')
+                (a, b) = port.split('-')
                 target.append(PortRange(int(a), int(b)))
             else:
                 target.append(int(port))
@@ -124,7 +133,7 @@ class Router(object):
 
         if target is None:
             return ''
-        
+
         last = None
         for x in target:
             ports = ports + str(x) + ','
@@ -139,4 +148,3 @@ class Router(object):
             n = self.name
         return "<Router %s %s %s>" % (n, self.location.countrycode,
                                       self.get_policy())
-

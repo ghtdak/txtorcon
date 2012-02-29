@@ -1,4 +1,3 @@
-
 __version__ = '0.1'
 __author__ = 'meejah'
 __contact__ = 'meejah@meejah.ca'
@@ -16,13 +15,7 @@ from addrmap import AddrMap
 from addrmap import Addr
 import util
 
-__all__ = ["Router",
-           "Circuit", "ICircuitListener",
-           "Stream", "IStreamListener", "IStreamAttacher",
-           "ITorControlProtocol", "TorControlProtocol",
-           "TorState", "DEFAULT_VALUE",
-           "build_tor_connection", "launch_tor",
-           "TorConfig", "HiddenService",
-           "AddrMap",
-           "util"
-           ]
+__all__ = ["Router", "Circuit", "ICircuitListener", "Stream", "IStreamListener",
+           "IStreamAttacher", "ITorControlProtocol", "TorControlProtocol",
+           "TorState", "DEFAULT_VALUE", "build_tor_connection", "launch_tor",
+           "TorConfig", "HiddenService", "AddrMap", "util"]
