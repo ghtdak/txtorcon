@@ -7,7 +7,7 @@
 
 from twisted.internet import reactor
 from twisted.internet.endpoints import TCP4ClientEndpoint
-import txtor
+import txtorcon
 
 
 def log(msg):
@@ -25,7 +25,8 @@ def setup_failed(arg):
     reactor.stop()
 
 
-d = txtor.build_tor_connection(TCP4ClientEndpoint(reactor, "localhost", 9051),
-                               buildstate=False)
+d = txtorcon.build_tor_connection(TCP4ClientEndpoint(reactor, "localhost",
+                                                     9051),
+                                  buildstate=False)
 d.addCallback(setup).addErrback(setup_failed)
 reactor.run()

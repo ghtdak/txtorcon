@@ -4,7 +4,7 @@ from twisted.trial import unittest
 from twisted.internet import defer
 
 # outside this package, you can do
-from txtor.router import Router
+from txtorcon.router import Router
 
 
 class FakeController(object):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ##
-## This uses a very simple custom txtor.IStreamAttacher to disallow
+## This uses a very simple custom txtorcon.IStreamAttacher to disallow
 ## certain streams based solely on their port; by default it closes
 ## all streams on port 80 or 25 without ever attaching them to a
 ## circuit.
@@ -18,7 +18,7 @@ from twisted.internet import reactor, defer
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from zope.interface import implements
 
-import txtor
+import txtorcon
 
 
 def stream_closed(x):
@@ -26,7 +26,7 @@ def stream_closed(x):
 
 
 class PortFilterAttacher:
-    implements(txtor.IStreamAttacher)
+    implements(txtorcon.IStreamAttacher)
 
     def __init__(self, state):
         self.state = state
@@ -66,6 +66,6 @@ def setup_failed(arg):
 
 
 point = TCP4ClientEndpoint(reactor, "localhost", 9051)
-d = txtor.build_tor_connection(point)
+d = txtorcon.build_tor_connection(point)
 d.addCallback(do_setup).addErrback(setup_failed)
 reactor.run()
