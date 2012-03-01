@@ -1,5 +1,5 @@
-import spaghetti
-from spaghetti import *
+import txtorcon.spaghetti
+from txtorcon.spaghetti import *
 from twisted.trial import unittest
 
 import tempfile
@@ -48,8 +48,8 @@ class FsmTests(unittest.TestCase):
         foo = str(idle)
 
         fsm.add_state(idle)
-        self.assertWarns(RuntimeWarning, "No next state", spaghetti.__file__,
-                         fsm.process, "")
+        self.assertWarns(RuntimeWarning, "No next state",
+                         txtorcon.spaghetti.__file__, fsm.process, "")
 
     def test_no_matcher(self):
         idle = State("I")
