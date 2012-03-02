@@ -34,16 +34,16 @@ class Listener(object):
 
     def checker(self, state, stream, *args):
         if self.expected[0][0] != state:
-            raise Exception('Expected event "%s" not "%s".' %
-                            (self.expected[0][0], state))
+            raise RuntimeError('Expected event "%s" not "%s".' %
+                               (self.expected[0][0], state))
         for (k, v) in self.expected[0][1].items():
             if k == 'args':
                 if v != args:
-                    raise Exception(
+                    raise RuntimeError(
                         'Expected argument to have value "%s", not "%s"' %
                         (v, args))
             elif getattr(stream, k) != v:
-                raise Exception(
+                raise RuntimeError(
                     'Expected attribute "%s" to have value "%s", not "%s"' %
                     (k, v, getattr(stream, k)))
         self.expected = self.expected[1:]
