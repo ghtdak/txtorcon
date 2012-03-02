@@ -36,7 +36,6 @@ from twisted.internet.endpoints import TCP4ClientEndpoint
 from zope.interface import implements
 
 import txtorcon
-from util import NetLocation
 
 
 class MyStreamListener:
@@ -58,12 +57,12 @@ class MyStreamListener:
     def stream_closed(self, stream):
         pass
 
-    def stream_failed(self, stream, reason):
+    def stream_failed(self, stream, reason, remote_reason):
         pass
 
 
 class MyAttacher:
-    implements(txtorcon.IStreamAttacher, txtor.ICircuitListener)
+    implements(txtorcon.IStreamAttacher, txtorcon.ICircuitListener)
 
     def __init__(self, state):
         ## pointer to our TorState object
@@ -133,7 +132,7 @@ class MyAttacher:
             return None
 
         ip = str(self.state.addrmap.addr[stream.target_host].ip)
-        stream_cc = NetLocation(ip).countrycode
+        stream_cc = txtorcon.util.NetLocation(ip).countrycode
         print "Stream to", ip, "exiting in", stream_cc
 
         if stream_cc is None:
@@ -211,7 +210,7 @@ def do_setup(state):
     print "Connected to a Tor version", state.protocol.version
 
     attacher = MyAttacher(state)
-    state.set_attacher(attacher)
+    state.set_attacher(attacher, reactor)
     state.add_circuit_listener(attacher)
 
     state.add_stream_listener(MyStreamListener())

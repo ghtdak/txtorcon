@@ -21,7 +21,6 @@ except ImportError:
 psutil = None
 
 import txtorcon
-from util import NetLocation, process_from_address
 
 
 def logCircuit(circuit):
@@ -34,7 +33,8 @@ def logStream(stream, state):
     circ = ''
     if stream.circuit:
         circ = ' via circuit %d' % stream.circuit.id
-    proc = process_from_address(stream.source_addr, stream.source_port, state)
+    proc = txtorcon.util.process_from_address(stream.source_addr,
+                                              stream.source_port, state)
     if proc:
         if psutil:
             proc = ' from process "%s"' % (' '.join(proc.cmdline),)
@@ -52,7 +52,7 @@ def logStream(stream, state):
 
 
 class StreamCircuitLogger:
-    implements(txtorcon.IStreamListener, txtor.ICircuitListener)
+    implements(txtorcon.IStreamListener, txtorcon.ICircuitListener)
 
     def __init__(self, state):
         self.state = state
