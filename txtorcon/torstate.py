@@ -319,10 +319,10 @@ class TorState(object):
 
                 else:
                     if not self.circuits.has_key(circ.id):
-                        raise Exception(
+                        raise RuntimeError(
                             "Attacher returned a circuit unknown to me.")
                     if circ.state != 'BUILT':
-                        raise Exception(
+                        raise RuntimeError(
                             "Can only attach to BUILT circuits; %d is in %s." %
                             (circ.id, circ.state))
                     self.protocol.queue_command("ATTACHSTREAM %d %d" %
