@@ -6,16 +6,20 @@ __license__ = 'GPL'
 __copyright__ = 'Copyright 2012'
 
 from router import Router
-from circuit import Circuit, ICircuitListener
-from stream import Stream, IStreamListener, IStreamAttacher
-from torcontrolprotocol import TorControlProtocol, TorProtocolFactory, ITorControlProtocol, DEFAULT_VALUE
+from circuit import Circuit
+from stream import Stream
+from torcontrolprotocol import TorControlProtocol, TorProtocolFactory, DEFAULT_VALUE
 from torstate import TorState, build_tor_connection
-from torconfig import TorConfig, HiddenService, launch_tor
+from torconfig import TorConfig, HiddenService, TorProcessProtocol, launch_tor
 from addrmap import AddrMap
 from addrmap import Addr
 import util
+import interface
+from interface import *
 
-__all__ = ["Router", "Circuit", "ICircuitListener", "Stream", "IStreamListener",
-           "IStreamAttacher", "ITorControlProtocol", "TorControlProtocol",
-           "TorState", "DEFAULT_VALUE", "build_tor_connection", "launch_tor",
-           "TorConfig", "HiddenService", "AddrMap", "util"]
+__all__ = ["Router", "Circuit", "Stream", "TorControlProtocol", "TorState",
+           "DEFAULT_VALUE", "build_tor_connection", "launch_tor", "TorConfig",
+           "HiddenService", "TorProcessProtocol", "AddrMap", "util",
+           "interface", "ITorControlprotocol", "IStreamListener",
+           "IStreamAttacher", "ICircuitContainer", "ICircuitListener",
+           "IRouterContainer"]
