@@ -269,17 +269,17 @@ class StateTests(unittest.TestCase):
 
         attacher = MyAttacher()
         self.state.set_attacher(attacher, FakeReactor(self))
-        self.state.stream_update("76 CLOSED 0 www.example.com:0 REASON=DONE")
+        self.state._stream_update("76 CLOSED 0 www.example.com:0 REASON=DONE")
 
     def test_stream_update(self):
         ## we use a circuit ID of 0 so it doesn't try to look anything up but it's
         ## not really correct to have a  SUCCEEDED w/o a valid circuit, I don't think
-        self.state.stream_update('1610 SUCCEEDED 0 74.125.224.243:80')
+        self.state._stream_update('1610 SUCCEEDED 0 74.125.224.243:80')
         self.assertTrue(self.state.streams.has_key(1610))
 
     def test_single_streams(self):
         self.state.circuits[496] = FakeCircuit(496)
-        self.state.stream_status(
+        self.state._stream_status(
             'stream-status=123 SUCCEEDED 496 www.example.com:6667\r\nOK')
         self.assertTrue(len(self.state.streams) == 1)
 
@@ -422,7 +422,7 @@ class StateTests(unittest.TestCase):
         self.state.set_attacher(attacher, FakeReactor(self))
         events = 'GUARD STREAM CIRC NS NEWCONSENSUS ORCONN NEWDESC ADDRMAP STATUS_GENERAL'
         self.protocol._set_valid_events(events)
-        self.state.add_events()
+        self.state._add_events()
         for ignored in self.state.event_map.items():
             self.send("250 OK")
 
@@ -483,7 +483,7 @@ class StateTests(unittest.TestCase):
         ## works
         events = 'GUARD STREAM CIRC NS NEWCONSENSUS ORCONN NEWDESC ADDRMAP STATUS_GENERAL'
         self.protocol._set_valid_events(events)
-        self.state.add_events()
+        self.state._add_events()
         for ignored in self.state.event_map.items():
             self.send("250 OK")
 
@@ -515,7 +515,7 @@ class StateTests(unittest.TestCase):
         stream.id = 3
         msg = ''
         try:
-            self.state.maybe_attach(stream)
+            self.state._maybe_attach(stream)
         except Exception, e:
             msg = e.message
         self.assertTrue('circuit unknown' in msg)
@@ -523,7 +523,7 @@ class StateTests(unittest.TestCase):
         attacher.answer = self.state.circuits[1]
         msg = ''
         try:
-            self.state.maybe_attach(stream)
+            self.state._maybe_attach(stream)
         except Exception, e:
             msg = e.message
         self.assertTrue('only attach to BUILT' in msg)
@@ -544,7 +544,7 @@ class StateTests(unittest.TestCase):
         self.state.set_attacher(attacher, FakeReactor(self))
         events = 'GUARD STREAM CIRC NS NEWCONSENSUS ORCONN NEWDESC ADDRMAP STATUS_GENERAL'
         self.protocol._set_valid_events(events)
-        self.state.add_events()
+        self.state._add_events()
         for ignored in self.state.event_map.items():
             self.send("250 OK")
 
@@ -571,32 +571,32 @@ class StateTests(unittest.TestCase):
         self.assertTrue(self.transport.value() == 'CLOSESTREAM 1 1\r\n')
 
     def test_circuit_destroy(self):
-        self.state.circuit_update('365 LAUNCHED PURPOSE=GENERAL')
+        self.state._circuit_update('365 LAUNCHED PURPOSE=GENERAL')
         self.assertTrue(self.state.circuits.has_key(365))
-        self.state.circuit_update(
+        self.state._circuit_update(
             '365 FAILED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=TIMEOUT')
         self.assertTrue(not self.state.circuits.has_key(365))
 
     def test_circuit_destroy_already(self):
-        self.state.circuit_update('365 LAUNCHED PURPOSE=GENERAL')
+        self.state._circuit_update('365 LAUNCHED PURPOSE=GENERAL')
         self.assertTrue(self.state.circuits.has_key(365))
         c = self.state.circuits[365]
-        self.state.circuit_update(
+        self.state._circuit_update(
             '365 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=TIMEOUT')
         self.assertTrue(not self.state.circuits.has_key(365))
-        self.state.circuit_update(
+        self.state._circuit_update(
             '365 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=TIMEOUT')
         self.assertTrue(not self.state.circuits.has_key(365))
 
     def test_circuit_listener(self):
         events = 'CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET'
         self.protocol._set_valid_events(events)
-        self.state.add_events()
+        self.state._add_events()
         for ignored in self.state.event_map.items():
             self.send("250 OK")
 
         ## we use this router later on in an EXTEND
-        self.state.update_network_status("""ns/all=
+        self.state._update_network_status("""ns/all=
 r PPrivCom012 2CGDscCeHXeV/y1xFrq1EGqj5g4 QX7NVLwx7pwCuk6s8sxB4rdaCKI 2011-12-20 08:34:19 84.19.178.6 9001 0
 s Fast Guard Running Stable Unnamed Valid
 w Bandwidth=51500
@@ -650,7 +650,7 @@ p reject 1-65535
         self.assertTrue(not router.accepts_port(988))
 
     def test_router_factory(self):
-        self.state.update_network_status(
+        self.state._update_network_status(
             '''r fake YkkmgCNRV1/35OPWDvo7+1bmfoo tanLV/4ZfzpYQW0xtGFqAa46foo 2011-12-12 16:29:16 12.45.56.78 443 80
 s Exit Fast Guard HSDir Named Running Stable V2Dir Valid FutureProof
 w Bandwidth=518000
@@ -668,7 +668,7 @@ p accept 43,53
         self.assertTrue(len(self.state.routers_by_name['fake']) == 2)
 
         ## now we do an update
-        self.state.update_network_status(
+        self.state._update_network_status(
             '''r fake YkkmgCNRV1/35OPWDvo7+1bmfoo tanLV/4ZfzpYQW0xtGFqAa46foo 2011-12-12 16:29:16 12.45.56.78 443 80
 s Exit Fast Guard HSDir Named Running Stable V2Dir Valid FutureProof Authority
 w Bandwidth=543000
@@ -677,10 +677,10 @@ p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863
         self.assertTrue(r.bandwidth == 543000)
 
     def test_empty_stream_update(self):
-        self.state.stream_update('''stream-status=''')
+        self.state._stream_update('''stream-status=''')
 
     def test_addrmap(self):
-        self.state.addr_map(
+        self.state._addr_map(
             'example.com 127.0.0.1 "2012-01-01 00:00:00" EXPIRES=NEVER')
 
     def test_newdesc_parse(self):
@@ -690,7 +690,7 @@ p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863
         GETINFO. Well, we're also testing the args get split up
         properly and so forth.
         """
-        self.state.newdesc_update(
+        self.state._newdesc_update(
             "$624926802351575FF7E4E3D60EFA3BFB56E67E8A=fake CLOSED REASON=IOERROR")
 
         # TorState should issue "GETINFO ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A"
@@ -711,13 +711,13 @@ p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863
         return d
 
     def test_stream_create(self):
-        self.state.stream_update('1610 NEW 0 1.2.3.4:56')
+        self.state._stream_update('1610 NEW 0 1.2.3.4:56')
         self.assertTrue(self.state.streams.has_key(1610))
 
     def test_stream_destroy(self):
-        self.state.stream_update('1610 NEW 0 1.2.3.4:56')
+        self.state._stream_update('1610 NEW 0 1.2.3.4:56')
         self.assertTrue(self.state.streams.has_key(1610))
-        self.state.stream_update(
+        self.state._stream_update(
             "1610 FAILED 0 www.example.com:0 REASON=DONE REMOTE_REASON=FAILED")
         self.assertTrue(not self.state.streams.has_key(1610))
 
@@ -726,19 +726,19 @@ p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863
         circ.state = 'BUILT'
         self.state.circuits[1] = circ
 
-        self.state.stream_update('1610 NEW 0 1.2.3.4:56')
+        self.state._stream_update('1610 NEW 0 1.2.3.4:56')
         self.assertTrue(self.state.streams.has_key(1610))
-        self.state.stream_update("1610 SUCCEEDED 1 4.3.2.1:80")
+        self.state._stream_update("1610 SUCCEEDED 1 4.3.2.1:80")
         self.assertTrue(self.state.streams[1610].circuit == circ)
 
-        self.state.stream_update(
+        self.state._stream_update(
             "1610 DETACHED 0 www.example.com:0 REASON=DONE REMOTE_REASON=FAILED")
         self.assertTrue(self.state.streams[1610].circuit == None)
 
     def test_stream_listener(self):
         self.protocol._set_valid_events(
             'CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
-        self.state.add_events()
+        self.state._add_events()
         for ignored in self.state.event_map.items():
             self.send("250 OK")
 
