@@ -211,22 +211,22 @@ class TorControlProtocol(LineOnlyReceiver):
         recvmulti = State("RECV_PLUS")
         recvnotify = State("NOTIFY_MULTILINE")
 
-        idle.add_transition(Transition(idle, self.isSingleLineResponse,
-                                       self.broadcastResponse))
-        idle.add_transition(Transition(recvmulti, self.isMultiLine,
-                                       self.startCommand))
-        idle.add_transition(Transition(recv, self.isContinuationLine,
-                                       self.startCommand))
+        idle.add_transition(Transition(idle, self._is_single_line_response,
+                                       self._broadcast_response))
+        idle.add_transition(Transition(recvmulti, self._is_multi_line,
+                                       self._start_command))
+        idle.add_transition(Transition(recv, self._is_continuation_line,
+                                       self._start_command))
 
-        recv.add_transition(Transition(recv, self.isContinuationLine,
-                                       self.accumulateResponse))
-        recv.add_transition(Transition(idle, self.isFinishLine,
-                                       self.broadcastResponse))
+        recv.add_transition(Transition(recv, self._is_continuation_line,
+                                       self._accumulate_response))
+        recv.add_transition(Transition(idle, self._is_finish_line,
+                                       self._broadcast_response))
 
-        recvmulti.add_transition(Transition(recv, self.isEndLine,
+        recvmulti.add_transition(Transition(recv, self._is_end_line,
                                             lambda x: None))
-        recvmulti.add_transition(Transition(recvmulti, self.isNotEndLine,
-                                            self.accumulateMultiResponse))
+        recvmulti.add_transition(Transition(recvmulti, self._is_not_end_line,
+                                            self._accumulate_multi_response))
 
         self.fsm = FSM([recvnotify, idle, recvmulti, recv])
         self.state_idle = idle
@@ -390,10 +390,10 @@ class TorControlProtocol(LineOnlyReceiver):
     def connectionMade(self):
         "LineOnlyReceiver API (or parent?)"
         if DEBUG: print "got connection, authenticating"
-        self.protocolinfo().addCallback(self.do_authenticate).addErrback(
-            self.auth_failed)
+        self.protocolinfo().addCallback(self._do_authenticate).addErrback(
+            self._auth_failed)
 
-    def handle_notify(self, code, rest):
+    def _handle_notify(self, code, rest):
         "Internal method to deal with 600-level responses."
         #print "NOTIFY",code,rest
         firstline = rest[:rest.find('\n')]
@@ -404,7 +404,7 @@ class TorControlProtocol(LineOnlyReceiver):
 
         raise RuntimeError("Wasn't listening for event of type " + args[0])
 
-    def maybe_issue_command(self):
+    def _maybe_issue_command(self):
         """
         If there's at least one command queued and we're not currently
         processing a command, this will issue the next one on the
@@ -422,7 +422,7 @@ class TorControlProtocol(LineOnlyReceiver):
             self.transport.write(cmd + '\r\n')
             self.log.write(cmd + '\n')
 
-    def auth_failed(self, fail):
+    def _auth_failed(self, fail):
         "Errback if authentication fails."
         print "Authentication failed:"
         print fail.getErrorMessage()
@@ -431,31 +431,32 @@ class TorControlProtocol(LineOnlyReceiver):
         from twisted.internet import reactor
         reactor.stop()
 
-    def do_authenticate(self, protoinfo):
+    def _do_authenticate(self, protoinfo):
         "Callback on PROTOCOLINFO to actually authenticate once we know what's supported."
         if 'COOKIE' in protoinfo:
             cookie = re.search('COOKIEFILE="(.*)"', protoinfo).group(1)
             data = open(cookie, 'r').read()
             if DEBUG:
                 print "Using COOKIE authentication", cookie, len(data), "bytes"
-            self.authenticate(data).addErrback(self.auth_failed)
+            self.authenticate(data).addErrback(self._auth_failed)
 
         else:
             if self.password:
-                self.authenticate(self.password).addErrback(self.auth_failed)
+                self.authenticate(self.password).addErrback(self._auth_failed)
             else:
                 raise RuntimeError(
                     "The Tor I connected to doesn't support COOKIE authentication and I have no password.")
 
-        self.bootstrap()
+        self._bootstrap()
 
-    def set_valid_events(self, events):
+    def _set_valid_events(self, events):
+        "used as a callback; see _bootstrap"
         self.valid_events = {}
         for x in events.split():
             self.valid_events[x] = Event(x)
 
     @defer.inlineCallbacks
-    def bootstrap(self):
+    def _bootstrap(self):
         """
         The inlineCallbacks decorator allows us to make this method
         look synchronous; see the Twisted docs. Each yeild is for a
@@ -476,7 +477,7 @@ class TorControlProtocol(LineOnlyReceiver):
         if DEBUG: print "Connected to a Tor with VERSION", self.version
         eventnames = yield self.get_info('events/names')
         eventnames = eventnames['events/names']
-        self.set_valid_events(eventnames)
+        self._set_valid_events(eventnames)
 
         yield self.queue_command('USEFEATURE EXTENDED_EVENTS')
 
@@ -484,30 +485,20 @@ class TorControlProtocol(LineOnlyReceiver):
         self.post_bootstrap = None
         defer.returnValue(self)
 
-    def queue_command(self, cmd):
-        """
-        returns a Deferred which will fire with the response data when we get it
-        """
-
-        d = defer.Deferred()
-        self.commands.append((d, cmd))
-        self.maybe_issue_command()
-        return d
-
     ##
     ## State Machine transitions and matchers. See the __init__ method
     ## for a way to output a GraphViz dot diagram of the machine.
     ##
 
-    def isEndLine(self, line):
+    def _is_end_line(self, line):
         "for FSM"
         return line.strip() == '.'
 
-    def isNotEndLine(self, line):
+    def _is_not_end_line(self, line):
         "for FSM"
-        return not self.isEndLine(line)
+        return not self._is_end_line(line)
 
-    def isSingleLineResponse(self, line):
+    def _is_single_line_response(self, line):
         "for FSM"
         try:
             code = int(line[:3])
@@ -521,7 +512,7 @@ class TorControlProtocol(LineOnlyReceiver):
             return True
         return False
 
-    def startCommand(self, line):
+    def _start_command(self, line):
         "for FSM"
         #        print "startCommand",self.code,line
         self.code = int(line[:3])
@@ -529,7 +520,7 @@ class TorControlProtocol(LineOnlyReceiver):
         self.response = line[4:] + '\n'
         return None
 
-    def isContinuationLine(self, line):
+    def _is_continuation_line(self, line):
         "for FSM"
         #        print "isContinuationLine",self.code,line
         code = int(line[:3])
@@ -538,7 +529,7 @@ class TorControlProtocol(LineOnlyReceiver):
                                (code, self.code))
         return line[3] == '-'
 
-    def isMultiLine(self, line):
+    def _is_multi_line(self, line):
         "for FSM"
         #        print "isMultiLine",self.code,line,line[3] == '+'
         code = int(line[:3])
@@ -547,17 +538,17 @@ class TorControlProtocol(LineOnlyReceiver):
                                (code, self.code))
         return line[3] == '+'
 
-    def accumulateMultiResponse(self, line):
+    def _accumulate_multi_response(self, line):
         "for FSM"
         self.response += (line + '\n')
         return None
 
-    def accumulateResponse(self, line):
+    def _accumulate_response(self, line):
         "for FSM"
         self.response += (line[4:] + '\n')
         return None
 
-    def isFinishLine(self, line):
+    def _is_finish_line(self, line):
         "for FSM"
         #        print "isFinish",line
         if len(line) < 1:
@@ -568,7 +559,7 @@ class TorControlProtocol(LineOnlyReceiver):
             return True
         return False
 
-    def broadcastResponse(self, line):
+    def _broadcast_response(self, line):
         "for FSM"
         #        print "BCAST",line
         if len(line) > 3:
@@ -581,7 +572,7 @@ class TorControlProtocol(LineOnlyReceiver):
         elif self.code >= 500 and self.code < 600:
             self.defer.errback(str(self.code) + ' ' + resp)
         elif self.code >= 600 and self.code < 700:
-            self.handle_notify(self.code, resp)
+            self._handle_notify(self.code, resp)
             self.code = None
             return
         elif self.code is None:
@@ -594,5 +585,5 @@ class TorControlProtocol(LineOnlyReceiver):
         self.code = None
         ## note: we don't do this for 600-level responses
         self.defer = None
-        self.maybe_issue_command()
+        self._maybe_issue_command()
         return None
