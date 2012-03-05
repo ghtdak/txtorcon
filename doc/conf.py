@@ -32,7 +32,7 @@ autoclass_content = 'both'
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.autosummary',
               'sphinx.ext.todo', 'sphinx.ext.coverage',
-              'repoze.sphinx.autointerface']
+              'repoze.sphinx.autointerface', 'apilinks_sphinxext']
 
 todo_include_todos = True
 
