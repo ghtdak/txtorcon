@@ -390,7 +390,7 @@ class TorControlProtocol(LineOnlyReceiver):
     def connectionMade(self):
         "LineOnlyReceiver API (or parent?)"
         if DEBUG: print "got connection, authenticating"
-        self.protocolinfo().addCallback(self.doAuthenticate).addErrback(
+        self.protocolinfo().addCallback(self.do_authenticate).addErrback(
             self.auth_failed)
 
     def handle_notify(self, code, rest):
@@ -431,7 +431,7 @@ class TorControlProtocol(LineOnlyReceiver):
         from twisted.internet import reactor
         reactor.stop()
 
-    def doAuthenticate(self, protoinfo):
+    def do_authenticate(self, protoinfo):
         "Callback on PROTOCOLINFO to actually authenticate once we know what's supported."
         if 'COOKIE' in protoinfo:
             cookie = re.search('COOKIEFILE="(.*)"', protoinfo).group(1)
