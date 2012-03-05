@@ -14,6 +14,18 @@ from txtorcon.interface import ICircuitContainer, IStreamListener
 import ipaddr
 
 
+def maybe_ip_addr(addr):
+    """
+    Tries to return an IPAddress, otherwise returns a string. I could
+    explicitly check for .exit or .onion at the end instead.
+    """
+
+    try:
+        return ipaddr.IPAddress(addr)
+    except ValueError:
+        return str(addr)
+
+
 class Stream(object):
     """
     Represents an active stream in Tor's state (:class:`txtorcon.TorState`).
@@ -130,7 +142,7 @@ class Stream(object):
             last_colon = kw['SOURCE_ADDR'].rfind(':')
             self.source_addr = kw['SOURCE_ADDR'][:last_colon]
             if self.source_addr != '(Tor_internal)':
-                self.source_addr = ipaddr.IPAddress(self.source_addr)
+                self.source_addr = maybe_ip_addr(self.source_addr)
             self.source_port = int(kw['SOURCE_ADDR'][last_colon + 1:])
 
         self.state = args[1]
@@ -149,7 +161,7 @@ class Stream(object):
                 [x.stream_succeeded(self) for x in self.listeners]
 
         elif self.state == 'REMAP':
-            self.target_addr = ipaddr.IPAddress(args[3][:args[3].rfind(':')])
+            self.target_addr = maybe_ip_addr(args[3][:args[3].rfind(':')])
 
         elif self.state == 'CLOSED':
             if self.circuit:
