@@ -11,7 +11,7 @@ from txtorcon.circuit import Circuit
 from txtorcon.router import Router
 from txtorcon.addrmap import AddrMap
 from txtorcon.torcontrolprotocol import parse_keywords, DEFAULT_VALUE, TorProtocolFactory
-from txtorcon.util import delete_file_or_tree
+from txtorcon.util import delete_file_or_tree, find_keywords
 
 from interface import ITorControlProtocol, IRouterContainer, ICircuitListener, ICircuitContainer, IStreamListener, IStreamAttacher
 from spaghetti import FSM, State, Transition
@@ -30,17 +30,7 @@ import shlex
 DEBUG = False
 
 
-def find_keywords(args):
-    """FIXME: dup of the one in circuit, stream; move somewhere shared"""
-    kw = {}
-    for x in args:
-        if '=' in x:
-            (k, v) = x.split('=', 1)
-            kw[k] = v
-    return kw
-
-
-class TCP4HiddenServiceEndpoint(object):
+class TCPHiddenServiceEndpoint(object):
     """
     This represents something listening on an arbitrary local port
     that has a Tor configured with a Hidden Service pointing at
@@ -118,6 +108,8 @@ class TCP4HiddenServiceEndpoint(object):
         self.port_generator = port_generator
         self.endpoint_generator = endpoint_generator
 
+        self.retries = 0
+
         self.defer = defer.Deferred()
 
     def _update_onion(self):
@@ -138,7 +130,7 @@ class TCP4HiddenServiceEndpoint(object):
         except IOError:
             self.onion_private_key = None
 
-    def _create_hiddenservice(self, *args):
+    def _create_hiddenservice(self, arg):
         """
         Internal callback to create a hidden-service config in the
         running Tor (via the `config` member).
@@ -153,6 +145,7 @@ class TCP4HiddenServiceEndpoint(object):
             self.config, self.data_dir, ['%d 127.0.0.1:%d' %
                                          (self.public_port, self.listen_port)])
         self.config.HiddenServices.append(self.hiddenservice)
+        return arg
 
     def _do_error(self, f):
         """
@@ -182,16 +175,28 @@ class TCP4HiddenServiceEndpoint(object):
                 self._create_hiddenservice).addErrback(self._do_error)
 
         elif self.hiddenservice is None:
-            d = self._create_hiddenservice()
+            self._create_hiddenservice(None)
+            d = self.config.save()
 
         else:
             raise RuntimeError("FIXME")
 
-        d.addCallback(self._create_listener)
+        d.addCallback(self._create_listener).addErrback(self._retry_local_port)
         return d
 
-    def _retry_local_port(self, err):
+    def _retry_local_port(self, failure):
+        """
+        Handles :api:`twisted.internet.error.CannotListenError` by
+        trying again on another port. After 10 failures, we give up
+        and propogate the error.
+        """
+        failure.trap(error.CannotListenError)
+
+        self.retries += 1
+        if self.retries > 10:
+            return failure
         self.listen_port = self.port_generator()
+        ## we do want to overwrite the whole list, not append
         self.hiddenservice.ports = ['%d 127.0.0.1:%d' %
                                     (self.public_port, self.listen_port)]
         d = self.config.save()
