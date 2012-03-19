@@ -72,7 +72,7 @@ class AuthenticationTests(unittest.TestCase):
         self.protocol.makeConnection(self.transport)
         self.assertTrue(self.transport.value() == 'PROTOCOLINFO 1\r\n')
         self.transport.clear()
-        open('authcookie', 'w').write('cookiedata!')
+        open('authcookie', 'w').write('cookiedata!cookiedata!cookiedata')
         self.send('250-PROTOCOLINFO 1')
         self.send(
             '250-AUTH METHODS=COOKIE,HASHEDPASSWORD COOKIEFILE="authcookie"')
@@ -80,7 +80,7 @@ class AuthenticationTests(unittest.TestCase):
         self.send('250 OK')
 
         self.assertTrue(self.transport.value() ==
-                        'AUTHENTICATE "cookiedata!"\r\n')
+                        'AUTHENTICATE "cookiedata!cookiedata!cookiedata"\r\n')
 
     def test_authenticate_password(self):
         self.protocol.password = 'foo'
