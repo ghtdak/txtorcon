@@ -316,7 +316,7 @@ class TorState(object):
             warnings.warn("Building a circuit not starting with a guard: %s" %
                           (str(routers),), RuntimeWarning)
         return self.protocol.queue_command("EXTENDCIRCUIT 0 " + ','.join(map(
-            lambda x: x.id_hex, routers)))
+            lambda x: x.id_hex[1:], routers)))
 
     DO_NOT_ATTACH = object()
 
@@ -532,7 +532,6 @@ class TorState(object):
         'CIRC': _circuit_update,
         'NS': _update_network_status,
         'NEWCONSENSUS': _update_network_status,
-        'ORCONN': _newdesc_update,
         'NEWDESC': _newdesc_update,
         'ADDRMAP': _addr_map
     }
