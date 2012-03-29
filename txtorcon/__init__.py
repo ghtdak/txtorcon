@@ -21,5 +21,6 @@ __all__ = ["Router", "Circuit", "Stream", "TorControlProtocol", "TorState",
            "DEFAULT_VALUE", "build_tor_connection", "launch_tor", "TorConfig",
            "HiddenService", "TorProcessProtocol", "TCPHiddenServiceEndpoint",
            "AddrMap", "util", "interface", "ITorControlprotocol",
-           "IStreamListener", "IStreamAttacher", "ICircuitContainer",
-           "ICircuitListener", "IRouterContainer"]
+           "IStreamListener", "IStreamAttacher", "StreamListenerMixin",
+           "ICircuitContainer", "ICircuitListener", "CircuitListenerMixin",
+           "IRouterContainer"]

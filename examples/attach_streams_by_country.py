@@ -38,8 +38,7 @@ from zope.interface import implements
 import txtorcon
 
 
-class MyStreamListener:
-    implements(txtorcon.IStreamListener)
+class MyStreamListener(txtorcon.StreamListenerMixin):
 
     def stream_new(self, stream):
         print "new stream:", stream.id, stream.target_host
@@ -51,18 +50,8 @@ class MyStreamListener:
         print "stream",stream.id,"attached to circuit",circuit.id, \
               "with path:",'->'.join(map(lambda x: x.location.countrycode, circuit.path))
 
-    def stream_detach(self, stream, reason):
-        pass
 
-    def stream_closed(self, stream):
-        pass
-
-    def stream_failed(self, stream, reason, remote_reason):
-        pass
-
-
-class MyAttacher:
-    implements(txtorcon.IStreamAttacher, txtorcon.ICircuitListener)
+class MyAttacher(txtorcon.CircuitListenerMixin):
 
     def __init__(self, state):
         ## pointer to our TorState object
@@ -76,12 +65,6 @@ class MyAttacher:
             if circuit.id == circid:
                 return True
         return False
-
-    def circuit_new(self, circuit):
-        "ICircuitListener"
-
-    def circuit_launched(self, circuit):
-        "ICircuitListener"
 
     def circuit_extend(self, circuit, router):
         "ICircuitListener"
@@ -104,9 +87,6 @@ class MyAttacher:
             if circid == circuit.id:
                 self.waiting_circuits.remove((circid, d, stream_cc))
                 d.callback(circuit)
-
-    def circuit_closed(self, circuit):
-        "ICircuitListener"
 
     def circuit_failed(self, circuit, reason):
         if self.waiting_on(circuit):
