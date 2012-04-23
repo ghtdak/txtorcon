@@ -1,4 +1,5 @@
 from util import NetLocation
+import types
 
 
 def hexIdFromHash(hash):
@@ -41,7 +42,7 @@ class Router(object):
 
     def __init__(self, controller):
         self.controller = controller
-        self.flags = []
+        self._flags = []
         self.bandwidth = 0
         self.name_is_unique = False
         self.accepted_ports = None
@@ -68,7 +69,13 @@ class Router(object):
 
         self.id_hex = hexIdFromHash(self.id_hash)
 
-    def set_flags(self, flags):
+    @property
+    def flags(self):
+        """A list of all the flags for this Router, each one an all-lower-case string"""
+        return self._flags
+
+    @flags.setter
+    def flags(self, flags):
         """
         It might be nice to make flags not a list of strings. This is
         made harder by the control-spec: `...controllers MUST tolerate
@@ -76,11 +83,11 @@ class Router(object):
 
         There is some current work in Twisted for open-ended constants
         (enums) support however, it seems.
-
-        .. todo:: remove this, use attribute access only (i.e. make this a setter in a descriptor)
         """
-        self.flags = map(lambda x: x.lower(), flags)
-        self.name_is_unique = 'named' in self.flags
+        if type(flags) == types.StringType:
+            flags = flags.split()
+        self._flags = map(lambda x: x.lower(), flags)
+        self.name_is_unique = 'named' in self._flags
 
     def set_bandwidth(self, bw):
         """
