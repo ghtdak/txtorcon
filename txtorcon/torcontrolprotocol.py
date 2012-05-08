@@ -656,9 +656,9 @@ class TorControlProtocol(LineOnlyReceiver):
             raise RuntimeError("Unknown code in broadcast response %d." %
                                self.code)
 
+        ## note: we don't do this for 600-level responses
         self.command = None
         self.code = None
-        ## note: we don't do this for 600-level responses
         self.defer = None
         self._maybe_issue_command()
         return None
