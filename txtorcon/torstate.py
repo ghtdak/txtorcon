@@ -98,6 +98,7 @@ class TorState(object):
 
     def __init__(self, protocol, bootstrap=True):
         self.protocol = ITorControlProtocol(protocol)
+        self.protocol.connectionLost = self.connection_lost
 
         ## could override these to get your own Circuit/Stream subclasses
         ## to track these things
@@ -237,6 +238,9 @@ class TorState(object):
         args = data.split()
         self._router.policy = args[1:]
         self._router = None
+
+    def connection_lost(self, *args):
+        print "CONNECTIONLOST:", args
 
     @defer.inlineCallbacks
     def _bootstrap(self, arg=None):
