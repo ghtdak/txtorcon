@@ -258,6 +258,21 @@ OK''')
         self.send("250 OK")
         return d
 
+    def incremental_check(self, expected, actual):
+        if '=' in actual or actual == 'OK':
+            return
+        self.assertTrue(expected == actual)
+
+    def test_getinfo_incremental(self):
+        d = self.protocol.get_info_incremental("FOO", functools.partial(
+            self.incremental_check, "bar"))
+        self.send("250+FOO=")
+        self.send("bar")
+        self.send("bar")
+        self.send(".")
+        self.send("250 OK")
+        return d
+
     def test_getconf(self):
         d = self.protocol.get_conf("SOCKSPORT ORPORT")
         d.addCallback(CallbackChecker({'SocksPort': '9050', 'ORPort': '0'}))
