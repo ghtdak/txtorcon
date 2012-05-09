@@ -204,6 +204,7 @@ class TorState(object):
             args[8])  # DirPort
 
         if self.routers.has_key(self._router.id_hex):
+            ## FIXME should I do an update() on this one??
             self._router = self.routers[self._router.id_hex]
             return
 
