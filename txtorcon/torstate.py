@@ -167,6 +167,8 @@ class TorState(object):
 
         waiting_w.add_transition(Transition(waiting_p, lambda x: x[:2] == 'w ',
                                             self._router_bandwidth))
+        waiting_w.add_transition(Transition(waiting_s, lambda x: x[:2] == 'r ',
+                                            self._router_begin))  # "w" lines are optional
         waiting_w.add_transition(Transition(
             eat_line, lambda x: x[:2] != 'w ', die(
                 'Expected "w " while parsing routers not "%s"')))
@@ -175,6 +177,8 @@ class TorState(object):
 
         waiting_p.add_transition(Transition(waiting_r, lambda x: x[:2] == 'p ',
                                             self._router_policy))
+        waiting_p.add_transition(Transition(waiting_s, lambda x: x[:2] == 'r ',
+                                            self._router_begin))  # "p" lines are optional
         waiting_p.add_transition(Transition(
             eat_line, lambda x: x[:2] != 'p ', die(
                 'Expected "p " while parsing routers not "%s"')))
