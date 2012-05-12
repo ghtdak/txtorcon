@@ -526,6 +526,9 @@ OK"""))
 
         return d
 
+    def test_line_no_command(self):
+        self.protocol.lineReceived("650+NS\r\n")
+
 
 class ParseTests(unittest.TestCase):
 
