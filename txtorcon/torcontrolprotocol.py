@@ -605,7 +605,7 @@ class TorControlProtocol(LineOnlyReceiver):
 
     def _accumulate_multi_response(self, line):
         "for FSM"
-        if self.command[2] != None:
+        if self.command and self.command[2] != None:
             self.command[2](line)
 
         else:
