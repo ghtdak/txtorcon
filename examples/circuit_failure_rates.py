@@ -12,10 +12,9 @@
 import os
 import sys
 import random
-import signal
+import time
 
-from twisted.internet import reactor, task
-from twisted.internet.endpoints import TCP4ClientEndpoint
+from twisted.internet import reactor, task, endpoints
 from twisted.python import usage
 from zope.interface import implements
 
@@ -30,7 +29,10 @@ class Options(usage.Options):
     optParameters = [
         ['failed', 'f', 0, 'Starting value for number of failed circuits.'
         ], ['built', 'b', 0,
-            'Starting value for the total number of built cicuits.']
+            'Starting value for the total number of built cicuits.'],
+        ['connect', 'c', None,
+         'Tor control socket to connect to in host:port format, like "localhost:9051" (the default).'
+        ]
     ]
 
 
@@ -44,7 +46,7 @@ class CircuitFailureWatcher(txtorcon.CircuitListenerMixin):
     per_guard_failed = {}
 
     def print_update(self):
-        print self.information()
+        print time.ctime(reactor.seconds()) + ': ' + self.information()
 
     def update_percent(self):
         self.percent = 100.0 * (
@@ -88,9 +90,12 @@ class CircuitFailureWatcher(txtorcon.CircuitListenerMixin):
     def circuit_failed(self, circuit, reason):
         """ICircuitListener API"""
         if circuit.purpose == 'GENERAL':
-            if len(circuit.path) > 0 and circuit.path[
+            if len(circuit.path) > 1 and circuit.path[
                     0
             ] not in self.state.entry_guards.values():
+                ## note that single-hop circuits are built for various
+                ## internal reasons (and it seems they somtimes use
+                ## GENERAL anyway)
                 print "WEIRD: first circuit hop not in entry guards:", circuit, circuit.path
                 return
 
@@ -118,10 +123,8 @@ def setup(state):
     print 'Connected to a Tor version %s' % state.protocol.version
     global options, listener
 
-    if options['failed']:
-        listener.failed_circuits = int(options['failed'])
-    if options['built']:
-        listener.built_circuits = int(options['built'])
+    listener.failed_circuits = int(options['failed'])
+    listener.built_circuits = int(options['built'])
     listener.state = state  # FIXME use ctor (ditto for options, probably)
 
     for circ in filter(lambda x: x.purpose == 'GENERAL',
@@ -140,7 +143,22 @@ def setup_failed(arg):
 
 
 options = Options()
-options.parseOptions(sys.argv[1:])
+try:
+    options.parseOptions(sys.argv[1:])
+except usage.UsageError:
+    print "This monitors circuit failure rates on multi-hop PURPOSE_GENERAL circuits only."
+    print "Tor internally uses other circuit types or GENERAL single-hop circuits for"
+    print "internal use and we try to ignore these."
+    print
+    print "Every minute, the summary is printed out. For each entry-guard your Tor is"
+    print "currently using, a separate count and summary is printed."
+    print
+    print "Nothing is saved to disc. If you wish to start again with the same totals"
+    print "as a previous run, use the options below. On exit, a command-line suitable"
+    print "to do this is printed."
+    print
+    print options.getUsage()
+    sys.exit(-1)
 
 
 def on_shutdown(*args):
@@ -152,9 +170,17 @@ def on_shutdown(*args):
 
 reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
 
-print "Connecting to localhost:9051 with AUTHCOOKIE authentication..."
-d = txtorcon.build_tor_connection(
-    TCP4ClientEndpoint(reactor, "localhost", 9051),
-    build_state=True)
+if options['connect']:
+    host, port = options['connect'].split(':')
+    port = int(port)
+    print "Connecting to %s:%d with AUTHCOOKIE authentication..." % (host, port)
+    endpoint = endpoints.clientFromString(reactor, 'tcp:host=%s:port=%d' %
+                                          (host, port))
+
+else:
+    print "Connecting to localhost:9051 with AUTHCOOKIE authentication..."
+    endpoint = endpoints.TCP4ClientEndpoint(reactor, "localhost", 9051)
+
+d = txtorcon.build_tor_connection(endpoint, build_state=True)
 d.addCallback(setup).addErrback(setup_failed)
 reactor.run()
