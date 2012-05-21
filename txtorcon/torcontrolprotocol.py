@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 from twisted.python import log, failure
 from twisted.internet import defer, reactor
 from twisted.internet.interfaces import IProtocolFactory
@@ -57,10 +59,10 @@ class TorProtocolFactory(object):
     def __init__(self, password=None):
         """
         Builds protocols to talk to a Tor client on the specified address. For example:
-        
+
         TCP4ClientEndpoint(reactor, "localhost", 9051).connect(TorProtocolFactory())
         reactor.run()
-        
+
         By default, COOKIE authentication is used if
         available. Otherwise, a password should be supplied. FIXME:
         user should supply a password getter, not a password (e.g. if
@@ -246,7 +248,8 @@ class TorControlProtocol(LineOnlyReceiver):
         ## list; the above looks nice in dotty though
         self.fsm.state = idle
         if DEBUG:
-            open("fsm.dot", "w").write(self.fsm.dotty())
+            with open('fsm.dot', 'w') as fsmfile:
+                fsmfile.write(self.fsm.dotty())
 
     ## see end of file for all the state machine matcher and
     ## transition methods.
@@ -283,7 +286,7 @@ class TorControlProtocol(LineOnlyReceiver):
 
             .. todo:: make some way to automagically obtain valid
                 keys, either from running Tor or parsing control-spec
-        
+
         :return:
             a ``Deferred`` which will callback with a dict containing
             the keys you asked for. This just inserts ``parse_keywords``
@@ -296,11 +299,11 @@ class TorControlProtocol(LineOnlyReceiver):
     def get_conf(self, *args):
         """
         Uses GETCONF to obtain configuration values from Tor.
-        
+
         :param args: any number of strings which are keys to get. To
             get all valid configuraiton names, you can call:
             ``get_info('config/names')``
-                
+
         :return: a Deferred which callbacks with one or many
             configuration values (depends on what you asked for). See
             control-spec for valid keys (you can also use TorConfig which
@@ -379,7 +382,7 @@ class TorControlProtocol(LineOnlyReceiver):
         tor control protocol.
 
         :Return: ``None``
-        
+
         .. todo:: need an interface for the callback
         """
 
@@ -492,7 +495,8 @@ class TorControlProtocol(LineOnlyReceiver):
         "Callback on PROTOCOLINFO to actually authenticate once we know what's supported."
         if 'COOKIE' in protoinfo:
             cookie = re.search('COOKIEFILE="(.*)"', protoinfo).group(1)
-            data = open(cookie, 'r').read()
+            with open(cookie, 'r') as cookiefile:
+                data = cookiefile.read()
             if len(data) != 32:
                 raise RuntimeError(
                     "Expected authentication cookie to be 32 bytes, got %d" %
