@@ -115,15 +115,14 @@ class Event(object):
 def parse_keywords(lines):
     """
     Utility method to parse name=value pairs (GETINFO etc). Takes a
-    string with newline-separated lines. Will parse multiple key/value
-    pairs from a single line if they exist (FIXME: need utest for this
-    case!)
+    string with newline-separated lines and expects at most one = sign
+    per line. Accumulates multi-line values.
     """
 
     rtn = {}
     key = None
     value = ''
-    ## FIXME needs some refactoring to reduce code duplication!
+    ## FIXME could use some refactoring to reduce code duplication!
     for line in lines.split('\n'):
         if line.strip() == 'OK':
             continue
@@ -506,7 +505,7 @@ class TorControlProtocol(LineOnlyReceiver):
         Callback on AUTHCHALLENGE SAFECOOKIE
         """
 
-        kw = parse_keywords(reply)
+        kw = parse_keywords(reply.replace(' ', '\n'))
 
         server_hash = base64.b16decode(kw['SERVERHASH'])
         server_nonce = base64.b16decode(kw['SERVERNONCE'])
@@ -518,7 +517,8 @@ class TorControlProtocol(LineOnlyReceiver):
         if not compare_via_hash(expected_server_hash, server_hash):
             raise RuntimeError(
                 'Server hash not expected; wanted "%s" and got "%s".' %
-                (expected_server_hash, server_hash))
+                (base64.b16encode(expected_server_hash),
+                 base64.b16encode(server_hash)))
 
         client_hash = hmac_sha256(
             "Tor safe cookie authentication controller-to-server hash",
