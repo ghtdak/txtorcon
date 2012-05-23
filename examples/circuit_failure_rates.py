@@ -35,6 +35,14 @@ class Options(usage.Options):
         ]
     ]
 
+    def __init__(self):
+        usage.Options.__init__(self)
+        self['guards'] = []
+
+    def opt_guard(self, value):
+        name, built, failed = value.split(',')
+        self['guards'].append((name, int(built), int(failed)))
+
 
 class CircuitFailureWatcher(txtorcon.CircuitListenerMixin):
 
@@ -126,6 +134,9 @@ def setup(state):
     listener.failed_circuits = int(options['failed'])
     listener.built_circuits = int(options['built'])
     listener.state = state  # FIXME use ctor (ditto for options, probably)
+    for name, built, failed in options['guards']:
+        listener.per_guard_built[name] = built
+        listener.per_guard_failed[name] = failed
 
     for circ in filter(lambda x: x.purpose == 'GENERAL',
                        state.circuits.values()):
@@ -163,9 +174,13 @@ except usage.UsageError:
 
 def on_shutdown(*args):
     global listener
-    print 'To carry on where you left off, run:'
+    print '\nTo carry on where you left off, run:'
     print '  %s --failed %d --built %d' % (
-        sys.argv[0], listener.failed_circuits, listener.built_circuits)
+        sys.argv[0], listener.failed_circuits, listener.built_circuits),
+    for name in listener.per_guard_built.keys():
+        print '--guard %s,%d,%d' % (name, listener.per_guard_built[name],
+                                    listener.per_guard_failed[name]),
+    print
 
 
 reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
