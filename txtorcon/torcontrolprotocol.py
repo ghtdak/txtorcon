@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 from twisted.python import log, failure
 from twisted.internet import defer, reactor
 from twisted.internet.interfaces import IProtocolFactory
@@ -9,16 +11,21 @@ from txtorcon.stream import Stream
 from txtorcon.circuit import Circuit
 from txtorcon.router import Router
 from txtorcon.addrmap import AddrMap
+from txtorcon.util import hmac_sha256, compare_via_hash
 
 from interface import ICircuitListener, ICircuitContainer, IStreamListener, IStreamAttacher, IRouterContainer, ITorControlProtocol
 from spaghetti import FSM, State, Transition
 
+import os
 import re
 import shlex
 import time
 import datetime
 import warnings
 import types
+import hmac
+import hashlib
+import base64
 
 DEBUG = False
 DEFAULT_VALUE = 'DEFAULT'
@@ -57,10 +64,10 @@ class TorProtocolFactory(object):
     def __init__(self, password=None):
         """
         Builds protocols to talk to a Tor client on the specified address. For example:
-        
+
         TCP4ClientEndpoint(reactor, "localhost", 9051).connect(TorProtocolFactory())
         reactor.run()
-        
+
         By default, COOKIE authentication is used if
         available. Otherwise, a password should be supplied. FIXME:
         user should supply a password getter, not a password (e.g. if
@@ -108,13 +115,20 @@ class Event(object):
 
 
 def parse_keywords(lines):
-    "Utility method to parse name=value pairs (GETINFO etc)"
+    """
+    Utility method to parse name=value pairs (GETINFO etc). Takes a
+    string with newline-separated lines and expects at most one = sign
+    per line. Accumulates multi-line values.
+    """
+
     rtn = {}
     key = None
     value = ''
+    ## FIXME could use some refactoring to reduce code duplication!
     for line in lines.split('\n'):
         if line.strip() == 'OK':
             continue
+
         if '=' in line:
             if key:
                 if rtn.has_key(key):
@@ -246,7 +260,8 @@ class TorControlProtocol(LineOnlyReceiver):
         ## list; the above looks nice in dotty though
         self.fsm.state = idle
         if DEBUG:
-            open("fsm.dot", "w").write(self.fsm.dotty())
+            with open('fsm.dot', 'w') as fsmfile:
+                fsmfile.write(self.fsm.dotty())
 
     ## see end of file for all the state machine matcher and
     ## transition methods.
@@ -283,7 +298,7 @@ class TorControlProtocol(LineOnlyReceiver):
 
             .. todo:: make some way to automagically obtain valid
                 keys, either from running Tor or parsing control-spec
-        
+
         :return:
             a ``Deferred`` which will callback with a dict containing
             the keys you asked for. This just inserts ``parse_keywords``
@@ -296,11 +311,11 @@ class TorControlProtocol(LineOnlyReceiver):
     def get_conf(self, *args):
         """
         Uses GETCONF to obtain configuration values from Tor.
-        
+
         :param args: any number of strings which are keys to get. To
             get all valid configuraiton names, you can call:
             ``get_info('config/names')``
-                
+
         :return: a Deferred which callbacks with one or many
             configuration values (depends on what you asked for). See
             control-spec for valid keys (you can also use TorConfig which
@@ -379,7 +394,7 @@ class TorControlProtocol(LineOnlyReceiver):
         tor control protocol.
 
         :Return: ``None``
-        
+
         .. todo:: need an interface for the callback
         """
 
@@ -488,11 +503,68 @@ class TorControlProtocol(LineOnlyReceiver):
             return None
         return fail
 
+    def _safecookie_authchallenge(self, reply):
+        """
+        Callback on AUTHCHALLENGE SAFECOOKIE
+        """
+
+        kw = parse_keywords(reply.replace(' ', '\n'))
+
+        server_hash = base64.b16decode(kw['SERVERHASH'])
+        server_nonce = base64.b16decode(kw['SERVERNONCE'])
+        ## FIXME put string in global. or something.
+        expected_server_hash = hmac_sha256(
+            "Tor safe cookie authentication server-to-controller hash",
+            self.cookie_data + self.client_nonce + server_nonce)
+
+        if not compare_via_hash(expected_server_hash, server_hash):
+            raise RuntimeError(
+                'Server hash not expected; wanted "%s" and got "%s".' %
+                (base64.b16encode(expected_server_hash),
+                 base64.b16encode(server_hash)))
+
+        client_hash = hmac_sha256(
+            "Tor safe cookie authentication controller-to-server hash",
+            self.cookie_data + self.client_nonce + server_nonce)
+        client_hash_hex = base64.b16encode(client_hash)
+        return self.queue_command('AUTHENTICATE %s' % client_hash_hex)
+
     def _do_authenticate(self, protoinfo):
-        "Callback on PROTOCOLINFO to actually authenticate once we know what's supported."
-        if 'COOKIE' in protoinfo:
+        """
+        Callback on PROTOCOLINFO to actually authenticate once we know what's supported.
+        """
+
+        methods = None
+        for line in protoinfo.split('\n'):
+            if line[:5] == 'AUTH ':
+                kw = parse_keywords(line[5:].replace(' ', '\n'))
+                methods = kw['METHODS'].split(',')
+        if not methods:
+            raise RuntimeError(
+                "Didn't find AUTH line in PROTOCOLINFO response.")
+
+        if 'SAFECOOKIE' in methods:
             cookie = re.search('COOKIEFILE="(.*)"', protoinfo).group(1)
-            data = open(cookie, 'r').read()
+            self.cookie_data = open(cookie, 'r').read()
+            if len(self.cookie_data) != 32:
+                raise RuntimeError(
+                    "Expected authentication cookie to be 32 bytes, got %d" %
+                    len(self.cookie_data))
+            if DEBUG:
+                print "Using SAFECOOKIE authentication", cookie, len(
+                    self.cookie_data), "bytes"
+            self.client_nonce = os.urandom(32)
+
+            d = self.queue_command('AUTHCHALLENGE SAFECOOKIE %s' %
+                                   base64.b16encode(self.client_nonce))
+            d.addCallback(self._safecookie_authchallenge).addCallback(
+                self._bootstrap).addErrback(self._auth_failed)
+            return
+
+        elif 'COOKIE' in methods:
+            cookie = re.search('COOKIEFILE="(.*)"', protoinfo).group(1)
+            with open(cookie, 'r') as cookiefile:
+                data = cookiefile.read()
             if len(data) != 32:
                 raise RuntimeError(
                     "Expected authentication cookie to be 32 bytes, got %d" %
@@ -509,7 +581,7 @@ class TorControlProtocol(LineOnlyReceiver):
             return
 
         raise RuntimeError(
-            "The Tor I connected to doesn't support COOKIE authentication and I have no password.")
+            "The Tor I connected to doesn't support SAFECOOKIE nor COOKIE authentication and I have no password.")
 
     def _set_valid_events(self, events):
         "used as a callback; see _bootstrap"

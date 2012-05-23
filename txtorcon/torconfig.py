@@ -1,5 +1,7 @@
+from __future__ import with_statement
+
 from twisted.python import log, failure
-from twisted.internet import defer, process, error, protocol
+from twisted.internet import defer, error, protocol
 from twisted.internet.interfaces import IProtocolFactory, IStreamServerEndpoint
 from twisted.internet.endpoints import TCP4ClientEndpoint, TCP4ServerEndpoint
 from twisted.protocols.basic import LineOnlyReceiver
@@ -62,14 +64,14 @@ class TCPHiddenServiceEndpoint(object):
         """
         :param reactor:
             :api:`twisted.internet.interfaces.IReactorTCP` provider
-        
+
         :param config:
             :class:`txtorcon.TorConfig` instance (doesn't need to be
             bootstrapped). Note that `save()` will be called on this
             at least once. FIXME should I just accept a
             TorControlProtocol instance instead, and create my own
             TorConfig?
-        
+
         :param public_port:
             The port number we will advertise in the hidden serivces
             directory.
@@ -121,12 +123,14 @@ class TCPHiddenServiceEndpoint(object):
         hn = os.path.join(self.hiddenservice.dir, 'hostname')
         pk = os.path.join(self.hiddenservice.dir, 'private_key')
         try:
-            self.onion_uri = open(hn, 'r').read().strip()
+            with open(hn, 'r') as hnfile:
+                self.onion_uri = hnfile.read().strip()
         except IOError:
             self.onion_uri = None
 
         try:
-            self.onion_private_key = open(pk, 'r').read().strip()
+            with open(pk, 'r') as pkfile:
+                self.onion_private_key = pkfile.read().strip()
         except IOError:
             self.onion_private_key = None
 
@@ -234,7 +238,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         directly except as the return value from the :func:`txtorcon.launch_tor`
         method. tor_protocol contains a valid :class:`txtorcon.TorControlProtocol`
         instance by that point.
-        
+
         connection_creator is a callable that should return a Deferred
         that callbacks with a :class:`txtorcon.TorControlProtocol`; see :func:`txtorcon.launch_tor` for
         the default one which is a functools.partial that will call
@@ -246,7 +250,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
 
         :param progress_updates: A callback which received progress
             updates with three args: percent, tag, summary
- 
+
         :ivar tor_protocol: The TorControlProtocol instance connected
             to the Tor this :api:`twisted.internet.protocol.ProcessProtocol <ProcessProtocol>` is speaking to. Will be valid
             when the `connected_cb` callback runs.
@@ -411,7 +415,7 @@ def launch_tor(config,
 
     :return: a Deferred which callbacks with a TorProcessProtocol
         connected to the fully-bootstrapped Tor; this has a
-        :class:`txtorcon.TorControlProtocol` instance as .protocol. In Tor, 
+        :class:`txtorcon.TorControlProtocol` instance as .protocol. In Tor,
         ``__OwningControllerProcess`` will be set and TAKEOWNERSHIP will have
         been called, so if you close the TorControlProtocol the Tor should
         exit also (see `control-spec <https://gitweb.torproject.org/torspec.git/blob/HEAD:/control-spec.txt>`_ 3.23).
@@ -423,7 +427,7 @@ def launch_tor(config,
         port. It seems that waiting for the first 'bootstrap' message on
         stdout is sufficient. Seems fragile...and doesn't work 100% of
         the time, so FIXME look at Tor source.
-        
+
     """
 
     ## We have a slight problem with the approach: we need to pass a
@@ -649,7 +653,7 @@ class HiddenService(object):
         to HiddenServicePort (like '80 127.0.0.1:1234' to advertise a
         hidden service at port 80 and redirect it internally on
         127.0.0.1:1234). auth corresponds to
-        HiddenServiceAuthenticateClient line (FIXME: is that lines?) 
+        HiddenServiceAuthenticateClient line (FIXME: is that lines?)
         and ver corresponds to HiddenServiceVersion and is always 2
         right now.
         """
@@ -686,9 +690,9 @@ class HiddenService(object):
         self.__dict__[name] = value
 
     def __getattr__(self, name):
-        if name in ['hostname', 'private_key']:
-            self.__dict__[name] = open(os.path.join(self.dir, name)).read(
-            ).strip()
+        if name in ('hostname', 'private_key'):
+            with open(os.path.join(self.dir, name)) as f:
+                self.__dict__[name] = f.read().strip()
         return self.__dict__[name]
 
     def config_attributes(self):
@@ -732,13 +736,13 @@ class TorConfig(object):
     like it for prior versions?
 
     FIXME:
-    
+
         - HiddenServiceOptions is special: GETCONF on it returns
         several (well, two) values. Besides adding the two keys 'by
         hand' do we need to do anything special? Can't we just depend
         on users doing 'conf.hiddenservicedir = foo' AND
         'conf.hiddenserviceport = bar' before a save() ?
-        
+
         - once I determine a value is default, is there any way to
           actually get what this value is?
     """
