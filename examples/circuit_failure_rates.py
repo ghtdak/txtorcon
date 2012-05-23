@@ -43,7 +43,6 @@ class Options(usage.Options):
         self.docs[
             'guard'
         ] = 'Specify the name, built and failed rates like "SomeTorNode,10,42". Can be specified multiple times.'
-        print "bing", self.docs
 
     def opt_guard(self, value):
         name, built, failed = value.split(',')
