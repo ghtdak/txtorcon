@@ -55,6 +55,7 @@ class MyStreamListener(txtorcon.StreamListenerMixin):
 
 
 class MyAttacher(txtorcon.CircuitListenerMixin):
+    implements(txtorcon.IStreamAttacher)
 
     def __init__(self, state):
         ## pointer to our TorState object
