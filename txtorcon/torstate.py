@@ -146,13 +146,11 @@ class TorState(object):
         waiting_p = State("waiting_p")
         waiting_s = State("waiting_s")
 
-        ## eat lines that don't make sense
-        waiting_r.add_transition(Transition(
-            waiting_r,
-            lambda x: x.strip() == '.' or x.strip() == 'OK' or x[:3] == 'ns/' or x.strip() == '',
-            nothing))
+        def ignorable_line(x):
+            return x.strip() == '.' or x.strip(
+            ) == 'OK' or x[:3] == 'ns/' or x.strip() == ''
 
-        ## the "real" parsing
+        waiting_r.add_transition(Transition(waiting_r, ignorable_line, nothing))
         waiting_r.add_transition(Transition(waiting_s, lambda x: x[:2] == 'r ',
                                             self._router_begin))
         ## FIXME use better method/func than die!!
@@ -162,6 +160,7 @@ class TorState(object):
 
         waiting_s.add_transition(Transition(waiting_w, lambda x: x[:2] == 's ',
                                             self._router_flags))
+        waiting_s.add_transition(Transition(waiting_r, ignorable_line, nothing))
         waiting_s.add_transition(Transition(
             waiting_r, lambda x: x[:2] != 's ', die(
                 'Expected "s " while parsing routers not "%s"')))
@@ -170,6 +169,7 @@ class TorState(object):
 
         waiting_w.add_transition(Transition(waiting_p, lambda x: x[:2] == 'w ',
                                             self._router_bandwidth))
+        waiting_w.add_transition(Transition(waiting_r, ignorable_line, nothing))
         waiting_w.add_transition(Transition(waiting_s, lambda x: x[:2] == 'r ',
                                             self._router_begin))  # "w" lines are optional
         waiting_w.add_transition(Transition(
@@ -180,6 +180,7 @@ class TorState(object):
 
         waiting_p.add_transition(Transition(waiting_r, lambda x: x[:2] == 'p ',
                                             self._router_policy))
+        waiting_p.add_transition(Transition(waiting_r, ignorable_line, nothing))
         waiting_p.add_transition(Transition(waiting_s, lambda x: x[:2] == 'r ',
                                             self._router_begin))  # "p" lines are optional
         waiting_p.add_transition(Transition(
