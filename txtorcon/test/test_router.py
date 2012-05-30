@@ -98,7 +98,7 @@ class RouterTests(unittest.TestCase):
             router.policy = 'foo 123'
             self.fail()
         except Exception, e:
-            self.assertTrue("Don't understand" in e.message)
+            self.assertTrue("Don't understand" in str(e))
 
     def test_policy_not_set_error(self):
         router = Router(object())
@@ -106,7 +106,7 @@ class RouterTests(unittest.TestCase):
             router.accepts_port(123)
             self.fail()
         except Exception, e:
-            self.assertTrue("policy" in e.message)
+            self.assertTrue("policy" in str(e))
 
     def test_repr(self):
         router = Router(FakeController())

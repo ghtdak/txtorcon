@@ -250,7 +250,7 @@ OK''')
             conf.foo
             self.assertTrue(False)
         except KeyError, e:
-            self.assertTrue('foo' in e.message)
+            self.assertTrue('foo' in str(e))
 
     def test_invalid_parser(self):
         self.protocol.answers.append('''config/names=
