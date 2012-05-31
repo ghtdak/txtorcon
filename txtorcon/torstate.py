@@ -12,6 +12,7 @@ from txtorcon.circuit import Circuit
 from txtorcon.router import Router
 from txtorcon.addrmap import AddrMap
 from txtorcon.torcontrolprotocol import parse_keywords
+from txtorcon.log import txtorlog
 
 from interface import ITorControlProtocol, IRouterContainer, ICircuitListener, ICircuitContainer, IStreamListener, IStreamAttacher
 from spaghetti import FSM, State, Transition
@@ -20,8 +21,6 @@ import datetime
 import warnings
 import types
 import os
-
-DEBUG = False
 
 
 def _build_state(proto):
@@ -37,7 +36,7 @@ def build_tor_connection(endpoint, build_state=True, password=None):
     """
     This is used to build a valid TorState (which has .protocol for
     the TorControlProtocol). For example::
-    
+
         from twisted.internet import reactor
         from twisted.internet.endpoints import TCP4ClientEndpoint
         import txtorcon
@@ -53,7 +52,7 @@ def build_tor_connection(endpoint, build_state=True, password=None):
     :param build_state: If True (the default) a TorState object will be
         built as well. If False, just a TorControlProtocol will be
         returned via the Deferred.
-    
+
     :return:
         a Deferred that fires with a TorControlProtocol or, if you
         specified build_state=True, a TorState. In both cases, the
@@ -433,7 +432,7 @@ class TorState(object):
                 ## used to specify a particular exit node, and trying
                 ## to do STREAMATTACH on them will fail with an error
                 ## from Tor anyway.
-                if DEBUG: print "ignore attacher:", stream
+                txtorlog.msg("ignore attacher:", stream)
                 return
 
             circ = IStreamAttacher(self.attacher).attach_stream(stream,
@@ -505,30 +504,29 @@ class TorState(object):
             if len(line.strip()):
                 self._network_status_parser.process(line)
 
-        if DEBUG: print len(self.routers_by_name), "named routers found."
+        txtorlog.msg(len(self.routers_by_name), "named routers found.")
         ## remove any names we added that turned out to have dups
         for (k, v) in self.routers.items():
             if v is None:
-                if DEBUG:
-                    print len(self.routers_by_name[k]), "dups:", k  ##,self.routers_by_name[k]
+                txtorlog.msg(len(self.routers_by_name[k]), "dups:", k)  ##,self.routers_by_name[k]
                 del self.routers[k]
 
-        if DEBUG: print len(self.guards), "GUARDs"
+        txtorlog.msg(len(self.guards), "GUARDs")
 
     def _newdesc_update(self, args):
         """
         Callback used internall for ORCONN and NEWDESC events to update Router information.
-        
+
         FIXME: need to look at state for NEWDESC; if it's CLOSED we
         probably want to remove it from dicts...
         """
 
         hsh = args[:41]
         if not self.routers.has_key(hsh):
-            if DEBUG: print "haven't seen", hsh, "yet!"
+            txtorlog.msg("haven't seen", hsh, "yet!")
         self.protocol.get_info_raw('ns/id/%s' % hsh[1:]).addCallback(
             self._update_network_status).addErrback(log.err)
-        if DEBUG: print "NEWDESC", args
+        txtorlog.msg("NEWDESC", args)
 
     def _circuit_update(self, line):
         "Used internally as a callback to update Circuit information from CIRC events."
@@ -573,7 +571,7 @@ class TorState(object):
 
     def _addr_map(self, addr):
         "Internal callback to update DNS cache. Listens to ADDRMAP."
-        if DEBUG: print " --> addr_map", addr
+        txtorlog.msg(" --> addr_map", addr)
         self.addrmap.update(addr)
 
     event_map = {
@@ -614,11 +612,11 @@ class TorState(object):
 
     def stream_new(self, stream):
         "IStreamListener: a new stream has been created"
-        if DEBUG: print "stream_new", stream
+        txtorlog.msg("stream_new", stream)
 
     def stream_succeeded(self, stream):
         "IStreamListener: stream has succeeded"
-        if DEBUG: print "stream_succeeded", stream
+        txtorlog.msg("stream_succeeded", stream)
 
     def stream_attach(self, stream, circuit):
         """
@@ -626,59 +624,58 @@ class TorState(object):
         seems you get an attach to None followed by an attach to real
         circuit fairly frequently. Perhaps related to __LeaveStreamsUnattached?
         """
-        if DEBUG:
-            print "stream_attach", stream.id, stream.target_host, " -> ", circuit
+        txtorlog.msg("stream_attach", stream.id, stream.target_host, " -> ",
+                     circuit)
 
     def stream_detach(self, stream, circuit):
         """
         IStreamListener
         """
-        if DEBUG: print "stream_detach", stream.id
+        txtorlog.msg("stream_detach", stream.id)
 
     def stream_closed(self, stream):
         "IStreamListener: stream has been closed (won't be in controller's list anymore)"
-        if DEBUG: print "stream_closed", stream.id
+        txtorlog.msg("stream_closed", stream.id)
         del self.streams[stream.id]
 
     def stream_failed(self, stream, reason, remote_reason):
         "IStreamListener: stream failed for some reason (won't be in controller's list anymore)"
-        if DEBUG: print "stream_failed", stream.id
+        txtorlog.msg("stream_failed", stream.id)
         del self.streams[stream.id]
 
     ## implement ICircuitListener
 
     def circuit_launched(self, circuit):
         "ICircuitListener API"
-        if DEBUG: print "circuit_launched", circuit
+        txtorlog.msg("circuit_launched", circuit)
         self.circuits[circuit.id] = circuit
 
     def circuit_extend(self, circuit, router):
         "ICircuitListener API"
-        if DEBUG: print "circuit_extend:", circuit.id, router
+        txtorlog.msg("circuit_extend:", circuit.id, router)
 
     def circuit_built(self, circuit):
         "ICircuitListener API"
-        if DEBUG:
-            print "circuit_built:", circuit.id, '->'.join(
-                map(lambda x: x.name + '.' + str(x.location.countrycode),
-                    circuit.path)), circuit.streams
+        txtorlog.msg("circuit_built:", circuit.id,
+                     "->".join("%s.%s" % (x.name, x.location.countrycode)
+                               for x in circuit.path), circuit.streams)
 
     def circuit_new(self, circuit):
         "ICircuitListener API"
-        if DEBUG: print "circuit_new:", circuit.id
+        txtorlog.msg("circuit_new:", circuit.id)
         self.circuits[circuit.id] = circuit
 
     def circuit_destroy(self, circuit):
         "For circuit_closed and circuit_failed"
-        if DEBUG: print "circuit_destroy:", circuit.id
+        txtorlog.msg("circuit_destroy:", circuit.id)
         del self.circuits[circuit.id]
 
     def circuit_closed(self, circuit):
         "ICircuitListener API"
-        if DEBUG: print "circuit_closed", circuit
+        txtorlog.msg("circuit_closed", circuit)
         self.circuit_destroy(circuit)
 
     def circuit_failed(self, circuit, reason):
         "ICircuitListener API"
-        if DEBUG: print "circuit_failed", circuit, reason
+        txtorlog.msg("circuit_failed", circuit, reason)
         self.circuit_destroy(circuit)

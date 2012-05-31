@@ -14,6 +14,7 @@ from txtorcon.router import Router
 from txtorcon.addrmap import AddrMap
 from txtorcon.torcontrolprotocol import parse_keywords, DEFAULT_VALUE, TorProtocolFactory
 from txtorcon.util import delete_file_or_tree, find_keywords
+from txtorcon.log import txtorlog
 
 from interface import ITorControlProtocol, IRouterContainer, ICircuitListener, ICircuitContainer, IStreamListener, IStreamAttacher
 from spaghetti import FSM, State, Transition
@@ -28,8 +29,6 @@ import random
 import tempfile
 from StringIO import StringIO
 import shlex
-
-DEBUG = False
 
 
 class TCPHiddenServiceEndpoint(object):
@@ -285,7 +284,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         ## reset and try again at the next output (see this class'
         ## tor_connection_failed)
 
-        if DEBUG: print data
+        txtorlog.msg(data)
         if not self.attempted_connect and 'Bootstrap' in data:
             self.attempted_connect = True
             d = self.connection_creator()
@@ -358,7 +357,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
             self.connected_cb.callback(self)
 
     def tor_connected(self, proto):
-        if DEBUG: print "tor_connected", proto
+        txtorlog.msg("tor_connected %s" % proto)
 
         self.tor_protocol = proto
         self.tor_protocol.is_owned = self.transport.pid
@@ -366,7 +365,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
             self.protocol_bootstrapped).addErrback(self.tor_connection_failed)
 
     def protocol_bootstrapped(self, proto):
-        if DEBUG: print "Protocol is bootstrapped"
+        txtorlog.msg("Protocol is bootstrapped")
 
         self.tor_protocol.add_event_listener('STATUS_CLIENT',
                                              self.status_client)
@@ -455,7 +454,7 @@ def launch_tor(config,
     os.write(fd, config.create_torrc())
     os.close(fd)
 
-    if DEBUG: print 'Running with config:\n', open(torrc, 'r').read()
+    # txtorlog.msg('Running with config:\n', open(torrc, 'r').read())
 
     if connection_creator is None:
         connection_creator = functools.partial(
