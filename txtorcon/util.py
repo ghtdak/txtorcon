@@ -58,17 +58,11 @@ def find_keywords(args):
     """
     This splits up strings like name=value, foo=bar into a dict. Does NOT deal
     with quotes in value (e.g. key="value with space" will not work
-    
+
     :return:
         a dict of key->value (both strings) of all name=value type keywords found in args.
     """
-
-    kw = {}
-    for x in args:
-        if '=' in x:
-            (k, v) = x.split('=', 1)
-            kw[k] = v
-    return kw
+    return dict(x.split('=', 1) for x in args if '=' in x)
 
 
 def delete_file_or_tree(*args):
@@ -99,7 +93,7 @@ def process_from_address(addr, port, torstate=None):
     returned.
 
     If psutil isn't installed, the PIDs are returned instead of
-    psutil.Process instances.    
+    psutil.Process instances.
     """
 
     if addr == None:

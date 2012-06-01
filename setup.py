@@ -1,7 +1,7 @@
 import sys
 import os
 import shutil
-from distutils.core import setup, Extension
+from setuptools import setup, find_packages
 
 from txtorcon import __version__, __author__, __contact__, __copyright__, __license__, __url__
 
