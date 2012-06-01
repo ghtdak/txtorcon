@@ -190,7 +190,7 @@ class TorState(object):
 
         self._network_status_parser = FSM([waiting_r, waiting_s, waiting_w,
                                            waiting_p])
-        if DEBUG:
+        if False:
             with open('routerfsm.dot', 'w') as fsmfile:
                 fsmfile.write(self._network_status_parser.dotty())
 
@@ -250,7 +250,7 @@ class TorState(object):
         self._router = None
 
     def connection_lost(self, *args):
-        if DEBUG: print "CONNECTIONLOST:", args
+        pass
 
     @defer.inlineCallbacks
     def _bootstrap(self, arg=None):
