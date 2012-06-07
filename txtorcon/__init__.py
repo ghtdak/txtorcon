@@ -23,4 +23,4 @@ __all__ = ["Router", "Circuit", "Stream", "TorControlProtocol", "TorState",
            "AddrMap", "util", "interface", "ITorControlprotocol",
            "IStreamListener", "IStreamAttacher", "StreamListenerMixin",
            "ICircuitContainer", "ICircuitListener", "CircuitListenerMixin",
-           "IRouterContainer"]
+           "IRouterContainer", "IAddrListener"]

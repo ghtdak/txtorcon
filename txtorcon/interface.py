@@ -240,3 +240,16 @@ class IRouterContainer(Interface):
         """
         :return: a router by its ID.
         """
+
+
+class IAddrListener(Interface):
+
+    def addrmap_added(self, addr):
+        """
+        A new address was added to the address map.
+        """
+
+    def addrmap_expired(self, name):
+        """
+        An address has expired from the address map.
+        """
