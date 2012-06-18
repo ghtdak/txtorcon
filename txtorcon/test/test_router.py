@@ -8,7 +8,9 @@ from txtorcon.router import Router
 
 
 class FakeController(object):
-    pass
+
+    def get_info_raw(self, i):
+        return defer.succeed('250-ip-to-country/something=XX\r\n250 OK')
 
 
 class RouterTests(unittest.TestCase):
