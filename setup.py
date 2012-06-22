@@ -12,7 +12,9 @@ setup(
     'Twisted-based Tor controller client, with state-tracking and configuration abstractions.',
     long_description=open('README', 'r').read(),
     keywords=['python', 'twisted', 'tor', 'tor controller'],
-    requires=['twisted (>11.1.0)', 'pygeoip', 'psutil', 'ipaddr'],
+    ## warning, need to sync with "requirements.txt" also
+    requires=['twisted (>11.1.0)', 'pygeoip', 'sphinx', 'zope.interface',
+              'ipaddr'],
     classifiers=['Framework :: Twisted', 'Development Status :: 4 - Beta',
                  'Intended Audience :: Developers',
                  'License :: OSI Approved :: MIT License',
