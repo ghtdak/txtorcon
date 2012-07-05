@@ -15,7 +15,8 @@ class Addr(object):
 
     def __init__(self, map):
         """
-        map is an AddrMap instance, used for scheduling expiries and updating the map.
+        map is an AddrMap instance, used for scheduling expiries and
+        updating the map.
         """
 
         self.map = map
@@ -53,7 +54,6 @@ class Addr(object):
         else:
             self.expires = datetime.datetime.strptime(gmtexpires, fmt)
         self.created = datetime.datetime.utcnow()
-        #print "ADDRMAP",self.name,"->",self.ip,self.created,"expires",diff.seconds,"seconds"
 
         if self.expires is not None:
             if oldexpires is None:
@@ -78,7 +78,8 @@ class Addr(object):
 
 class AddrMap(object):
     """
-    A collection of Addr objects mapping domains to addresses, with automatic expiry.
+    A collection of Addr objects mapping domains to addresses, with
+    automatic expiry.
 
     FIXME: need listener interface, so far:
 
@@ -98,7 +99,7 @@ class AddrMap(object):
         """
 
         params = shlex.split(update)
-        if self.addr.has_key(params[0]):
+        if params[0] in self.addr:
             self.addr[params[0]].update(*params)
 
         else:

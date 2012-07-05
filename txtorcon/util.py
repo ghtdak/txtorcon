@@ -54,7 +54,8 @@ def find_keywords(args):
     with quotes in value (e.g. key="value with space" will not work
 
     :return:
-        a dict of key->value (both strings) of all name=value type keywords found in args.
+        a dict of key->value (both strings) of all name=value type
+        keywords found in args.
     """
     return dict(x.split('=', 1) for x in args if '=' in x)
 
@@ -88,7 +89,7 @@ def process_from_address(addr, port, torstate=None):
     given, None is returned.
     """
 
-    if addr == None:
+    if addr is None:
         return None
 
     if "(tor_internal)" == str(addr).lower():
@@ -126,10 +127,6 @@ def compare_via_hash(x, y):
     """
     return (hmac_sha256(CRYPTOVARIABLE_EQUALITY_COMPARISON_NONCE, x) ==
             hmac_sha256(CRYPTOVARIABLE_EQUALITY_COMPARISON_NONCE, y))
-
-##
-## classes
-##
 
 
 class NetLocation:

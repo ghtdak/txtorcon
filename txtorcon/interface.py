@@ -71,17 +71,17 @@ class IStreamAttacher(Interface):
         :param stream: The stream to attach, which will be in NEW state.
 
         :param circuits: all currently available :class:`txtorcon.Circuit`
-            objects in the :class:`txtorcon.TorState` in a dict indexed by id. Note
-            they are not limited to BUILT circuits.
+            objects in the :class:`txtorcon.TorState` in a dict indexed by id.
+            Note they are not limited to BUILT circuits.
 
         You should return a :class:`txtorcon.Circuit` instance which
         should be at state BUILT in the currently running Tor. You may
         also return a Deferred which will callback with the desired
         circuit. In this case, you will probably need to be aware that
-        the callback from :meth:`txtorcon.TorState.build_circuit` does NOT call back
-        with a Circuit (just Tor's response of 'EXTEND 1234') and any
-        circuit you do return must be in the BUILT state anyway (which
-        the above will not).
+        the callback from :meth:`txtorcon.TorState.build_circuit` does
+        NOT call back with a Circuit (just Tor's response of 'EXTEND
+        1234') and any circuit you do return must be in the BUILT
+        state anyway (which the above will not).
 
         See :ref:`attach_streams_by_country.py` for a complete
         example of using a Deferred in an IStreamAttacher.
@@ -125,10 +125,15 @@ class ICircuitListener(Interface):
         "A circuit has been extended to include a new router hop."
 
     def circuit_built(circuit):
-        "A circuit has been extended to all hops (usually 3 for user circuits)."
+        """
+        A circuit has been extended to all hops (usually 3 for user
+        circuits).
+        """
 
     def circuit_closed(circuit):
-        "A circuit has been closed cleanly (won't be in controller's list any more)."
+        """
+        A circuit has been closed cleanly (won't be in controller's list any more).
+        """
 
     def circuit_failed(circuit, reason):
         """A circuit has been closed because something went wrong.
@@ -140,7 +145,7 @@ class ICircuitListener(Interface):
         INTERNAL,RESOURCELIMIT, CONNRESET, TORPROTOCOL, NOTDIRECTORY,
         END, PRIVATE_ADDR.
 
-        However, don't depend on that: it could be anything.        
+        However, don't depend on that: it could be anything.
         """
 
 
@@ -208,16 +213,18 @@ class ITorControlProtocol(Interface):
 
     def add_circuit_listener(icircuitlistener):
         """
-        Add an implementor of :class:`txtorcon.interface.ICircuitListener` which will be
-        added to all new circuits as well as all existing ones (you
-        won't, however, get circuit_new calls for the existing ones)
+        Add an implementor of :class:`txtorcon.interface.ICircuitListener`
+        which will be added to all new circuits as well as all
+        existing ones (you won't, however, get circuit_new calls for
+        the existing ones)
         """
 
     def add_stream_listener(istreamlistener):
         """
-        Add an implementor of :class:`txtorcon.interface.IStreamListener` which will be added to
-        all new circuits as well as all existing ones (you won't,
-        however, get stream_new calls for the existing ones)
+        Add an implementor of :class:`txtorcon.interface.IStreamListener`
+        which will be added to all new circuits as well as all
+        existing ones (you won't, however, get stream_new calls for
+        the existing ones)
         """
 
     def add_event_listener(evt, callback):
@@ -225,7 +232,8 @@ class ITorControlProtocol(Interface):
         Add a listener to an Event object. This may be called multiple
         times for the same event. Every time the event happens, the
         callback method will be called. The callback has one argument
-        (a string, the contents of the event, minus the "650" and the name of the event)
+        (a string, the contents of the event, minus the '650' and the
+        name of the event)
 
         FIXME: should have an interface for the callback.
         """
@@ -233,8 +241,7 @@ class ITorControlProtocol(Interface):
 
 class IRouterContainer(Interface):
 
-    unique_routers = Attribute(
-        """unique_routers contains a list of all the Router instances""")
+    unique_routers = Attribute("contains a list of all the Router instances")
 
     def router_from_id(routerid):
         """

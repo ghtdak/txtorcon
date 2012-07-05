@@ -16,7 +16,8 @@ from txtorcon.addrmap import AddrMap
 from txtorcon.util import hmac_sha256, compare_via_hash
 from txtorcon.log import txtorlog
 
-from interface import ICircuitListener, ICircuitContainer, IStreamListener, IStreamAttacher, IRouterContainer, ITorControlProtocol
+from txtorcon.interface import ICircuitListener, ICircuitContainer, IStreamListener
+from txtorcon.interface import IStreamAttacher, IRouterContainer, ITorControlProtocol
 from spaghetti import FSM, State, Transition
 
 import os
@@ -66,7 +67,8 @@ class TorProtocolFactory(object):
 
     def __init__(self, password=None):
         """
-        Builds protocols to talk to a Tor client on the specified address. For example:
+        Builds protocols to talk to a Tor client on the specified
+        address. For example::
 
         TCP4ClientEndpoint(reactor, "localhost", 9051).connect(TorProtocolFactory())
         reactor.run()
@@ -134,7 +136,7 @@ def parse_keywords(lines):
 
         if '=' in line:
             if key:
-                if rtn.has_key(key):
+                if key in rtn:
                     if isinstance(rtn[key], types.ListType):
                         rtn[key].append(value)
                     else:
@@ -150,7 +152,7 @@ def parse_keywords(lines):
             else:
                 value = value + '\n' + line
     if key:
-        if rtn.has_key(key):
+        if key in rtn:
             if isinstance(rtn[key], types.ListType):
                 rtn[key].append(value)
             else:
@@ -162,18 +164,21 @@ def parse_keywords(lines):
 
 class TorControlProtocol(LineOnlyReceiver):
     """
-    This is the main class that talks to a Tor and implements the "raw" procotol.
+    This is the main class that talks to a Tor and implements the "raw"
+    procotol.
 
     This instance does not track state; see :class:`txtorcon.TorState`
     for the current state of all Circuits, Streams and Routers.
 
-    :meth:`txtorcon.TorState.build_circuit` allows you to build custom circuits.
+    :meth:`txtorcon.TorState.build_circuit` allows you to build custom
+    circuits.
 
-    :meth:`txtorcon.TorControlProtocol.add_event_listener` can be used to listen for specific events.
+    :meth:`txtorcon.TorControlProtocol.add_event_listener` can be used
+    to listen for specific events.
 
-    To see how circuit and stream listeners are used, see :class:`txtorcon.TorState`,
-    which is also the place to go if you wish to add your own stream
-    or circuit listeners.
+    To see how circuit and stream listeners are used, see
+    :class:`txtorcon.TorState`, which is also the place to go if you
+    wish to add your own stream or circuit listeners.
     """
 
     implements(ITorControlProtocol)
@@ -185,13 +190,15 @@ class TorControlProtocol(LineOnlyReceiver):
         """
 
         self.password = password
-        """If set, a password to use for authentication to Tor (default is to use COOKIE, however)."""
+        """If set, a password to use for authentication to Tor
+        (default is to use COOKIE, however)."""
 
         self.version = None
         """Version of Tor we've connected to."""
 
         self.is_owned = None
-        """If not None, this is the PID of the Tor process we own (TAKEOWNERSHIP, etc)."""
+        """If not None, this is the PID of the Tor process we own
+        (TAKEOWNERSHIP, etc)."""
 
         self.events = {}
         """events we've subscribed to (keyed by name like "GUARD", "STREAM")"""
@@ -352,7 +359,8 @@ class TorControlProtocol(LineOnlyReceiver):
         to) set the key 'foo' to value 'bar'.
 
         :return: a ``Deferred`` that will callback with the response
-            ('OK') or errback with the error code and message (e.g. ``"552 Unrecognized option: Unknown option 'foo'.  Failing."``)
+            ('OK') or errback with the error code and message (e.g.
+            ``"552 Unrecognized option: Unknown option 'foo'.  Failing."``)
         """
         if len(args) % 2:
             d = defer.Deferred()
@@ -386,7 +394,9 @@ class TorControlProtocol(LineOnlyReceiver):
 
     def add_event_listener(self, evt, callback):
         """
-        :param evt: event name, see also :var:`txtorcon.TorControlProtocol.events` .keys()
+        :param evt: event name, see also
+        :var:`txtorcon.TorControlProtocol.events` .keys()
+        
         Add a listener to an Event object. This may be called multiple
         times for the same event. If it's the first listener, a new
         SETEVENTS call will be initiated to Tor.
@@ -406,7 +416,7 @@ class TorControlProtocol(LineOnlyReceiver):
             except:
                 raise RuntimeError("Unknown event type: " + evt)
 
-        if not self.events.has_key(evt.name):
+        if evt.name not in self.events:
             self.events[evt.name] = evt
             self.queue_command('SETEVENTS %s' % ' '.join(self.events.keys()))
         evt.listen(callback)
@@ -440,7 +450,8 @@ class TorControlProtocol(LineOnlyReceiver):
 
     def queue_command(self, cmd, arg=None):
         """
-        returns a Deferred which will fire with the response data when we get it
+        returns a Deferred which will fire with the response data when
+        we get it
         """
 
         d = defer.Deferred()
@@ -476,7 +487,7 @@ class TorControlProtocol(LineOnlyReceiver):
 
         firstline = rest[:rest.find('\n')]
         args = firstline.split()
-        if self.events.has_key(args[0]):
+        if args[0] in self.events:
             self.events[args[0]].got_update(rest[len(args[0]) + 1:])
             return
 
@@ -541,7 +552,8 @@ class TorControlProtocol(LineOnlyReceiver):
 
     def _do_authenticate(self, protoinfo):
         """
-        Callback on PROTOCOLINFO to actually authenticate once we know what's supported.
+        Callback on PROTOCOLINFO to actually authenticate once we know
+        what's supported.
         """
 
         methods = None

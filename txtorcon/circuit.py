@@ -59,7 +59,8 @@ class Circuit(object):
 
     def __init__(self, routercontainer):
         """
-        :param routercontainer: should implement :class:`txtorcon.interface.IRouterContainer`
+        :param routercontainer: should implement
+        :class:`txtorcon.interface.IRouterContainer`
         """
         self.listeners = []
         self.router_container = IRouterContainer(routercontainer)
@@ -88,7 +89,7 @@ class Circuit(object):
         self.state = args[1]
 
         kw = find_keywords(args)
-        if kw.has_key('PURPOSE'):
+        if 'PURPOSE' in kw:
             self.purpose = kw['PURPOSE']
 
         if self.state == 'LAUNCHED':
@@ -113,7 +114,7 @@ class Circuit(object):
                 log.err(RuntimeError("Circuit is %s but still has %d streams" %
                                      (self.state, len(self.streams))))
             reason = 'unknown'
-            if kw.has_key('REASON'):
+            if 'REASON' in kw:
                 reason = kw['REASON']
             [x.circuit_failed(self, reason) for x in self.listeners]
 
@@ -129,7 +130,6 @@ class Circuit(object):
                 oldpath = self.path
 
     def __str__(self):
-        #return "<Circuit %d %s [%s]>" % (self.id, self.state, ' '.join(map(lambda x: x.name, self.path)))
         return "<Circuit %d %s [%s] for %s>" % (
             self.id, self.state, ' '.join(map(lambda x: x.ip, self.path)),
             self.purpose)

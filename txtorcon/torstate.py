@@ -15,7 +15,8 @@ from txtorcon.torcontrolprotocol import parse_keywords
 from txtorcon.log import txtorlog
 from txtorcon.torcontrolprotocol import TorProtocolError
 
-from interface import ITorControlProtocol, IRouterContainer, ICircuitListener, ICircuitContainer, IStreamListener, IStreamAttacher
+from txtorcon.interface import ITorControlProtocol, IRouterContainer, ICircuitListener
+from txtorcon.interface import ICircuitContainer, IStreamListener, IStreamAttacher
 from spaghetti import FSM, State, Transition
 
 import functools
@@ -47,7 +48,9 @@ def build_tor_connection(endpoint, build_state=True, password=None):
             print "Fully bootstrapped state:",state
             print "   with bootstrapped protocol:",state.protocol
 
-        d = txtorcon.build_tor_connection(TCP4ClientEndpoint(reactor, "localhost", 9051))
+        d = txtorcon.build_tor_connection(TCP4ClientEndpoint(reactor,
+                                                             "localhost",
+                                                             9051))
         d.addCallback(example)
         reactor.run()
 
@@ -107,7 +110,9 @@ class TorState(object):
         self.stream_factory = Stream
 
         self.attacher = None
-        """If set, provides :class:`txtorcon.interface.IStreamAttacher` to attach new streams we hear about."""
+        """If set, provides
+        :class:`txtorcon.interface.IStreamAttacher` to attach new
+        streams we hear about."""
 
         self.tor_binary = 'tor'
 
@@ -216,18 +221,18 @@ class TorState(object):
             args[7],  # ORPort
             args[8])  # DirPort
 
-        if self.routers.has_key(self._router.id_hex):
+        if self._router.id_hex in self.routers:
             ## FIXME should I do an update() on this one??
             self._router = self.routers[self._router.id_hex]
             return
 
-        if self.routers_by_name.has_key(self._router.name):
+        if self._router.name in self.routers_by_name:
             self.routers_by_name[self._router.name].append(self._router)
 
         else:
             self.routers_by_name[self._router.name] = [self._router]
 
-        if self.routers.has_key(self._router.name):
+        if self._router.name in self.routers:
             self.routers[self._router.name] = None
 
         else:
@@ -341,10 +346,11 @@ class TorState(object):
 
     def set_attacher(self, attacher, myreactor):
         """
-        Provide an :class:`txtorcon.interface.IStreamAttacher to associate streams to
-        circuits. This won't get turned on until after bootstrapping
-        is completed. ("__LeaveStreamsUnattached" needs to be set to "1"
-        and the existing circuits list needs to be populated).
+        Provide an :class:`txtorcon.interface.IStreamAttacher to
+        associate streams to circuits. This won't get turned on until
+        after bootstrapping is completed. ('__LeaveStreamsUnattached'
+        needs to be set to '1' and the existing circuits list needs to
+        be populated).
         """
 
         react = IReactorCore(myreactor)
@@ -383,7 +389,7 @@ class TorState(object):
     }
 
     def close_stream(self, stream, reason='REASON_MISC'):
-        if not self.streams.has_key(stream.id):
+        if stream.id not in self.streams:
             raise KeyError("No such stream: %d" % stream.id)
 
         return self.protocol.queue_command("CLOSESTREAM %d %d" % (
@@ -465,7 +471,7 @@ class TorState(object):
             if circ is self.DO_NOT_ATTACH:
                 return
 
-            if circ == None:
+            if circ is None:
                 self.protocol.queue_command("ATTACHSTREAM %d 0" % stream.id)
 
             else:
@@ -486,7 +492,7 @@ class TorState(object):
                         self, stream.id)).addErrback(log.err)
 
                 else:
-                    if not self.circuits.has_key(circ.id):
+                    if circ.id not in self.circuits:
                         raise RuntimeError(
                             "Attacher returned a circuit unknown to me.")
                     if circ.state != 'BUILT':
@@ -532,28 +538,29 @@ class TorState(object):
         ## remove any names we added that turned out to have dups
         for (k, v) in self.routers.items():
             if v is None:
-                txtorlog.msg(len(self.routers_by_name[k]), "dups:", k)  ##,self.routers_by_name[k]
+                txtorlog.msg(len(self.routers_by_name[k]), "dups:", k)
                 del self.routers[k]
 
         txtorlog.msg(len(self.guards), "GUARDs")
 
     def _newdesc_update(self, args):
         """
-        Callback used internall for ORCONN and NEWDESC events to update Router information.
+        Callback used internall for ORCONN and NEWDESC events to
+        update Router information.
 
         FIXME: need to look at state for NEWDESC; if it's CLOSED we
         probably want to remove it from dicts...
         """
 
         hsh = args[:41]
-        if not self.routers.has_key(hsh):
+        if hsh not in self.routers:
             txtorlog.msg("haven't seen", hsh, "yet!")
         self.protocol.get_info_raw('ns/id/%s' % hsh[1:]).addCallback(
             self._update_network_status).addErrback(log.err)
         txtorlog.msg("NEWDESC", args)
 
     def _maybe_create_circuit(self, circ_id):
-        if not self.circuits.has_key(circ_id):
+        if circ_id not in self.circuits:
             c = self.circuit_factory(self)
             c.listen(self)
             [c.listen(x) for x in self.circuit_listeners]
@@ -563,7 +570,11 @@ class TorState(object):
         return c
 
     def _circuit_update(self, line):
-        "Used internally as a callback to update Circuit information from CIRC events."
+        """
+        Used internally as a callback to update Circuit information
+        from CIRC events.
+        """
+
         #print "circuit_update",line
         args = line.split()
         circ_id = int(args[0])
@@ -572,7 +583,11 @@ class TorState(object):
         c.update(args)
 
     def _stream_update(self, line):
-        "Used internally as a callback to update Stream information from STREAM events."
+        """
+        Used internally as a callback to update Stream information
+        from STREAM events.
+        """
+
         #print "stream_update",line
         if line.strip() == 'stream-status=':
             ## this happens if there are no active streams
@@ -583,7 +598,7 @@ class TorState(object):
 
         stream_id = int(args[0])
         wasnew = False
-        if not self.streams.has_key(stream_id):
+        if stream_id not in self.streams:
             stream = self.stream_factory(self)
             self.streams[stream_id] = stream
             stream.listen(self)
@@ -594,7 +609,7 @@ class TorState(object):
         ## if the update closed the stream, it won't be in our list
         ## anymore. FIXME: how can we ever hit such a case as the
         ## first update being a CLOSE?
-        if wasnew and self.streams.has_key(stream_id):
+        if wasnew and stream_id in self.streams:
             self._maybe_attach(self.streams[stream_id])
 
     def _addr_map(self, addr):
@@ -662,12 +677,20 @@ class TorState(object):
         txtorlog.msg("stream_detach", stream.id)
 
     def stream_closed(self, stream):
-        "IStreamListener: stream has been closed (won't be in controller's list anymore)"
+        """
+        IStreamListener: stream has been closed (won't be in
+        controller's list anymore)
+        """
+
         txtorlog.msg("stream_closed", stream.id)
         del self.streams[stream.id]
 
     def stream_failed(self, stream, reason, remote_reason):
-        "IStreamListener: stream failed for some reason (won't be in controller's list anymore)"
+        """
+        IStreamListener: stream failed for some reason (won't be in
+        controller's list anymore)
+        """
+
         txtorlog.msg("stream_failed", stream.id)
         del self.streams[stream.id]
 

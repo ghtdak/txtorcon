@@ -65,8 +65,8 @@ class Stream(object):
 
     def __init__(self, circuitcontainer):
         """
-        :param circuitcontainer: an object which implements :class:`interface.ICircuitContainer`
-        
+        :param circuitcontainer: an object which implements
+        :class:`interface.ICircuitContainer`
         """
 
         self.circuit_container = ICircuitContainer(circuitcontainer)
@@ -80,37 +80,45 @@ class Stream(object):
         """An int, Tor's ID for this :class:`txtorcon.Circuit`"""
 
         self.state = None
-        """A string, Tor's idea of the state of this :class:`txtorcon.Circuit`"""
+        """A string, Tor's idea of the state of this
+        :class:`txtorcon.Stream`"""
 
         self.target_host = None
-        """Usually a hostname, but sometimes an IP address (e.g. when we query existing state from Tor)"""
+        """Usually a hostname, but sometimes an IP address (e.g. when
+        we query existing state from Tor)"""
 
         self.target_addr = None
-        """If available, the IP address we're connecting to (if None, see target_host instead)."""
+        """If available, the IP address we're connecting to (if None,
+        see target_host instead)."""
 
         self.target_port = 0
         """The port we're connecting to."""
 
         self.circuit = None
-        """If we've attached to a :class:`txtorcon.Circuit`, this will be an instance of :class:`txtorcon.Circuit` (otherwise None)."""
+        """If we've attached to a :class:`txtorcon.Circuit`, this will
+        be an instance of :class:`txtorcon.Circuit` (otherwise None)."""
 
         self.listeners = []
-        """A list of all connected :class:`txtorcon.interface.ICircuitListener` instances."""
+        """A list of all connected
+        :class:`txtorcon.interface.ICircuitListener` instances."""
 
         self.source_addr = None
-        """If available, the address from which this Stream originated (e.g. local process, etc). See get_process() also."""
+        """If available, the address from which this Stream originated
+        (e.g. local process, etc). See get_process() also."""
 
         self.source_port = 0
-        """If available, the port from which this Stream originated. See get_process() also."""
+        """If available, the port from which this Stream
+        originated. See get_process() also."""
 
     def listen(self, listen):
         """
         Attach an :class:`txtorcon.interface.IStreamListener` to this stream.
 
-        See also :meth:`txtorcon.TorState.add_stream_listener` to listen to all streams.
+        See also :meth:`txtorcon.TorState.add_stream_listener` to
+        listen to all streams.
 
-        :param listen: something that knows :class:`txtorcon.interface.IStreamListener`
-
+        :param listen: something that knows
+        :class:`txtorcon.interface.IStreamListener`
         """
 
         listener = IStreamListener(listen)
@@ -131,7 +139,7 @@ class Stream(object):
 
         kw = find_keywords(args)
 
-        if kw.has_key('SOURCE_ADDR'):
+        if 'SOURCE_ADDR' in kw:
             last_colon = kw['SOURCE_ADDR'].rfind(':')
             self.source_addr = kw['SOURCE_ADDR'][:last_colon]
             if self.source_addr != '(Tor_internal)':
@@ -147,7 +155,7 @@ class Stream(object):
 
             self.target_port = int(self.target_port)
             if self.state == 'NEW':
-                if self.circuit != None:
+                if self.circuit is not None:
                     log.err(RuntimeError("Weird: circuit valid in NEW"))
                 [x.stream_new(self) for x in self.listeners]
             else:
@@ -165,9 +173,9 @@ class Stream(object):
         elif self.state == 'FAILED':
             reason = ''
             remote_reason = ''
-            if kw.has_key('REMOTE_REASON'):
+            if 'REMOTE_REASON' in kw:
                 remote_reason = kw['REMOTE_REASON']
-            if kw.has_key('REASON'):
+            if 'REASON' in kw:
                 reason = kw['REASON']
 
             if self.circuit:
@@ -217,6 +225,7 @@ class Stream(object):
                         self.circuit.streams.append(self)
                         [x.stream_attach(self, self.circuit)
                          for x in self.listeners]
+
                 else:
                     if self.circuit.id != cid:
                         log.err(RuntimeError('Circuit ID changed from %d to %d.'
