@@ -665,6 +665,7 @@ class TorState(object):
                 is_named = routerid[42] is '='
             router.update(nick, hashFromHexId(idhash), '0' * 27, 'unknown',
                           'unknown', '0', '0')
+            return router
 
     ## implement IStreamListener
 
