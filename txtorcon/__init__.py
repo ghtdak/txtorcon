@@ -14,6 +14,7 @@ from txtorcon.torconfig import TorConfig, HiddenService, TorProcessProtocol, TCP
 from txtorcon.torinfo import TorInfo
 from txtorcon.addrmap import AddrMap
 from txtorcon.addrmap import Addr
+from txtorcon.torinfo import TorInfo
 import util
 import interface
 from txtorcon.interface import *
@@ -21,8 +22,8 @@ from txtorcon.interface import *
 __all__ = ["Router", "Circuit", "Stream", "TorControlProtocol",
            "TorProtocolError", "TorState", "DEFAULT_VALUE", "TorInfo",
            "build_tor_connection", "launch_tor", "TorConfig", "HiddenService",
-           "TorProcessProtocol", "TCPHiddenServiceEndpoint", "AddrMap", "util",
-           "interface", "ITorControlprotocol", "IStreamListener",
-           "IStreamAttacher", "StreamListenerMixin", "ICircuitContainer",
-           "ICircuitListener", "CircuitListenerMixin", "IRouterContainer",
-           "IAddrListener"]
+           "TorProcessProtocol", "TorInfo", "TCPHiddenServiceEndpoint",
+           "AddrMap", "util", "interface", "ITorControlprotocol",
+           "IStreamListener", "IStreamAttacher", "StreamListenerMixin",
+           "ICircuitContainer", "ICircuitListener", "CircuitListenerMixin",
+           "IRouterContainer", "IAddrListener"]
