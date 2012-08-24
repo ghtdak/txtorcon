@@ -120,6 +120,8 @@ class Event(object):
 
 
 def unquote(word):
+    if len(word) == 0:
+        return word
     if word[0] == '"' and word[-1] == '"':
         return word[1:-1]
     elif word[0] == "'" and word[-1] == "'":
