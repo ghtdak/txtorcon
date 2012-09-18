@@ -401,9 +401,6 @@ def launch_tor(config,
     :param reactor: a Twisted IReactorCore implementation (usually
         twisted.internet.reactor)
 
-    :param control_port: which port the launched Tor process will
-        listen on; anything set in config is overridden.
-
     :param tor_binary: path to the Tor binary to run.
 
     :param progress_updates: a callback which gets progress updates; gets as
@@ -443,15 +440,18 @@ def launch_tor(config,
     ## config and get Tor to load that...which might be the best
     ## option anyway.
 
+    if config.needs_save():
+        log.msg("Config was unsaved when launch_tor() called; calling save().")
+        config.save()
+
     try:
         data_directory = config.DataDirectory
+        user_set_data_directory = True
     except KeyError:
+        user_set_data_directory = False
         data_directory = tempfile.mkdtemp(prefix='tortmp')
         config.DataDirectory = data_directory
 
-    (fd, torrc) = tempfile.mkstemp(prefix='tortmp')
-
-    config.DataDirectory = data_directory
     try:
         control_port = config.ControlPort
     except KeyError:
@@ -459,9 +459,10 @@ def launch_tor(config,
         config.ControlPort = control_port
 
     config.CookieAuthentication = 1
-    config.SocksPort = 0
     config.__OwningControllerProcess = os.getpid()
+    config.save()
 
+    (fd, torrc) = tempfile.mkstemp(prefix='tortmp')
     os.write(fd, config.create_torrc())
     os.close(fd)
 
@@ -473,14 +474,24 @@ def launch_tor(config,
             TorProtocolFactory())
     process_protocol = TorProcessProtocol(connection_creator, progress_updates)
 
-    # we do both because this process might be shut down way before
-    # the reactor, but if the reactor bombs out without the subprocess
-    # getting closed cleanly, we'll want the system shutdown events
-    # triggered
-    process_protocol.to_delete = [torrc, data_directory]
-    reactor.addSystemEventTrigger('before', 'shutdown',
-                                  functools.partial(delete_file_or_tree, torrc,
-                                                    data_directory))
+    # we set both to_delete and the shutdown events because this
+    # process might be shut down way before the reactor, but if the
+    # reactor bombs out without the subprocess getting closed cleanly,
+    # we'll want the system shutdown events triggered so the temporary
+    # files get cleaned up
+
+    # we don't want to delete the user's directories, just our
+    # temporary ones
+    if user_set_data_directory:
+        process_protocol.to_delete = [torrc]
+        reactor.addSystemEventTrigger('before', 'shutdown',
+                                      functools.partial(delete_file_or_tree,
+                                                        torrc))
+    else:
+        process_protocol.to_delete = [torrc, data_directory]
+        reactor.addSystemEventTrigger('before', 'shutdown',
+                                      functools.partial(delete_file_or_tree,
+                                                        torrc, data_directory))
 
     try:
         transport = reactor.spawnProcess(process_protocol,
@@ -889,7 +900,7 @@ class TorConfig(object):
         except (RuntimeError, e):
             ## for Tor versions which don't understand CONF_CHANGED
             ## there's nothing we can really do.
-            log.warning(
+            log.msg(
                 "Can't listen for CONF_CHANGED event; won't stay up-to-date with other clients.")
         return self.protocol.get_info_raw("config/names").addCallbacks(
             self._do_setup,
