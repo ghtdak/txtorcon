@@ -752,7 +752,9 @@ class TorControlProtocol(LineOnlyReceiver):
         "for FSM"
         #        print "BCAST",line
         if len(line) > 3:
-            if self.code >= 200 and self.code < 300 and self.command[2] != None:
+            if self.code >= 200 and self.code < 300 and self.command and self.command[
+                    2
+            ] != None:
                 self.command[2](line[4:])
                 resp = ''
 
@@ -762,6 +764,9 @@ class TorControlProtocol(LineOnlyReceiver):
             resp = self.response
         self.response = ''
         if self.code >= 200 and self.code < 300:
+            if self.defer is None:
+                raise RuntimeError(
+                    "Got a response, but didn't issue a command.")
             self.defer.callback(resp)
         elif self.code >= 500 and self.code < 600:
             err = TorProtocolError(self.code, resp)
