@@ -185,6 +185,9 @@ class CircuitTests(unittest.TestCase):
             ))
         self.assertEqual(tor.extend, [])
         self.assertEqual(circuit.path, [])
+        self.assertTrue('IS_INTERNAL' in circuit.build_flags)
+        self.assertTrue('NEED_CAPACITY' in circuit.build_flags)
+        self.assertTrue('NEED_UPTIME' in circuit.build_flags)
 
     def test_str(self):
         tor = FakeTorController()
