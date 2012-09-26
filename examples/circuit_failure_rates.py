@@ -88,11 +88,15 @@ class CircuitFailureWatcher(txtorcon.CircuitListenerMixin):
 
     def circuit_built(self, circuit):
         """ICircuitListener API"""
+        # older tor versions will have empty build_flags
+        if 'ONEHOP_TUNNEL' in circuit.build_flags:
+            return
+
         if circuit.purpose == 'GENERAL':
             if len(circuit.path) > 0 and circuit.path[
                     0
             ] not in self.state.entry_guards.values():
-                print "WEIRD: first circuit hop not in entry guards:", circuit, circuit.path
+                print "WEIRD: first circuit hop not in entry guards:", circuit, circuit.path, circuit.purpose
                 return
 
             self.built_circuits += 1
@@ -108,6 +112,14 @@ class CircuitFailureWatcher(txtorcon.CircuitListenerMixin):
 
     def circuit_failed(self, circuit, reason):
         """ICircuitListener API"""
+
+        if reason == 'MEASUREMENT_FAILED':
+            return
+
+        # older tor versions will have empty build_flags
+        if 'ONEHOP_TUNNEL' in circuit.build_flags:
+            return
+
         if circuit.purpose == 'GENERAL':
             if len(circuit.path) > 1 and circuit.path[
                     0
