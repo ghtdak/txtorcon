@@ -216,15 +216,21 @@ if options['connect']:
                                           (host, port))
 
 else:
-    if os.stat('/var/run/tor/control').st_mode & (stat.S_IRGRP | stat.S_IRUSR |
-                                                  stat.S_IROTH):
-        print 'Connecting to "/var/run/tor/control"'
-        endpoint = endpoints.UNIXClientEndpoint(reactor, "/var/run/tor/control")
+    endpoint = None
+    try:
+        ## FIXME more Pythonic to not check, and accept more exceptions?
+        if os.stat('/var/run/tor/control').st_mode & (
+            stat.S_IRGRP | stat.S_IRUSR | stat.S_IROTH):
+            print "using control socket"
+            endpoint = endpoints.UNIXClientEndpoint(reactor,
+                                                    "/var/run/tor/control")
+    except OSError:
+        pass
 
-    else:
-        print "Connecting to localhost:9051..."
+    if endpoint is None:
         endpoint = endpoints.TCP4ClientEndpoint(reactor, "localhost", 9051)
 
+print "Connecting via", endpoint
 d = txtorcon.build_tor_connection(endpoint, build_state=True)
 d.addCallback(setup).addErrback(setup_failed)
 reactor.run()
