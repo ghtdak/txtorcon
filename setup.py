@@ -19,7 +19,7 @@ setup(
     'Twisted-based Tor controller client, with state-tracking and configuration abstractions.',
     long_description=open('README', 'r').read(),
     keywords=['python', 'twisted', 'tor', 'tor controller'],
-    install_requires=open('requirements.txt').readlines(),
+    requires=open('requirements.txt').readlines(),
     classifiers=['Framework :: Twisted', 'Development Status :: 4 - Beta',
                  'Intended Audience :: Developers',
                  'License :: OSI Approved :: MIT License',
