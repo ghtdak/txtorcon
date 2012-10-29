@@ -7,8 +7,7 @@
 import sys
 import types
 
-from twisted.python import log
-from twisted.internet import reactor, defer
+from twisted.internet import reactor
 from zope.interface import implements
 
 import txtorcon
@@ -38,12 +37,6 @@ def setup_complete(proto):
 def setup_failed(arg):
     print "SETUP FAILED", arg
     reactor.stop()
-
-
-def bootstrap(c):
-    conf = TorConfig(c)
-    conf.post_bootstrap.addCallback(setup_complete).addErrback(setup_failed)
-    print "Connection is live, bootstrapping state..."
 
 
 config = txtorcon.TorConfig()
