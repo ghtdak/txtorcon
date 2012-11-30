@@ -8,7 +8,7 @@ from twisted.trial import unittest
 from twisted.test import proto_helpers
 from twisted.internet import defer, error, task
 from twisted.python.failure import Failure
-from twisted.internet.interfaces import IReactorCore, IProtocolFactory, IReactorTCP
+from twisted.internet.interfaces import IReactorCore, IProtocolFactory, IReactorTCP, IReactorTime
 
 from txtorcon import TorControlProtocol, ITorControlProtocol, TorConfig, DEFAULT_VALUE, HiddenService, launch_tor, TCPHiddenServiceEndpoint
 
@@ -691,10 +691,11 @@ HiddenServicePort=90 127.0.0.1:2345''')
         self.assertTrue(conf.needs_save())
 
 
-class FakeReactor:
+class FakeReactor(task.Clock):
     implements(IReactorCore)
 
     def __init__(self, test, trans, on_protocol):
+        super(FakeReactor, self).__init__()
         self.test = test
         self.transport = trans
         self.on_protocol = on_protocol
@@ -740,6 +741,19 @@ class FakeProcessTransport(proto_helpers.StringTransportWithDisconnection):
             '650 STATUS_CLIENT NOTICE BOOTSTRAP PROGRESS=100 TAG=done SUMMARY="Done"\r\n')
 
 
+class FakeProcessTransportNeverBootstraps(
+    proto_helpers.StringTransportWithDisconnection):
+
+    pid = -1
+
+    def closeStdin(self):
+        self.protocol.dataReceived('250 OK\r\n')
+        self.protocol.dataReceived('250 OK\r\n')
+        self.protocol.dataReceived('250 OK\r\n')
+        self.protocol.dataReceived(
+            '650 STATUS_CLIENT NOTICE BOOTSTRAP PROGRESS=90 TAG=circuit_create SUMMARY="Establishing a Tor circuit"\r\n')
+
+
 class LaunchTorTests(unittest.TestCase):
 
     def setUp(self):
@@ -760,8 +774,7 @@ class LaunchTorTests(unittest.TestCase):
         self.assertEqual(len(proto.to_delete), 0)
         for f in todel:
             self.assertTrue(not os.path.exists(f))
-        if proto._timeout:
-            proto._check_timeout.stop()
+        self.assertEqual(proto._timeout_delayed_call, None)
 
     def setup_complete_fails(self, proto):
         todel = proto.to_delete
@@ -868,16 +881,19 @@ class LaunchTorTests(unittest.TestCase):
         def on_protocol(proto):
             proto.outReceived('Bootstrapped 100%\n')
 
-        trans = FakeProcessTransport()
+        trans = FakeProcessTransportNeverBootstraps()
         trans.protocol = self.protocol
         self.othertrans = trans
         creator = functools.partial(connector, self.protocol, self.transport)
+        react = FakeReactor(self, trans, on_protocol)
         d = launch_tor(config,
-                       FakeReactor(self, trans, on_protocol),
+                       react,
                        connection_creator=creator,
                        timeout=timeout)
-        d.addCallback(self.setup_complete_no_errors)
-        return d
+        rtn = self.assertFailure(d, TorSetupTimeout)
+        # FakeReactor is a task.Clock, too. and +1 just to be sure
+        react.advance(timeout + 1)
+        return rtn
 
     def setup_fails_stderr(self, fail):
         self.assertTrue('Something went horribly wrong!' in
