@@ -6,11 +6,10 @@ from twisted.python import log as twlog
 
 __all__ = ['txtorlog']
 
-DEBUG = False
-
 txtorlog = twlog.LogPublisher()
 
-if DEBUG:
+
+def debug_logging():
     stdobserver = twlog.PythonLoggingObserver('txtorcon')
     fileobserver = twlog.FileLogObserver(open('txtorcon.log', 'w'))
 
