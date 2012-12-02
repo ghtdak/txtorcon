@@ -890,8 +890,9 @@ class LaunchTorTests(unittest.TestCase):
                        react,
                        connection_creator=creator,
                        timeout=timeout)
-        rtn = self.assertFailure(d, TorSetupTimeout)
-        # FakeReactor is a task.Clock, too. and +1 just to be sure
+        rtn = self.assertFailure(d, RuntimeError,
+                                 "Timed out waiting for Tor to launch.")
+        # FakeReactor is a task.Clock subclass and +1 just to be sure
         react.advance(timeout + 1)
         return rtn
 

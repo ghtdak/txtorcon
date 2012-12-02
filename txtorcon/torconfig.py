@@ -32,10 +32,6 @@ from StringIO import StringIO
 import shlex
 
 
-class TorSetupTimeout(Exception):
-    pass
-
-
 class TCPHiddenServiceEndpoint(object):
     """
     This represents something listening on an arbitrary local port
@@ -325,7 +321,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         A timeout was supplied during setup, and the time has run out.
         """
 
-        self.connected_cb.errback(TorSetupTimeout())
+        self.connected_cb.errback(RuntimeError(
+            "Timed out waiting for Tor to launch."))
         self.transport.loseConnection()
 
     def errReceived(self, data):
