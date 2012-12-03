@@ -53,9 +53,14 @@ class TCPHiddenServiceEndpoint(object):
 
     implements(IStreamServerEndpoint)
 
-    def __init__(self, reactor, config, public_port, data_dir=None,
-                 port_generator=functools.partial(random.randrange, 1024, 65534),
-                 endpoint_generator=TCP4ServerEndpoint):
+    def __init__(
+        self,
+        reactor,
+        config,
+        public_port,
+        data_dir=None,
+        port_generator=functools.partial(random.randrange, 1024, 65534),
+        endpoint_generator=TCP4ServerEndpoint):
         """
         :param reactor:
             :api:`twisted.internet.interfaces.IReactorTCP` provider
@@ -141,8 +146,9 @@ class TCPHiddenServiceEndpoint(object):
         self.listen_port = 80
 
         self.hiddenservice = HiddenService(self.config, self.data_dir,
-                                           ['%d 127.0.0.1:%d' % (self.public_port,
-                                                                 self.listen_port)])
+                                           ['%d 127.0.0.1:%d' %
+                                            (self.public_port, self.listen_port
+                                                                )])
         self.config.HiddenServices.append(self.hiddenservice)
         return arg
 
@@ -170,7 +176,8 @@ class TCPHiddenServiceEndpoint(object):
 
         self.protocolfactory = protocolfactory
         if self.config.post_bootstrap:
-            d = self.config.post_bootstrap.addCallback(self._create_hiddenservice).addErrback(self._do_error)
+            d = self.config.post_bootstrap.addCallback(
+                self._create_hiddenservice).addErrback(self._do_error)
 
         elif self.hiddenservice is None:
             self._create_hiddenservice(None)
@@ -224,8 +231,12 @@ class TCPHiddenServiceEndpoint(object):
 
 class TorProcessProtocol(protocol.ProcessProtocol):
 
-    def __init__(self, connection_creator, progress_updates=None, config=None
-                 ireactortime=None, timeout=None):
+    def __init__(self,
+                 connection_creator,
+                 progress_updates=None,
+                 config=None,
+                 ireactortime=None,
+                 timeout=None):
         """
         This will read the output from a Tor process and attempt a
         connection to its control port when it sees any 'Bootstrapped'
@@ -286,9 +297,11 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         self._timeout_delayed_call = None
         if timeout:
             if not ireactortime:
-                raise RuntimeError('Must supply an IReactorTime object when supplying a timeout')
+                raise RuntimeError(
+                    'Must supply an IReactorTime object when supplying a timeout')
             ireactortime = IReactorTime(ireactortime)
-            self._timeout_delayed_call = ireactortime.callLater(timeout, self.timeout_expired)
+            self._timeout_delayed_call = ireactortime.callLater(
+                timeout, self.timeout_expired)
 
     def outReceived(self, data):
         """
@@ -316,7 +329,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         A timeout was supplied during setup, and the time has run out.
         """
 
-        self.connected_cb.errback(RuntimeError("Timed out waiting for Tor to launch."))
+        self.connected_cb.errback(RuntimeError(
+            "Timed out waiting for Tor to launch."))
         self.transport.loseConnection()
 
     def errReceived(self, data):
@@ -326,7 +340,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
 
         self.stderr.append(data)
         self.transport.loseConnection()
-        raise RuntimeError("Received stderr output from slave Tor process: " + data)
+        raise RuntimeError("Received stderr output from slave Tor process: " +
+                           data)
 
     def cleanup(self):
         """
@@ -346,7 +361,9 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         if isinstance(status.value, error.ProcessDone):
             return
 
-        raise RuntimeError('\n'.join(self.stdout) + "\n\nTor exited with error-code %d" % status.value.exitCode)
+        raise RuntimeError('\n'.join(
+            self.stdout) + "\n\nTor exited with error-code %d" %
+                           status.value.exitCode)
 
     def progress(self, percent, tag, summary):
         """
@@ -390,12 +407,14 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         if self.config is not None:
             self.config._update_proto(proto)
         self.tor_protocol.is_owned = self.transport.pid
-        self.tor_protocol.post_bootstrap.addCallback(self.protocol_bootstrapped).addErrback(self.tor_connection_failed)
+        self.tor_protocol.post_bootstrap.addCallback(
+            self.protocol_bootstrapped).addErrback(self.tor_connection_failed)
 
     def protocol_bootstrapped(self, proto):
         txtorlog.msg("Protocol is bootstrapped")
 
-        self.tor_protocol.add_event_listener('STATUS_CLIENT', self.status_client)
+        self.tor_protocol.add_event_listener('STATUS_CLIENT',
+                                             self.status_client)
 
         ## FIXME: should really listen for these to complete as well
         ## as bootstrap etc. For now, we'll be optimistic.
@@ -403,7 +422,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         self.tor_protocol.queue_command('RESETCONF __OwningControllerProcess')
 
 
-def launch_tor(config, reactor,
+def launch_tor(config,
+               reactor,
                tor_binary='/usr/sbin/tor',
                progress_updates=None,
                connection_creator=None,
@@ -492,9 +512,11 @@ def launch_tor(config, reactor,
     # txtorlog.msg('Running with config:\n', open(torrc, 'r').read())
 
     if connection_creator is None:
-        connection_creator = functools.partial(TCP4ClientEndpoint(reactor, 'localhost', control_port).connect,
-                                               TorProtocolFactory())
-    process_protocol = TorProcessProtocol(connection_creator, progress_updates, config, reactor, timeout)
+        connection_creator = functools.partial(
+            TCP4ClientEndpoint(reactor, 'localhost', control_port).connect,
+            TorProtocolFactory())
+    process_protocol = TorProcessProtocol(connection_creator, progress_updates,
+                                          config, reactor, timeout)
 
     # we set both to_delete and the shutdown events because this
     # process might be shut down way before the reactor, but if the
@@ -513,11 +535,11 @@ def launch_tor(config, reactor,
         process_protocol.to_delete = [torrc, data_directory]
         reactor.addSystemEventTrigger('before', 'shutdown',
                                       functools.partial(delete_file_or_tree,
-                                                        torrc,
-                                                        data_directory))
+                                                        torrc, data_directory))
 
     try:
-        transport = reactor.spawnProcess(process_protocol, tor_binary,
+        transport = reactor.spawnProcess(process_protocol,
+                                         tor_binary,
                                          args=(tor_binary, '-f', torrc),
                                          env={'HOME': data_directory},
                                          path=data_directory)
@@ -552,6 +574,7 @@ class TorConfigType(object):
 
 
 class Boolean(TorConfigType):
+
     def parse(self, s):
         if int(s):
             return True
@@ -574,6 +597,7 @@ class Boolean_Auto(TorConfigType):
 
 
 class Integer(TorConfigType):
+
     def parse(self, s):
         return int(s)
 
@@ -600,6 +624,7 @@ class DataSize(Integer):
 
 
 class Float(TorConfigType):
+
     def parse(self, s):
         return float(s)
 
@@ -610,6 +635,7 @@ class Time(TorConfigType):
 
 
 class CommaList(TorConfigType):
+
     def parse(self, s):
         return map(string.strip, s.split(','))
 
@@ -628,6 +654,7 @@ class Filename(String):
 
 
 class LineList(TorConfigType):
+
     def parse(self, s):
         if isinstance(s, types.ListType):
             return map(str, s)
@@ -638,10 +665,10 @@ class LineList(TorConfigType):
             raise ValueError("Not valid for %s: %s" % (self.__class__, obj))
         return _ListWrapper(obj, functools.partial(instance.mark_unsaved, name))
 
+
 config_types = [Boolean, Boolean_Auto, LineList, Integer, SignedInteger, Port,
-                TimeInterval, TimeMsecInterval,
-                DataSize, Float, Time, CommaList, String, LineList, Filename,
-                RouterList]
+                TimeInterval, TimeMsecInterval, DataSize, Float, Time,
+                CommaList, String, LineList, Filename, RouterList]
 
 
 def _wrapture(orig):
@@ -652,11 +679,12 @@ def _wrapture(orig):
     the list.
     """
 
-#    @functools.wraps(orig)
+    #    @functools.wraps(orig)
     def foo(*args):
         obj = args[0]
         obj.on_modify()
         return orig(*args)
+
     return foo
 
 
@@ -727,8 +755,9 @@ class HiddenService(object):
 
         if not isinstance(ports, types.ListType):
             ports = [ports]
-        self.ports = _ListWrapper(ports, functools.partial(self.conf.mark_unsaved,
-                                                           'HiddenServices'))
+        self.ports = _ListWrapper(ports,
+                                  functools.partial(self.conf.mark_unsaved,
+                                                    'HiddenServices'))
 
     def __setattr__(self, name, value):
         """
@@ -737,11 +766,13 @@ class HiddenService(object):
         is changed.
         """
 
-        if name in ['dir', 'version', 'authorize_client', 'ports'] and self.conf:
+        if name in ['dir', 'version', 'authorize_client', 'ports'
+                   ] and self.conf:
             self.conf.mark_unsaved('HiddenServices')
         if isinstance(value, types.ListType):
-            value = _ListWrapper(value, functools.partial(self.conf.mark_unsaved,
-                                                          'HiddenServices'))
+            value = _ListWrapper(value,
+                                 functools.partial(self.conf.mark_unsaved,
+                                                   'HiddenServices'))
         self.__dict__[name] = value
 
     def __getattr__(self, name):
@@ -812,7 +843,8 @@ class TorConfig(object):
         if control is None:
             self.protocol = None
             self.__dict__['_slutty_'] = None
-            self.__dict__['config']['HiddenServices'] = _ListWrapper([], functools.partial(self.mark_unsaved, 'HiddenServices'))
+            self.__dict__['config']['HiddenServices'] = _ListWrapper(
+                [], functools.partial(self.mark_unsaved, 'HiddenServices'))
 
         else:
             self.protocol = ITorControlProtocol(control)
@@ -826,7 +858,8 @@ class TorConfig(object):
         self.post_bootstrap = defer.Deferred()
         if self.protocol:
             if self.protocol.post_bootstrap:
-                self.protocol.post_bootstrap.addCallback(self.bootstrap).addErrback(log.err)
+                self.protocol.post_bootstrap.addCallback(
+                    self.bootstrap).addErrback(log.err)
             else:
                 self.bootstrap()
 
@@ -853,10 +886,12 @@ class TorConfig(object):
 
         if '_setup_' in self.__dict__:
             name = self._find_real_name(name)
-            if '_slutty_' not in self.__dict__ and name.lower() != 'hiddenservices':
+            if '_slutty_' not in self.__dict__ and name.lower(
+            ) != 'hiddenservices':
                 value = self.parsers[name].validate(value, self, name)
             if isinstance(value, types.ListType):
-                value = _ListWrapper(value, functools.partial(self.mark_unsaved, name))
+                value = _ListWrapper(value, functools.partial(self.mark_unsaved,
+                                                              name))
 
             name = self._find_real_name(name)
             self.unsaved[name] = value
@@ -918,8 +953,11 @@ class TorConfig(object):
         except RuntimeError, e:
             ## for Tor versions which don't understand CONF_CHANGED
             ## there's nothing we can really do.
-            log.msg("Can't listen for CONF_CHANGED event; won't stay up-to-date with other clients.")
-        return self.protocol.get_info_raw("config/names").addCallbacks(self._do_setup, log.err).addCallback(self.do_post_bootstrap).addErrback(log.err)
+            log.msg(
+                "Can't listen for CONF_CHANGED event; won't stay up-to-date with other clients.")
+        return self.protocol.get_info_raw("config/names").addCallbacks(
+            self._do_setup,
+            log.err).addCallback(self.do_post_bootstrap).addErrback(log.err)
 
     def do_post_bootstrap(self, *args):
         self.post_bootstrap.callback(self)
@@ -1007,7 +1045,8 @@ class TorConfig(object):
             (name, value) = line.split()
             if name == 'HiddenServiceOptions':
                 ## set up the "special-case" hidden service stuff
-                servicelines = yield self.protocol.get_conf_raw('HiddenServiceOptions')
+                servicelines = yield self.protocol.get_conf_raw(
+                    'HiddenServiceOptions')
                 self._setup_hidden_services(servicelines)
                 continue
 
@@ -1018,7 +1057,7 @@ class TorConfig(object):
             ## auto, 0 for false and 1 for true. could be nicer if it
             ## was called AutoBoolean or something, but...
             value = value.replace('+', '_')
-            
+
             inst = None
             # FIXME: put parser classes in dict instead?
             for cls in config_types:
@@ -1034,10 +1073,13 @@ class TorConfig(object):
             if value == 'LineList':
                 ## FIXME should move to the parse() method, but it
                 ## doesn't have access to conf object etc.
-                self.config[self._find_real_name(name)] = _ListWrapper(self.parsers[name].parse(v), functools.partial(self.mark_unsaved, name))
+                self.config[self._find_real_name(name)] = _ListWrapper(
+                    self.parsers[name].parse(v), functools.partial(
+                        self.mark_unsaved, name))
 
             else:
-                self.config[self._find_real_name(name)] = self.parsers[name].parse(v)
+                self.config[self._find_real_name(name)
+                           ] = self.parsers[name].parse(v)
 
         # can't just return in @inlineCallbacks-decorated methods
         defer.returnValue(self)
@@ -1079,7 +1121,8 @@ class TorConfig(object):
             hs.append(HiddenService(self, directory, ports, auth, ver))
 
         name = 'HiddenServices'
-        self.config[name] = _ListWrapper(hs, functools.partial(self.mark_unsaved, name))
+        self.config[name] = _ListWrapper(hs, functools.partial(
+            self.mark_unsaved, name))
 
     def create_torrc(self):
         rtn = StringIO()
