@@ -913,7 +913,7 @@ class TorConfig(object):
     def bootstrap(self, *args):
         try:
             self.protocol.add_event_listener('CONF_CHANGED', self._conf_changed)
-        except (RuntimeError, e):
+        except RuntimeError, e:
             ## for Tor versions which don't understand CONF_CHANGED
             ## there's nothing we can really do.
             log.msg(
