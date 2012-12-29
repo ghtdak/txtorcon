@@ -30,6 +30,8 @@ import random
 import tempfile
 from StringIO import StringIO
 import shlex
+if sys.platform in ('linux2', 'darwin'):
+    import pwd
 
 
 class TCPHiddenServiceEndpoint(object):
@@ -494,6 +496,16 @@ def launch_tor(config,
         user_set_data_directory = False
         data_directory = tempfile.mkdtemp(prefix='tortmp')
         config.DataDirectory = data_directory
+
+        # Set ownership on the temp-dir to the user tor will drop privileges to
+        # when executing as root.
+        try:
+            user = config.User
+        except KeyError:
+            pass
+        else:
+            if sys.platform in ('linux2', 'darwin') and os.geteuid() == 0:
+                os.chown(data_directory, pwd.getpwnam(user).pw_uid, -1)
 
     try:
         control_port = config.ControlPort
