@@ -2,8 +2,9 @@ import txtorcon.spaghetti
 from txtorcon.spaghetti import *
 from twisted.trial import unittest
 
-import tempfile
 import os
+import subprocess
+import tempfile
 
 
 class FsmTests(unittest.TestCase):
@@ -21,14 +22,7 @@ class FsmTests(unittest.TestCase):
 
         a = State("A")
         b = State("B")
-
-        def match(x):
-            pass
-
-        def action(x):
-            pass
-
-        tran = Transition(b, match, action)
+        tran = Transition(b, lambda x: None, lambda x: None)
         a.add_transition(tran)
         fsm = FSM([a, b])
         x = str(fsm)
@@ -68,18 +62,25 @@ class FsmTests(unittest.TestCase):
         self.assertTrue(idle.dotty() in fsm.dotty())
         self.assertTrue("digraph" in fsm.dotty())
         fname = tempfile.mktemp() + '.dot'
-        open(fname, 'w').write(fsm.dotty())
-        self.assertEqual(os.system("dot %s > /dev/null" % fname), 0)
-        os.unlink(fname)
+        try:
+            f = open(fname, 'w')
+            f.write(fsm.dotty())
+            f.close()
+            try:
+                subprocess.check_output(("dot", fname))
+            except OSError:
+                # Graphviz probably not available; skip
+                return
+            except subprocess.CalledProcessError, e:
+                self.fail(str(e))
+        finally:
+            os.unlink(fname)
 
     def test_handler_state(self):
         idle = State("I")
         cmd = State("C")
 
-        def handler(x):
-            return idle
-
-        idle.add_transitions([Transition(cmd, self.match, handler)])
+        idle.add_transitions([Transition(cmd, self.match, lambda x: idle)])
 
         fsm = FSM([idle, cmd])
         self.commands = []
