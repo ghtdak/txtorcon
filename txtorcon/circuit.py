@@ -1,5 +1,3 @@
-import sys
-
 from twisted.python import log
 from interface import IRouterContainer
 

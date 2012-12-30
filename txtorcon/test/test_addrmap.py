@@ -1,14 +1,10 @@
-import time
 import datetime
 from twisted.trial import unittest
-from twisted.internet import reactor, task
+from twisted.internet import task
 from twisted.internet.interfaces import IReactorTime
 from zope.interface import implements
 
-# outside this package, you can do
-# from txtorcon import Circuit
 from txtorcon.addrmap import AddrMap
-from txtorcon.addrmap import Addr
 from txtorcon.interface import IAddrListener
 
 
@@ -58,10 +54,10 @@ class AddrMapTests(unittest.TestCase):
 
         am.update(line)
 
-        self.assertTrue(am.addr.has_key('www.example.com'))
+        self.assertTrue('www.example.com' in am.addr)
         ## advance time past when the expiry should have occurred
         clock.advance(10)
-        self.assertTrue(not am.addr.has_key('www.example.com'))
+        self.assertTrue('www.example.com' not in am.addr)
 
     def test_expires_never(self):
         """
@@ -73,13 +69,10 @@ class AddrMapTests(unittest.TestCase):
         am = AddrMap()
         am.scheduler = IReactorTime(clock)
 
-        now = datetime.datetime.now() + datetime.timedelta(seconds=10)
-        nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
         line = 'www.example.com 72.30.2.43 "NEVER"'
-
         am.update(line)
 
-        self.assertTrue(am.addr.has_key('www.example.com'))
+        self.assertTrue('www.example.com' in am.addr)
         self.assertEqual(len(clock.getDelayedCalls()), 0)
 
     def test_expires_old(self):
@@ -97,13 +90,13 @@ class AddrMapTests(unittest.TestCase):
             now.strftime(self.fmt), nowutc.strftime(self.fmt))
 
         am.update(line)
-        self.assertTrue(am.addr.has_key('www.example.com'))
+        self.assertTrue('www.example.com' in am.addr)
         ## arguably we shouldn't even have put this in the map maybe,
         ## but the reactor needs to iterate before our expiry callback
         ## gets called (right away) which is simulated by the
         ## clock.advance call
         clock.advance(0)
-        self.assertTrue(not am.addr.has_key('www.example.com'))
+        self.assertTrue('www.example.com' not in am.addr)
 
     def test_expires_with_update(self):
         """
@@ -128,17 +121,17 @@ class AddrMapTests(unittest.TestCase):
         line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (
             now.strftime(self.fmt), nowutc.strftime(self.fmt))
         am.update(line)
-        self.assertTrue(am.addr.has_key('www.example.com'))
+        self.assertTrue('www.example.com' in am.addr)
 
         ## advance time by the old expiry value and we should still
         ## find the entry
         clock.advance(10)
-        self.assertTrue(am.addr.has_key('www.example.com'))
+        self.assertTrue('www.example.com' in am.addr)
 
         ## ...but advance past the new expiry (another 10 seconds) and
         ## it should vanish
         clock.advance(10)
-        self.assertTrue(not am.addr.has_key('www.example.com'))
+        self.assertTrue('www.example.com' not in am.addr)
 
     def addrmap_expired(self, name):
         self.expires.append(name)

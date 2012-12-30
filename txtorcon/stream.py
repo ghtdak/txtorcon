@@ -185,7 +185,7 @@ class Stream(object):
              for x in self.listeners]
 
         elif self.state == 'SENTCONNECT':
-            pass  #print 'SENTCONNECT',self,args
+            pass  # print 'SENTCONNECT',self,args
 
         elif self.state == 'DETACHED':
             reason = ''
@@ -199,10 +199,10 @@ class Stream(object):
             [x.stream_detach(self, reason) for x in self.listeners]
 
         elif self.state == 'NEWRESOLVE':
-            pass  #print 'NEWRESOLVE',self,args
+            pass  # print 'NEWRESOLVE',self,args
 
         elif self.state == 'SENTRESOLVE':
-            pass  #print 'SENTRESOLVE',self,args
+            pass  # print 'SENTRESOLVE',self,args
 
         else:
             raise RuntimeError("Unknown state: %s" % self.state)
