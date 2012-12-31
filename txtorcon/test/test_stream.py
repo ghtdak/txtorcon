@@ -1,8 +1,5 @@
-import time
-import datetime
 import ipaddr
 from twisted.trial import unittest
-from twisted.internet import reactor
 from zope.interface import implements
 
 from txtorcon import Stream, IStreamListener, ICircuitContainer, StreamListenerMixin
@@ -289,7 +286,7 @@ class StreamTests(unittest.TestCase):
             "316 NEW 0 www.yahoo.com:80 SOURCE_ADDR=127.0.0.1:55877 PURPOSE=USER".split(
             ))
         stream.circuit = FakeCircuit(1)
-        s = str(stream)
+        str(stream)
 
     def test_ipv6(self):
         listener = Listener([('new', {'target_host': '::1',

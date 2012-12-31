@@ -1,7 +1,6 @@
-from twisted.python import log, failure
+from twisted.python import log
 from twisted.internet import defer
-from twisted.internet.interfaces import IProtocolFactory, IReactorCore
-from twisted.protocols.basic import LineOnlyReceiver
+from twisted.internet.interfaces import IReactorCore
 from zope.interface import implements
 
 ## outside this module, you can do "from txtorcon import Stream" etc.
@@ -17,11 +16,9 @@ from txtorcon.interface import ITorControlProtocol, IRouterContainer, ICircuitLi
 from txtorcon.interface import ICircuitContainer, IStreamListener, IStreamAttacher
 from spaghetti import FSM, State, Transition
 
-import functools
 import datetime
 import warnings
 import types
-import os
 
 
 def _build_state(proto):
@@ -384,8 +381,8 @@ class TorState(object):
         'REASON_RESOURCELIMIT': 11,  # (OR has no resources to fulfill request)
         'REASON_CONNRESET': 12,  # (Connection was unexpectedly reset)
         'REASON_TORPROTOCOL': 13,  # (Sent when closing connection because of Tor protocol violations.)
-        'REASON_NOTDIRECTORY': 14,  # (Client sent RELAY_BEGIN_DIR to a non-directory relay.)
-    }
+        'REASON_NOTDIRECTORY': 14
+    }  # (Client sent RELAY_BEGIN_DIR to a non-directory relay.)
 
     def close_stream(self, stream, reason='REASON_MISC'):
         if stream.id not in self.streams:

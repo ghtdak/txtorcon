@@ -30,12 +30,12 @@ class FakeTorController(object):
         pass
 
     def circuit_closed(self, circuit):
-        if self.circuits.has_key(circuit.id):
+        if circuit.id in self.circuits:
             del self.circuits[circuit.id]
 
     def circuit_failed(self, circuit, flags):
         self.failed.append((circuit, flags))
-        if self.circuits.has_key(circuit.id):
+        if circuit.id in self.circuits:
             del self.circuits[circuit.id]
 
     def find_circuit(self, circid):
@@ -95,7 +95,7 @@ class CircuitTests(unittest.TestCase):
             '1 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL'.split(
             ))
         self.assertEqual(len(tor.circuits), 1)
-        self.assertTrue(tor.circuits.has_key(1))
+        self.assertTrue(1 in tor.circuits)
         self.assertEqual(len(tor.extend), 0)
 
     def test_wrong_update(self):
@@ -142,7 +142,6 @@ class CircuitTests(unittest.TestCase):
             circuit.update(ex.split()[1:])
             self.assertEqual(circuit.state, ex.split()[2])
             self.assertEqual(circuit.purpose, 'GENERAL')
-
             if '$' in ex:
                 self.assertEqual(len(circuit.path),
                                  len(ex.split()[3].split(',')))
@@ -206,7 +205,7 @@ class CircuitTests(unittest.TestCase):
         tor = FakeTorController()
         circuit = Circuit(tor)
         circuit.id = 1
-        foo = str(circuit)
+        str(circuit)
 
     def test_failed_reason(self):
         tor = FakeTorController()

@@ -1,15 +1,13 @@
 from twisted.trial import unittest
-from twisted.test import proto_helpers
 from twisted.internet import defer
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet.interfaces import IProtocolFactory
 from zope.interface import implements
 
-from txtorcon.util import process_from_address, delete_file_or_tree, find_keywords
+from txtorcon.util import process_from_address, delete_file_or_tree, find_keywords, ip_from_int
 
 import os
 import tempfile
-import subprocess
 
 
 class FakeState:
@@ -28,6 +26,12 @@ class FakeProtocolFactory:
     def buildProtocol(self, addr):
         "IProtocolFactory API"
         return None
+
+
+class TestIPFromInt(unittest.TestCase):
+
+    def test_cast(self):
+        self.assertEqual(ip_from_int(0x7f000001), '127.0.0.1')
 
 
 class TestFindKeywords(unittest.TestCase):

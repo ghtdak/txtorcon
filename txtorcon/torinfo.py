@@ -39,7 +39,7 @@ class MagicContainer(object):
 
     def __getattribute__(self, name):
         sup = super(MagicContainer, self)
-        if sup.__getattribute__('_setup') == False:
+        if sup.__getattribute__('_setup') is False:
             return sup.__getattribute__(name)
 
         attrs = sup.__getattribute__('attrs')
@@ -70,10 +70,9 @@ class ConfigMethod(object):
     def dump(self, prefix):
         n = self.info_key.replace('/', '.')
         n = n.replace('-', '_')
-        arg = ''
-        if self.takes_arg:
-            arg = 'arg'
-        #print '%s(%s)' % (n, arg)
+        s = '%s(%s)' % (n, 'arg' if self.takes_arg else '')
+        #print s
+        return s
 
     def __call__(self, *args):
         if self.takes_arg:
@@ -172,7 +171,7 @@ class TorInfo(object):
 
     def __getattribute__(self, name):
         sup = super(TorInfo, self)
-        if sup.__getattribute__('_setup') == False:
+        if sup.__getattribute__('_setup') is False:
             return sup.__getattribute__(name)
 
         attrs = sup.__getattribute__('attrs')
@@ -231,7 +230,7 @@ class TorInfo(object):
             mine = self
             for bit in bits[:-1]:
                 bit = bit.replace('-', '_')
-                if mine.attrs.has_key(bit):
+                if bit in mine.attrs:
                     mine = mine.attrs[bit]
                     if not isinstance(mine, MagicContainer):
                         raise RuntimeError("Already had something: %s for %s" %
@@ -243,7 +242,7 @@ class TorInfo(object):
                     mine._add_attribute(bit, c)
                     mine = c
             n = bits[-1].replace('-', '_')
-            if mine.attrs.has_key(n):
+            if n in mine.attrs:
                 raise RuntimeError("Already had something: %s for %s" %
                                    (n, name))
             mine._add_attribute(n, ConfigMethod('/'.join(bits), self.protocol,

@@ -1,7 +1,4 @@
-import types
 import warnings
-
-from twisted.python import log
 
 
 class FSM(object):

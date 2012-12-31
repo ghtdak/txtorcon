@@ -1,14 +1,9 @@
 from __future__ import with_statement
 
-from zope.interface import implements
 from twisted.python import log
 from twisted.trial import unittest
 from twisted.test import proto_helpers
-from twisted.internet import reactor, defer
-from twisted.internet.protocol import Factory
-from twisted.internet.endpoints import TCP4ClientEndpoint, TCP4ServerEndpoint
-from twisted.protocols.basic import LineReceiver
-from txtorcon import TorControlProtocol, TorProtocolFactory, TorState, IStreamAttacher, ICircuitListener, IStreamListener
+from txtorcon import TorControlProtocol, TorProtocolFactory, TorState
 from txtorcon.torcontrolprotocol import parse_keywords, DEFAULT_VALUE
 from txtorcon.util import hmac_sha256
 
@@ -16,10 +11,6 @@ import types
 import functools
 import tempfile
 import base64
-
-
-def do_nothing(*args):
-    pass
 
 
 class CallbackChecker:
@@ -43,7 +34,7 @@ class LogicTests(unittest.TestCase):
 
     def setUp(self):
         self.protocol = TorControlProtocol()
-        self.protocol.connectionMade = do_nothing
+        self.protocol.connectionMade = lambda: None
         self.transport = proto_helpers.StringTransport()
         self.protocol.makeConnection(self.transport)
 
@@ -123,7 +114,7 @@ class ProtocolTests(unittest.TestCase):
 
     def setUp(self):
         self.protocol = TorControlProtocol()
-        self.protocol.connectionMade = do_nothing
+        self.protocol.connectionMade = lambda: None
         self.transport = proto_helpers.StringTransport()
         self.protocol.makeConnection(self.transport)
 
@@ -246,8 +237,9 @@ OK''' % cookietmp.name)
                 "Tor safe cookie authentication server-to-controller hash",
                 cookiedata + client_nonce + server_nonce)
 
-            self.send('250 AUTHCHALLENGE SERVERHASH=%s SERVERNONCE=%s' % \
-                      (base64.b16encode(server_hash), base64.b16encode(server_nonce)))
+            self.send(
+                '250 AUTHCHALLENGE SERVERHASH=%s SERVERNONCE=%s' %
+                (base64.b16encode(server_hash), base64.b16encode(server_nonce)))
             self.assertTrue('AUTHENTICATE ' in self.transport.value())
 
     def test_authenticate_safecookie_wrong_hash(self):
@@ -260,8 +252,9 @@ OK''' % cookietmp.name)
         self.protocol.cookie_data = cookiedata
         self.protocol.client_nonce = server_nonce  # all 0's anyway
         try:
-            self.protocol._safecookie_authchallenge('250 AUTHCHALLENGE SERVERHASH=%s SERVERNONCE=%s' % \
-                                                    (base64.b16encode(server_hash), base64.b16encode(server_nonce)))
+            self.protocol._safecookie_authchallenge(
+                '250 AUTHCHALLENGE SERVERHASH=%s SERVERNONCE=%s' %
+                (base64.b16encode(server_hash), base64.b16encode(server_nonce)))
             self.assertTrue(False)
         except RuntimeError, e:
             self.assertTrue('hash not expected' in str(e))
@@ -271,7 +264,7 @@ OK''' % cookietmp.name)
         events = 'GUARD STREAM CIRC NS NEWCONSENSUS ORCONN NEWDESC ADDRMAP STATUS_GENERAL'.split(
         )
         self.assertEqual(len(self.protocol.valid_events), len(events))
-        [self.assertTrue(self.protocol.valid_events.has_key(x)) for x in events]
+        self.assertTrue(all(x in self.protocol.valid_events for x in events))
 
     def test_bootstrap_callback(self):
         d = self.protocol.post_bootstrap
@@ -296,7 +289,7 @@ OK''' % cookietmp.name)
         ## test the example from control-spec.txt to see that we
         ## handle interleaved async notifications properly.
         self.protocol._set_valid_events('CIRC')
-        self.protocol.add_event_listener('CIRC', do_nothing)
+        self.protocol.add_event_listener('CIRC', lambda _: None)
         self.send("250 OK")
 
         d = self.protocol.get_conf("SOCKSPORT ORPORT")
@@ -479,7 +472,7 @@ OK''' % cookietmp.name)
     def test_addevent(self):
         self.protocol._set_valid_events('FOO BAR')
 
-        self.protocol.add_event_listener('FOO', do_nothing)
+        self.protocol.add_event_listener('FOO', lambda _: None)
         ## is it dangerous/ill-advised to depend on internal state of
         ## class under test?
         d = self.protocol.defer
@@ -489,15 +482,16 @@ OK''' % cookietmp.name)
                          "SETEVENTS FOO")
         self.transport.clear()
 
-        self.protocol.add_event_listener('BAR', do_nothing)
+        self.protocol.add_event_listener('BAR', lambda _: None)
         d = self.protocol.defer
         self.send("250 OK")
-        self.assertTrue(self.transport.value() == "SETEVENTS FOO BAR\r\n" or \
+        self.assertTrue(self.transport.value() == "SETEVENTS FOO BAR\r\n" or
                         self.transport.value() == "SETEVENTS BAR FOO\r\n")
         self._wait(d)
 
         try:
-            self.protocol.add_event_listener('SOMETHING_INVALID', do_nothing)
+            self.protocol.add_event_listener('SOMETHING_INVALID',
+                                             lambda _: None)
             self.assertTrue(False)
         except:
             pass
@@ -512,7 +506,7 @@ OK''' % cookietmp.name)
                 self.stream_events += 1
 
         listener = EventListener()
-        evt = self.protocol.add_event_listener('STREAM', listener)
+        self.protocol.add_event_listener('STREAM', listener)
 
         d = self.protocol.defer
         self.send("250 OK")
@@ -531,7 +525,7 @@ OK''' % cookietmp.name)
                 self.stream_events += 1
 
         listener = EventListener()
-        evt = self.protocol.add_event_listener('STREAM', listener)
+        self.protocol.add_event_listener('STREAM', listener)
         self.assertEqual(self.transport.value(), 'SETEVENTS STREAM\r\n')
         self.protocol.lineReceived("250 OK")
         self.transport.clear()
@@ -549,12 +543,12 @@ OK''' % cookietmp.name)
 
         listener0 = EventListener()
         listener1 = EventListener()
-        evt = self.protocol.add_event_listener('STREAM', listener0)
+        self.protocol.add_event_listener('STREAM', listener0)
         self.assertEqual(self.transport.value(), 'SETEVENTS STREAM\r\n')
         self.protocol.lineReceived("250 OK")
         self.transport.clear()
         ## add another one, shouldn't issue a tor command
-        evt = self.protocol.add_event_listener('STREAM', listener1)
+        self.protocol.add_event_listener('STREAM', listener1)
         self.assertEqual(self.transport.value(), '')
 
         ## remove one, should still not issue a tor command
@@ -627,7 +621,7 @@ OK"""))
         haven't seen 600's use - "in the wild" but don't see why it's not possible
         """
         self.protocol._set_valid_events('NS')
-        self.protocol.add_event_listener('NS', do_nothing)
+        self.protocol.add_event_listener('NS', lambda _: None)
         self.protocol.lineReceived("650-NS\r\n")
         self.protocol.lineReceived("650 OK\r\n")
 
@@ -636,13 +630,12 @@ class ParseTests(unittest.TestCase):
 
     def setUp(self):
         self.controller = TorState(TorControlProtocol())
-        self.controller.connectionMade = do_nothing
+        self.controller.connectionMade = lambda _: None
 
     def test_keywords(self):
         x = parse_keywords(
-            """events/names=CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET
-OK""")
-        self.assertTrue(x.has_key("events/names"))
+            'events/names=CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET\nOK')
+        self.assertTrue('events/names' in x)
         self.assertEqual(x[
             'events/names'
         ], 'CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
@@ -651,30 +644,17 @@ OK""")
     def test_keywords_mutli_equals(self):
         x = parse_keywords('foo=something subvalue="foo"')
         self.assertEqual(len(x), 1)
-        self.assertTrue(x.has_key('foo'))
+        self.assertTrue('foo' in x)
         self.assertEqual(x['foo'], 'something subvalue="foo"')
-
-    def test_keywords_mutli_equals(self):
-        x = parse_keywords('foo=something subvalue="foo"')
-        self.assertTrue(len(x) == 1)
-        self.assertTrue(x.has_key('foo'))
-        self.assertTrue(x['foo'] == 'something subvalue="foo"')
-
-    def test_keywords_mutli_equals(self):
-        x = parse_keywords('foo=something subvalue="foo"')
-        self.assertTrue(len(x) == 1)
-        self.assertTrue(x.has_key('foo'))
-        self.assertTrue(x['foo'] == 'something subvalue="foo"')
 
     def test_default_keywords(self):
         x = parse_keywords('foo')
         self.assertEqual(len(x), 1)
-        self.assertTrue(x.has_key('foo'))
+        self.assertTrue('foo' in x)
         self.assertEqual(x['foo'], DEFAULT_VALUE)
 
     def test_multientry_keywords_2(self):
-        x = parse_keywords('''foo=bar
-foo=zarimba''')
+        x = parse_keywords('foo=bar\nfoo=zarimba')
         self.assertEqual(len(x), 1)
         self.assertTrue(isinstance(x['foo'], types.ListType))
         self.assertEqual(len(x['foo']), 2)
@@ -682,9 +662,7 @@ foo=zarimba''')
         self.assertEqual(x['foo'][1], 'zarimba')
 
     def test_multientry_keywords_3(self):
-        x = parse_keywords('''foo=bar
-foo=baz
-foo=zarimba''')
+        x = parse_keywords('foo=bar\nfoo=baz\nfoo=zarimba')
         self.assertEqual(len(x), 1)
         self.assertTrue(isinstance(x['foo'], types.ListType))
         self.assertEqual(len(x['foo']), 3)
@@ -693,10 +671,7 @@ foo=zarimba''')
         self.assertEqual(x['foo'][2], 'zarimba')
 
     def test_multientry_keywords_4(self):
-        x = parse_keywords('''foo=bar
-foo=baz
-foo=zarimba
-foo=foo''')
+        x = parse_keywords('foo=bar\nfoo=baz\nfoo=zarimba\nfoo=foo')
         self.assertEqual(len(x), 1)
         self.assertTrue(isinstance(x['foo'], types.ListType))
         self.assertEqual(len(x['foo']), 4)
@@ -735,8 +710,8 @@ w Bandwidth=33
 p reject 25,119,135-139,445,563,1214,4661-4666,6346-6429,6699,6881-6999""")
         ## the routers list is always keyed with both name and hash
         self.assertEqual(len(self.controller.routers_by_name), 2)
-        self.assertTrue(self.controller.routers.has_key("right2privassy3"))
-        self.assertTrue(self.controller.routers.has_key("Unnamed"))
+        self.assertTrue('right2privassy3' in self.controller.routers)
+        self.assertTrue('Unnamed' in self.controller.routers)
 
         self.controller.routers.clear()
         self.controller.routers_by_name.clear()
@@ -759,7 +734,7 @@ p reject 1-65535""")
 4472 BUILT $FF1003D2D14B4B9D03933F8EDFBC46C952E82A59=Tecumseh,$C185D4A4B069CD559FCD548C8063B475385D777F=l0l,$7FE4F2FFE07A96062BD0DB5B7FAECEFCBD8CF192=wildnl PURPOSE=GENERAL
 """)
         self.assertEqual(len(self.controller.circuits), 1)
-        self.assertTrue(self.controller.circuits.has_key(4472))
+        self.assertTrue(4472 in self.controller.circuits)
 
         self.controller.routers.clear()
         self.controller.routers_by_name.clear()

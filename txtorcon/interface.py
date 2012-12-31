@@ -259,7 +259,7 @@ class IRouterContainer(Interface):
         is the only time we've seen a Router -- it's possible for Tor
         to do things with routers not in the consensus (like extend
         circuits to them).
-        
+
         :return: a router by its ID.
         """
 

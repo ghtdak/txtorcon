@@ -2,18 +2,13 @@ from zope.interface import implements
 from zope.interface.verify import verifyClass
 from twisted.trial import unittest
 from twisted.test import proto_helpers
-from twisted.internet import task, defer, endpoints, reactor
+from twisted.internet import task, defer
 from twisted.internet.interfaces import IStreamClientEndpoint, IReactorCore
 
 import os
-import subprocess
 
 from txtorcon import TorControlProtocol, TorProtocolError, TorState, Stream, Circuit, build_tor_connection
 from txtorcon.interface import ITorControlProtocol, IStreamAttacher, ICircuitListener, IStreamListener, StreamListenerMixin, CircuitListenerMixin
-
-
-def do_nothing(*args):
-    pass
 
 
 class CircuitListener(object):
@@ -185,9 +180,9 @@ class FakeControlProtocol:
 class InternalMethodsTests(unittest.TestCase):
 
     def test_state_diagram(self):
-        state = TorState(FakeControlProtocol(),
-                         bootstrap=False,
-                         write_state_diagram=True)
+        TorState(FakeControlProtocol(),
+                 bootstrap=False,
+                 write_state_diagram=True)
         self.assertTrue(os.path.exists('routerfsm.dot'))
 
 
@@ -250,7 +245,7 @@ class StateTests(unittest.TestCase):
     def setUp(self):
         self.protocol = TorControlProtocol()
         self.state = TorState(self.protocol)
-        self.protocol.connectionMade = do_nothing
+        self.protocol.connectionMade = lambda: None
         self.transport = proto_helpers.StringTransport()
         self.protocol.makeConnection(self.transport)
 
@@ -274,7 +269,7 @@ class StateTests(unittest.TestCase):
         ## we use a circuit ID of 0 so it doesn't try to look anything up but it's
         ## not really correct to have a  SUCCEEDED w/o a valid circuit, I don't think
         self.state._stream_update('1610 SUCCEEDED 0 74.125.224.243:80')
-        self.assertTrue(self.state.streams.has_key(1610))
+        self.assertTrue(1610 in self.state.streams)
 
     def test_single_streams(self):
         self.state.circuits[496] = FakeCircuit(496)
@@ -333,13 +328,13 @@ class StateTests(unittest.TestCase):
         self.send("250 OK")
 
         self.assertEqual(len(self.state.entry_guards), 2)
-        self.assertTrue(self.state.entry_guards.has_key(
-            '$0000000000000000000000000000000000000000'))
+        self.assertTrue('$0000000000000000000000000000000000000000' in
+                        self.state.entry_guards)
         self.assertEqual(
             self.state.entry_guards['$0000000000000000000000000000000000000000'
                                                 ], fakerouter)
-        self.assertTrue(self.state.entry_guards.has_key(
-            '$1111111111111111111111111111111111111111'))
+        self.assertTrue('$1111111111111111111111111111111111111111' in
+                        self.state.entry_guards)
 
         self.assertEqual(len(self.state.unusable_entry_guards), 1)
         self.assertTrue('$9999999999999999999999999999999999999999' in
@@ -387,9 +382,8 @@ class StateTests(unittest.TestCase):
         self.send("250 OK")
 
         self.assertEqual(len(self.state.addrmap.addr), 2)
-        self.assertTrue(self.state.addrmap.addr.has_key('www.example.com'))
-        self.assertTrue(self.state.addrmap.addr.has_key(
-            'subdomain.example.com'))
+        self.assertTrue('www.example.com' in self.state.addrmap.addr)
+        self.assertTrue('subdomain.example.com' in self.state.addrmap.addr)
 
         return d
 
@@ -615,21 +609,20 @@ class StateTests(unittest.TestCase):
 
     def test_circuit_destroy(self):
         self.state._circuit_update('365 LAUNCHED PURPOSE=GENERAL')
-        self.assertTrue(self.state.circuits.has_key(365))
+        self.assertTrue(365 in self.state.circuits)
         self.state._circuit_update(
             '365 FAILED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=TIMEOUT')
-        self.assertTrue(not self.state.circuits.has_key(365))
+        self.assertTrue(365 not in self.state.circuits)
 
     def test_circuit_destroy_already(self):
         self.state._circuit_update('365 LAUNCHED PURPOSE=GENERAL')
-        self.assertTrue(self.state.circuits.has_key(365))
-        c = self.state.circuits[365]
+        self.assertTrue(365 in self.state.circuits)
         self.state._circuit_update(
             '365 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=TIMEOUT')
-        self.assertTrue(not self.state.circuits.has_key(365))
+        self.assertTrue(365 not in self.state.circuits)
         self.state._circuit_update(
             '365 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=TIMEOUT')
-        self.assertTrue(not self.state.circuits.has_key(365))
+        self.assertTrue(365 not in self.state.circuits)
 
     def test_circuit_listener(self):
         events = 'CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET'
@@ -679,8 +672,8 @@ p reject 1-65535""")
         self.assertEqual(r.unique_name, 'foo')
 
     def confirm_router_state(self, x):
-        self.assertTrue(self.state.routers.has_key(
-            '$624926802351575FF7E4E3D60EFA3BFB56E67E8A'))
+        self.assertTrue('$624926802351575FF7E4E3D60EFA3BFB56E67E8A' in
+                        self.state.routers)
         router = self.state.routers['$624926802351575FF7E4E3D60EFA3BFB56E67E8A']
         self.assertTrue('exit' in router.flags)
         self.assertTrue('fast' in router.flags)
@@ -759,8 +752,8 @@ s Exit Fast Guard HSDir Named Running Stable V2Dir Valid FutureProof
 w Bandwidth=543000
 p accept 43,53
 .''')
-        self.assertTrue(self.state.routers.has_key(
-            '$624926802351575FF7E4E3D60EFA3BFB56E67E8A'))
+        self.assertTrue('$624926802351575FF7E4E3D60EFA3BFB56E67E8A' in
+                        self.state.routers)
         r = self.state.routers['$624926802351575FF7E4E3D60EFA3BFB56E67E8A']
         self.assertEqual(r.controller, self.state.protocol)
         self.assertEqual(r.bandwidth, 518000)
@@ -836,9 +829,9 @@ p reject 1-65535
 650 OK
 '''.split('\n')))
 
-        self.assertTrue(self.state.routers.has_key('Unnamed'))
-        self.assertTrue(self.state.routers.has_key(
-            '$00126582E505CF596F412D23ABC9E14DD4625C49'))
+        self.assertTrue('Unnamed' in self.state.routers)
+        self.assertTrue('$00126582E505CF596F412D23ABC9E14DD4625C49' in
+                        self.state.routers)
 
     def test_NEWCONSENSUS_ends_with_OK_on_w(self):
         """
@@ -884,9 +877,9 @@ w Bandwidth=166
 650 OK
 '''.split('\n')))
 
-        self.assertTrue(self.state.routers.has_key('Unnamed'))
-        self.assertTrue(self.state.routers.has_key(
-            '$00126582E505CF596F412D23ABC9E14DD4625C49'))
+        self.assertTrue('Unnamed' in self.state.routers)
+        self.assertTrue('$00126582E505CF596F412D23ABC9E14DD4625C49' in
+                        self.state.routers)
 
     def test_NEWCONSENSUS_ends_with_OK_on_s(self):
         """
@@ -931,9 +924,9 @@ s Fast Guard Running Stable Valid
 650 OK
 '''.split('\n')))
 
-        self.assertTrue(self.state.routers.has_key('Unnamed'))
-        self.assertTrue(self.state.routers.has_key(
-            '$00126582E505CF596F412D23ABC9E14DD4625C49'))
+        self.assertTrue('Unnamed' in self.state.routers)
+        self.assertTrue('$00126582E505CF596F412D23ABC9E14DD4625C49' in
+                        self.state.routers)
 
     def test_newdesc_parse(self):
         """
@@ -964,14 +957,14 @@ s Fast Guard Running Stable Valid
 
     def test_stream_create(self):
         self.state._stream_update('1610 NEW 0 1.2.3.4:56')
-        self.assertTrue(self.state.streams.has_key(1610))
+        self.assertTrue(1610 in self.state.streams)
 
     def test_stream_destroy(self):
         self.state._stream_update('1610 NEW 0 1.2.3.4:56')
-        self.assertTrue(self.state.streams.has_key(1610))
+        self.assertTrue(1610 in self.state.streams)
         self.state._stream_update(
             "1610 FAILED 0 www.example.com:0 REASON=DONE REMOTE_REASON=FAILED")
-        self.assertTrue(not self.state.streams.has_key(1610))
+        self.assertTrue(1610 not in self.state.streams)
 
     def test_stream_detach(self):
         circ = FakeCircuit(1)
@@ -979,7 +972,7 @@ s Fast Guard Running Stable Valid
         self.state.circuits[1] = circ
 
         self.state._stream_update('1610 NEW 0 1.2.3.4:56')
-        self.assertTrue(self.state.streams.has_key(1610))
+        self.assertTrue(1610 in self.state.streams)
         self.state._stream_update("1610 SUCCEEDED 1 4.3.2.1:80")
         self.assertEqual(self.state.streams[1610].circuit, circ)
 
@@ -1075,6 +1068,5 @@ s Fast Guard Running Stable Valid
             self.assertTrue('Expected EXTENDED' in str(e))
 
     def test_listener_mixins(self):
-        smi = StreamListenerMixin
         self.assertTrue(verifyClass(IStreamListener, StreamListenerMixin))
         self.assertTrue(verifyClass(ICircuitListener, CircuitListenerMixin))

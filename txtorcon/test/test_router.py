@@ -1,5 +1,3 @@
-import time
-import datetime
 from twisted.trial import unittest
 from twisted.internet import defer
 
@@ -125,8 +123,8 @@ class RouterTests(unittest.TestCase):
                       "MAANkj30tnFvmoh7FsjVFr+cmcs", "2011-12-16 15:11:34",
                       "1.2.3.4", "24051", "24052")
         router.flags = ['Named']
-        r = repr(router)
+        repr(router)
 
     def test_repr_no_update(self):
         router = Router(FakeController())
-        r = repr(router)
+        repr(router)

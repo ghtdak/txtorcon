@@ -25,12 +25,12 @@ class FsmTests(unittest.TestCase):
         tran = Transition(b, lambda x: None, lambda x: None)
         a.add_transition(tran)
         fsm = FSM([a, b])
-        x = str(fsm)
-        x = str(a)
-        x = str(tran)
+        str(fsm)
+        str(a)
+        str(tran)
         tran.start_state = None
-        x = str(tran)
-        x = fsm.dotty()
+        str(tran)
+        fsm.dotty()
 
     def test_no_init(self):
         fsm = FSM([])
@@ -39,8 +39,7 @@ class FsmTests(unittest.TestCase):
     def test_no_init_ctor(self):
         fsm = FSM([])
         idle = State("I")
-        foo = str(idle)
-
+        str(idle)
         fsm.add_state(idle)
         self.assertWarns(RuntimeWarning, "No next state",
                          txtorcon.spaghetti.__file__, fsm.process, "")

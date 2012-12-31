@@ -1,15 +1,8 @@
-import os
-import shutil
-import tempfile
-import functools
-
 from zope.interface import implements
 from twisted.trial import unittest
-from twisted.test import proto_helpers
-from twisted.internet import defer, error
-from twisted.python.failure import Failure
+from twisted.internet import defer
 
-from txtorcon import TorControlProtocol, ITorControlProtocol, TorInfo
+from txtorcon import ITorControlProtocol, TorInfo
 
 
 class FakeControlProtocol:
@@ -109,8 +102,8 @@ something/two a second documentation string
         info = TorInfo(self.protocol)
 
         self.assertTrue(dir(info) == ['something'])
-        self.assertTrue(dir(info.something) == ['one', 'two'] or \
-                        dir(info.something) == ['two', 'one'])
+        self.assertTrue(dir(info.something) == ['one', 'two'] or dir(
+            info.something) == ['two', 'one'])
 
     def test_iterator_access(self):
         '''
@@ -141,20 +134,20 @@ something/two a second documentation string
 
     def test_prefix_error(self):
         self.protocol.answers.append('''info/names=
-something not allowed I hope    
+something not allowed I hope
 something/one a documentation string
 ''')
         self.error_happened = False
-        info = TorInfo(self.protocol, self.handle_error)
+        TorInfo(self.protocol, self.handle_error)
         self.assertTrue(self.error_happened)
 
     def test_prefix_error_other_order(self):
         self.protocol.answers.append('''info/names=
 other/one a documentation string
-other not allowed I hope    
+other not allowed I hope
 ''')
         self.error_happened = False
-        info = TorInfo(self.protocol, self.handle_error)
+        TorInfo(self.protocol, self.handle_error)
         self.assertTrue(self.error_happened)
 
     def test_with_arg(self):
@@ -171,7 +164,7 @@ multi/path/arg/* a documentation string
         try:
             info.multi.path.arg()
             self.assertTrue(False)
-        except TypeError, e:
+        except TypeError:
             pass
 
         d = info.multi.path.arg('quux')
@@ -187,7 +180,7 @@ multi/no-arg docstring
         try:
             info.multi.no_arg('an argument')
             self.assertTrue(False)
-        except TypeError, e:
+        except TypeError:
             pass
 
     def test_dump(self):
@@ -213,7 +206,7 @@ config/* a documentation string
 multi/path/arg/* a documentation string
 ''')
         self.protocol.post_bootstrap = None
-        info = TorInfo(self.protocol)
+        TorInfo(self.protocol)
 
     def test_str(self):
         '''rather silly test to cover string creation'''
