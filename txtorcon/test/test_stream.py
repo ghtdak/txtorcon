@@ -1,4 +1,4 @@
-import ipaddr
+from txtorcon.util import maybe_ip_addr
 from twisted.trial import unittest
 from zope.interface import implements
 
@@ -128,10 +128,10 @@ class StreamTests(unittest.TestCase):
     def test_listener_attach(self):
         self.circuits[186] = FakeCircuit(186)
 
-        listener = Listener(
-            [('new', {'target_host': 'www.yahoo.com',
-                      'target_port': 80}),
-             ('attach', {'target_addr': ipaddr.IPAddress('1.2.3.4')})])
+        listener = Listener([(
+            'new', {'target_host': 'www.yahoo.com',
+                    'target_port': 80}), (
+                        'attach', {'target_addr': maybe_ip_addr('1.2.3.4')})])
 
         stream = Stream(self)
         stream.listen(listener)
@@ -250,8 +250,8 @@ class StreamTests(unittest.TestCase):
         listener = Listener(
             [('new', {'target_host': 'www.yahoo.com',
                       'target_port': 80}),
-             ('attach', {'target_addr': ipaddr.IPAddress('1.2.3.4')}), (
-                 'closed', {})])
+             ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')}), ('closed',
+                                                                     {})])
         stream = Stream(self)
         stream.listen(listener)
         stream.update(
@@ -264,11 +264,11 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(len(self.circuits[186].streams), 0)
 
     def test_listener_fail(self):
-        listener = Listener(
-            [('new', {'target_host': 'www.yahoo.com',
-                      'target_port': 80}),
-             ('attach', {'target_addr': ipaddr.IPAddress('1.2.3.4')}), (
-                 'failed', {'args': ('TIMEOUT', 'DESTROYED')})])
+        listener = Listener([(
+            'new', {'target_host': 'www.yahoo.com',
+                    'target_port': 80}), (
+                        'attach', {'target_addr': maybe_ip_addr('1.2.3.4')}), (
+                            'failed', {'args': ('TIMEOUT', 'DESTROYED')})])
         stream = Stream(self)
         stream.listen(listener)
         stream.update(
@@ -303,13 +303,12 @@ class StreamTests(unittest.TestCase):
         stream.update(
             "1234 REMAP 0 ::1:80 SOURCE_ADDR=127.0.0.1:57349 PURPOSE=USER".split(
             ))
-        self.assertEqual(stream.target_addr, ipaddr.IPAddress('::1'))
+        self.assertEqual(stream.target_addr, maybe_ip_addr('::1'))
 
     def test_ipv6_source(self):
-        listener = Listener(
-            [('new',
-              {'source_addr': ipaddr.IPAddress('::1'),
-               'source_port': 12345})])
+        listener = Listener([(
+            'new', {'source_addr': maybe_ip_addr('::1'),
+                    'source_port': 12345})])
 
         stream = Stream(self)
         stream.listen(listener)
