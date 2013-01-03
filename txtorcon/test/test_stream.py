@@ -19,7 +19,7 @@ class Listener(object):
         "expect is a list of tuples: (event, {key:value, key1:value1, ..})"
         self.expected = expected
 
-    def checker(self, state, stream, *args):
+    def checker(self, state, stream, *args, **kw):
         if self.expected[0][0] != state:
             raise RuntimeError('Expected event "%s" not "%s".' %
                                (self.expected[0][0], state))
@@ -29,6 +29,17 @@ class Listener(object):
                     raise RuntimeError(
                         'Expected argument to have value "%s", not "%s"' %
                         (v, args))
+            elif k == 'kwargs':
+                for (key, value) in v.items():
+                    if not key in kw:
+                        print key, value, k, v, kw
+                        raise RuntimeError(
+                            'Expected keyword argument for key "%s" but found nothing.'
+                            % key)
+                    elif kw[key] != value:
+                        raise RuntimeError(
+                            'KW Argument expected "%s" but got "%s"' %
+                            (value, kw[key]))
             elif getattr(stream, k) != v:
                 raise RuntimeError(
                     'Expected attribute "%s" to have value "%s", not "%s"' %
@@ -47,17 +58,17 @@ class Listener(object):
         "the stream has been attached to a circuit"
         self.checker('attach', stream, circuit)
 
-    def stream_detach(self, stream, reason):
+    def stream_detach(self, stream, **kw):
         "the stream has been attached to a circuit"
-        self.checker('detach', stream, reason)
+        self.checker('detach', stream, **kw)
 
-    def stream_closed(self, stream):
+    def stream_closed(self, stream, **kw):
         "stream has been closed (won't be in controller's list anymore)"
-        self.checker('closed', stream)
+        self.checker('closed', stream, **kw)
 
-    def stream_failed(self, stream, reason, remote_reason):
+    def stream_failed(self, stream, **kw):
         "stream failed for some reason (won't be in controller's list anymore)"
-        self.checker('failed', stream, reason, remote_reason)
+        self.checker('failed', stream, **kw)
 
 
 class StreamTests(unittest.TestCase):
@@ -69,6 +80,19 @@ class StreamTests(unittest.TestCase):
 
     def setUp(self):
         self.circuits = {}
+
+    def test_lowercase_flags(self):
+        ## testing an internal method, maybe a no-no?
+        stream = Stream(self)
+        kw = dict(FOO='bar', BAR='baz')
+        flags = stream._create_flags(kw)
+        self.assertTrue('FOO' in flags)
+        self.assertTrue('foo' in flags)
+        self.assertTrue(flags['foo'] is flags['FOO'])
+
+        self.assertTrue('BAR' in flags)
+        self.assertTrue('bar' in flags)
+        self.assertTrue(flags['bar'] is flags['BAR'])
 
     def test_listener_mixin(self):
         listener = StreamListenerMixin()
@@ -222,10 +246,12 @@ class StreamTests(unittest.TestCase):
         self.circuits[123] = FakeCircuit(123)
         self.circuits[456] = FakeCircuit(456)
 
-        listener = Listener([(
-            'new', {'target_host': 'www.yahoo.com',
-                    'target_port': 80}), ('attach', {}), (
-                        'detach', {'args': ('END',)}), ('attach', {})])
+        listener = Listener(
+            [('new', {'target_host': 'www.yahoo.com',
+                      'target_port': 80}), ('attach', {}),
+             ('detach', {'kwargs': dict(reason='END',
+                                        remote_reason='MISC')}), ('attach', {}
+                             )])
 
         stream = Stream(self)
         stream.listen(listener)
@@ -250,8 +276,9 @@ class StreamTests(unittest.TestCase):
         listener = Listener(
             [('new', {'target_host': 'www.yahoo.com',
                       'target_port': 80}),
-             ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')}), ('closed',
-                                                                     {})])
+             ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')}), (
+                 'closed', {'kwargs': dict(REASON='END',
+                                           REMOTE_REASON='DONE')})])
         stream = Stream(self)
         stream.listen(listener)
         stream.update(
@@ -264,11 +291,13 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(len(self.circuits[186].streams), 0)
 
     def test_listener_fail(self):
-        listener = Listener([(
-            'new', {'target_host': 'www.yahoo.com',
-                    'target_port': 80}), (
-                        'attach', {'target_addr': maybe_ip_addr('1.2.3.4')}), (
-                            'failed', {'args': ('TIMEOUT', 'DESTROYED')})])
+        listener = Listener(
+            [('new', {'target_host': 'www.yahoo.com',
+                      'target_port': 80}), (
+                          'attach', {'target_addr': maybe_ip_addr('1.2.3.4')}),
+             ('failed',
+              {'kwargs': dict(REASON='TIMEOUT',
+                              REMOTE_REASON='DESTROYED')})])
         stream = Stream(self)
         stream.listen(listener)
         stream.update(
