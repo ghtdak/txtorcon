@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
-from twisted.web import server, resource, static
 from twisted.internet import reactor
-from twisted.internet.endpoints import TCP4ClientEndpoint, UNIXClientEndpoint
-
+from nevow.appserver import NevowSite
 from nevow import loaders, tags, livepage
-
 import txtorcon
 
 
@@ -34,7 +31,7 @@ class TorPage(livepage.LivePage):
                 tags.div(
                     id='progress',
                     style=
-                    'position:absolute; left:20em; top:10px; width:300px; height:50px; border:2px solid black;background-color:#ffaaaa;'
+                    'position:abso lute; left:20em; top:10px; width:300px; height:50px; border:2px solid black;background-color:#ffaaaa;'
                 )[
                     tags.div(
                         id='progress_done',
@@ -66,8 +63,6 @@ class TorPage(livepage.LivePage):
         if self.ctx is None:
             print "I have no Web client yet, but got a Tor update:", percent, tag, summary
             return
-
-        client = livepage.IClientHandle(self.ctx)
 
         point = int(300 * (float(percent) / 100.0))
         self.client.send(livepage.js(
@@ -112,7 +107,6 @@ d.addErrback(setup_failed)
 print "Launching Tor and providing a Web interface on: \nhttp://localhost:8080\n"
 
 ## Start up the Web server
-from nevow.appserver import NevowSite
 site = NevowSite(top_level)
 reactor.listenTCP(8080, site)
 reactor.run()

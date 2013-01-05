@@ -5,22 +5,9 @@
 ## built circuits and all streams that succeed.
 ##
 
-import os
 import sys
-import stat
-import random
-
 from twisted.python import log
-from twisted.internet import reactor, defer
-from twisted.internet.endpoints import TCP4ClientEndpoint, UNIXClientEndpoint
-from zope.interface import implements
-
-try:
-    import psutil
-except ImportError:
-    psutil = None
-psutil = None
-
+from twisted.internet import reactor
 import txtorcon
 
 
@@ -37,10 +24,7 @@ def logStream(stream, state):
     proc = txtorcon.util.process_from_address(stream.source_addr,
                                               stream.source_port, state)
     if proc:
-        if psutil:
-            proc = ' from process "%s"' % (' '.join(proc.cmdline),)
-        else:
-            proc = ' from process "%s"' % (proc,)
+        proc = ' from process "%s"' % (proc,)
 
     elif stream.source_addr == '(Tor_internal)':
         proc = ' for Tor internal use'
@@ -68,7 +52,7 @@ class StreamCircuitLogger(txtorcon.StreamListenerMixin,
         logCircuit(circuit)
 
     def circuit_failed(self, circuit, kw):
-        log.msg('circuit %d failed "%s"' % (circuit.id, kw['REASON']))
+        log.msg('Circuit %d failed "%s"' % (circuit.id, kw['REASON']))
 
 
 def setup(state):
@@ -99,19 +83,6 @@ def setup_failed(arg):
 
 log.startLogging(sys.stdout)
 
-d = None
-try:
-    if os.stat('/var/run/tor/control').st_mode & (stat.S_IRGRP | stat.S_IRUSR |
-                                                  stat.S_IROTH):
-        print "using control socket"
-        d = txtorcon.build_tor_connection(UNIXClientEndpoint(
-            reactor, "/var/run/tor/control"))
-except OSError:
-    pass
-
-if d is None:
-    d = txtorcon.build_tor_connection(TCP4ClientEndpoint(reactor, "localhost",
-                                                         9051))
-
+d = txtorcon.build_local_tor_connection(reactor)
 d.addCallback(setup).addErrback(setup_failed)
 reactor.run()
