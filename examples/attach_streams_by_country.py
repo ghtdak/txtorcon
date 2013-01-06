@@ -24,18 +24,13 @@
 ## step will make "the site" appear to be there.
 ##
 ## The only "solution" for this would be to do the lookup locally, but
-## that defeats the purpose of Tor. 
+## that defeats the purpose of Tor.
 ##
 
-import os
-import sys
-import stat
 import random
 
 from twisted.python import log
 from twisted.internet import reactor, defer
-from twisted.internet.endpoints import UNIXClientEndpoint
-from twisted.internet.endpoints import TCP4ClientEndpoint
 from zope.interface import implements
 
 import txtorcon
@@ -50,8 +45,9 @@ class MyStreamListener(txtorcon.StreamListenerMixin):
         print "successful stream:", stream.id, stream.target_host
 
     def stream_attach(self, stream, circuit):
-        print "stream",stream.id,"attached to circuit",circuit.id, \
-              "with path:",'->'.join(map(lambda x: x.location.countrycode, circuit.path))
+        print "stream", stream.id, " attached to circuit", circuit.id, \
+              "with path:", '->'.join(map(lambda x: x.location.countrycode,
+                                          circuit.path))
 
 
 class MyAttacher(txtorcon.CircuitListenerMixin):
@@ -113,8 +109,9 @@ class MyAttacher(txtorcon.CircuitListenerMixin):
         """
         IStreamAttacher API
         """
-        if not self.state.addrmap.addr.has_key(stream.target_host):
-            print "No AddrMap entry for", stream.target_host, "so I don't know where it exits; get Tor to attach stream."
+        if not stream.target_host in self.state.addrmap.addr:
+            print "No AddrMap entry for", stream.target_host, \
+                  "so I don't know where it exits; get Tor to attach stream."
             return None
 
         ip = str(self.state.addrmap.addr[stream.target_host].ip)
@@ -133,7 +130,7 @@ class MyAttacher(txtorcon.CircuitListenerMixin):
 
             circuit_cc = circ.path[-1].location.countrycode
             if circuit_cc is None:
-                print "warning: don't know where circuit", circuit.id, "exits"
+                print "warning: don't know where circuit", circ.id, "exits"
 
             if circuit_cc == stream_cc:
                 print "  found suitable circuit:", circ
@@ -217,14 +214,6 @@ def setup_failed(arg):
     reactor.stop()
 
 
-if os.stat('/var/run/tor/control').st_mode & (stat.S_IRGRP | stat.S_IRUSR |
-                                              stat.S_IROTH):
-    print "using control socket"
-    point = UNIXClientEndpoint(reactor, "/var/run/tor/control")
-
-else:
-    point = TCP4ClientEndpoint(reactor, "localhost", 9051)
-
-d = txtorcon.build_tor_connection(point)
+d = txtorcon.build_local_tor_connection(reactor)
 d.addCallback(do_setup).addErrback(setup_failed)
 reactor.run()

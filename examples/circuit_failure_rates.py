@@ -4,21 +4,16 @@
 ## This example uses ICircuitListener to monitor how many circuits have
 ## failed since the monitor started up. If this figure is more than 50%,
 ## a warning-level message is logged.
-## 
+##
 ## Like the :ref:`stream_circuit_logger.py` example, we also log all new
 ## circuits.
 ##
 
-import os
+import functools
 import sys
-import stat
-import random
 import time
-
-from twisted.internet import reactor, task, endpoints
+from twisted.internet import reactor, task
 from twisted.python import usage
-from zope.interface import implements
-
 import txtorcon
 
 
@@ -29,13 +24,11 @@ class Options(usage.Options):
 
     optParameters = [
         ['failed', 'f', 0, 'Starting value for number of failed circuits.', int
-        ],
-        ['built', 'b', 0,
-         'Starting value for the total number of built cicuits.', int],
+        ], ['built', 'b', 0,
+            'Starting value for the total number of built cicuits.', int],
         ['connect', 'c', None,
          'Tor control socket to connect to in host:port format, like "localhost:9051" (the default).'
-        ],
-        ['delay', 'n', 60, 'Seconds to wait between status updates.', int],
+        ], ['delay', 'n', 60, 'Seconds to wait between status updates.', int]
     ]
 
     def __init__(self):
@@ -147,13 +140,9 @@ class CircuitFailureWatcher(txtorcon.CircuitListenerMixin):
             self.update_percent()
 
 
-listener = CircuitFailureWatcher()
-
-
-def setup(state):
-    print 'Connected to a Tor version %s' % state.protocol.version
-    global options, listener
-
+def setup(options, listener, state):
+    print 'Connected to a Tor version %s at %s' % (
+        state.protocol.version, state.protocol.transport.addr)
     listener.failed_circuits = int(options['failed'])
     listener.built_circuits = int(options['built'])
     listener.state = state  # FIXME use ctor (ditto for options, probably)
@@ -195,8 +184,7 @@ except usage.UsageError:
     sys.exit(-1)
 
 
-def on_shutdown(*args):
-    global listener
+def on_shutdown(listener, *args):
     print '\nTo carry on where you left off, run:'
     print '  %s --failed %d --built %d' % (
         sys.argv[0], listener.failed_circuits, listener.built_circuits),
@@ -206,31 +194,19 @@ def on_shutdown(*args):
     print
 
 
-reactor.addSystemEventTrigger('before', 'shutdown', on_shutdown)
+listener = CircuitFailureWatcher()
+
+reactor.addSystemEventTrigger('before', 'shutdown',
+                              functools.partial(on_shutdown, listener))
 
 if options['connect']:
     host, port = options['connect'].split(':')
     port = int(port)
-    print "Connecting to %s:%d..." % (host, port)
-    endpoint = endpoints.clientFromString(reactor, 'tcp:host=%s:port=%d' %
-                                          (host, port))
-
+    print 'Connecting to %s:%i...' % (host, port)
+    d = txtorcon.build_local_tor_connection(reactor, host=host, port=port)
 else:
-    endpoint = None
-    try:
-        ## FIXME more Pythonic to not check, and accept more exceptions?
-        if os.stat('/var/run/tor/control').st_mode & (
-            stat.S_IRGRP | stat.S_IRUSR | stat.S_IROTH):
-            print "using control socket"
-            endpoint = endpoints.UNIXClientEndpoint(reactor,
-                                                    "/var/run/tor/control")
-    except OSError:
-        pass
+    d = txtorcon.build_local_tor_connection(reactor)
+d.addCallback(functools.partial(setup, options, listener))
+d.addErrback(setup_failed)
 
-    if endpoint is None:
-        endpoint = endpoints.TCP4ClientEndpoint(reactor, "localhost", 9051)
-
-print "Connecting via", endpoint
-d = txtorcon.build_tor_connection(endpoint, build_state=True)
-d.addCallback(setup).addErrback(setup_failed)
 reactor.run()

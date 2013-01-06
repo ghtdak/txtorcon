@@ -17,17 +17,9 @@
 ## instead.
 ##
 
-import os
 import sys
-import stat
-
-from twisted.python import log
 from twisted.internet import reactor, defer
-from twisted.internet.endpoints import TCP4ClientEndpoint
-from twisted.internet.endpoints import UNIXClientEndpoint
-from zope.interface import implements
-
-from txtorcon import TorProtocolFactory, TorInfo
+from txtorcon import TorInfo, build_local_tor_connection
 
 
 def error(x):
@@ -91,20 +83,8 @@ def bootstrap(c):
     info.post_bootstrap.addCallback(setup_complete).addErrback(setup_failed)
 
 
-point = None
-try:
-    ## FIXME more Pythonic to not check, and accept more exceptions?
-    if os.stat('/var/run/tor/control').st_mode & (stat.S_IRGRP | stat.S_IRUSR |
-                                                  stat.S_IROTH):
-        print "using control socket"
-        point = UNIXClientEndpoint(reactor, "/var/run/tor/control")
-except OSError:
-    pass
-
-if point is None:
-    point = TCP4ClientEndpoint(reactor, "localhost", 9051)
-
-d = point.connect(TorProtocolFactory())
+d = build_local_tor_connection(reactor, build_state=False)
 # do not use addCallbacks() here, in case bootstrap has an error
 d.addCallback(bootstrap).addErrback(setup_failed)
+
 reactor.run()

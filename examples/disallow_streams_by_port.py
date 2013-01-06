@@ -10,15 +10,8 @@
 ## attach_streams_by_country.py
 ##
 
-import os
-import sys
-import stat
-import random
-
 from twisted.python import log
-from twisted.internet import reactor, defer
-from twisted.internet.endpoints import UNIXClientEndpoint
-from twisted.internet.endpoints import TCP4ClientEndpoint
+from twisted.internet import reactor
 from zope.interface import implements
 
 import txtorcon
@@ -41,15 +34,14 @@ class PortFilterAttacher:
         """
         IStreamAttacher API
         """
-
         if stream.target_port in self.disallow_ports:
             print "Disallowing", stream
             self.state.close_stream(stream).addCallback(
                 stream_closed).addErrback(log.err)
             return self.state.DO_NOT_ATTACH
-
-        # Ask Tor to assign stream to a circuit by itself
-        return None
+        else:
+            # Ask Tor to assign stream to a circuit by itself
+            return None
 
 
 def do_setup(state):
@@ -68,14 +60,6 @@ def setup_failed(arg):
     reactor.stop()
 
 
-if os.stat('/var/run/tor/control').st_mode & (stat.S_IRGRP | stat.S_IRUSR |
-                                              stat.S_IROTH):
-    print "using control socket"
-    point = UNIXClientEndpoint(reactor, "/var/run/tor/control")
-
-else:
-    point = TCP4ClientEndpoint(reactor, "localhost", 9051)
-
-d = txtorcon.build_tor_connection(point)
+d = txtorcon.build_local_tor_connection(reactor)
 d.addCallback(do_setup).addErrback(setup_failed)
 reactor.run()
