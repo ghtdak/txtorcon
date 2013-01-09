@@ -8,15 +8,11 @@
 ## high-uptime nodes"
 ##
 
-import os
 import sys
-import stat
 import functools
 
 from twisted.python import log
-from twisted.internet import reactor, defer
-from twisted.internet.endpoints import UNIXClientEndpoint
-from twisted.internet.endpoints import TCP4ClientEndpoint
+from twisted.internet import reactor
 from zope.interface import implements
 
 import txtorcon
@@ -66,8 +62,8 @@ class MyAttacher(txtorcon.CircuitListenerMixin, txtorcon.StreamListenerMixin):
         return None
 
     def stream_attach(self, stream, circuit):
-        print "stream",stream.id,"attached to circuit",circuit.id, \
-              "with path:",'->'.join(map(lambda x: x.location.countrycode, circuit.path))
+        print "stream", stream.id, "attached to circuit", circuit.id, \
+              "with path:", '->'.join(map(lambda x: x.location.countrycode, circuit.path))
         if self.circuit is circuit:
             print "...so we're done."
             reactor.stop()
@@ -93,18 +89,20 @@ def do_setup(path, state):
                                        c.path))
 
     print "Building our Circuit:", path
-    path = map(lambda x: state.routers[x], path)
+    try:
+        path = map(lambda x: state.routers[x], path)
+    except KeyError, e:
+        print "Couldn't find router:", e
+        sys.exit(1)
     print "...using routers:", path
     return state.build_circuit(path).addCallback(
         attacher.set_circuit).addErrback(log.err)
 
 
 def setup_failed(arg):
-    print "SETUP FAILED", arg
+    print "Setup Failed:", arg.getErrorMessage()
     reactor.stop()
 
-
-point = TCP4ClientEndpoint(reactor, "localhost", 9051)
 
 if len(sys.argv) == 1:
     print "usage: %s router [router] [router] ..." % sys.argv[0]
@@ -112,6 +110,6 @@ if len(sys.argv) == 1:
 
 path = sys.argv[1:]
 
-d = txtorcon.build_tor_connection(point)
+d = txtorcon.build_local_tor_connection(reactor)
 d.addCallback(functools.partial(do_setup, path)).addErrback(setup_failed)
 reactor.run()
