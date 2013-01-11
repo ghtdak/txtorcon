@@ -8,20 +8,9 @@
 ## also the :ref:`launch_tor.py` example.
 ##
 
-import tempfile
-import functools
-
 from twisted.internet import reactor
-
-import txtorcon
-
-
-def setup_failed(arg):
-    print "SETUP FAILED", arg
-    reactor.stop()
-
-
 from twisted.web import server, resource
+import txtorcon
 
 
 class Simple(resource.Resource):
@@ -32,6 +21,11 @@ class Simple(resource.Resource):
 
 
 site = server.Site(Simple())
+
+
+def setup_failed(arg):
+    print "SETUP FAILED", arg
+    reactor.stop()
 
 
 def setup_complete(port):

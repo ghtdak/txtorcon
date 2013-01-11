@@ -5,11 +5,7 @@
 ## prints out the contents, so functions like a log monitor.
 ##
 
-import os
-import stat
 from twisted.internet import reactor
-from twisted.internet.endpoints import UNIXClientEndpoint
-from twisted.internet.endpoints import TCP4ClientEndpoint
 import txtorcon
 
 
@@ -28,14 +24,6 @@ def setup_failed(arg):
     reactor.stop()
 
 
-if os.stat('/var/run/tor/control').st_mode & (stat.S_IRGRP | stat.S_IRUSR |
-                                              stat.S_IROTH):
-    print "using control socket"
-    point = UNIXClientEndpoint(reactor, "/var/run/tor/control")
-
-else:
-    point = TCP4ClientEndpoint(reactor, "localhost", 9051)
-
-d = txtorcon.build_tor_connection(point, build_state=False)
+d = txtorcon.build_local_tor_connection(reactor, build_state=False)
 d.addCallback(setup).addErrback(setup_failed)
 reactor.run()
