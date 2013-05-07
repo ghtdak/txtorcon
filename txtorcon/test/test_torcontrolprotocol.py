@@ -70,7 +70,8 @@ class AuthenticationTests(unittest.TestCase):
         self.assertEqual(self.transport.value(), 'PROTOCOLINFO 1\r\n')
         self.transport.clear()
         cookie_data = 'cookiedata!cookiedata!cookiedata'
-        open('authcookie', 'w').write(cookie_data)
+        with open('authcookie', 'w') as f:
+            f.write(cookie_data)
         self.send('250-PROTOCOLINFO 1')
         self.send(
             '250-AUTH METHODS=COOKIE,HASHEDPASSWORD COOKIEFILE="authcookie"')
