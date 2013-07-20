@@ -78,7 +78,7 @@ def build_tor_connection(connection,
         if len(connection) == 2:
             reactor, socket = connection
             if (os.path.exists(socket) and os.stat(socket).st_mode
-                & (stat.S_IRGP | stat.S_IRUSR | stat.S_IROTH)):
+                & (stat.S_IRGRP | stat.S_IRUSR | stat.S_IROTH)):
                 endpoint = UNIXClientEndpoint(reactor, socket)
             else:
                 raise ValueError('Can\'t use "%s" as a socket' % (socket,))
