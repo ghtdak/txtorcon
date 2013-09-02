@@ -46,7 +46,7 @@ class StreamCircuitLogger(txtorcon.StreamListenerMixin,
     def stream_attach(self, stream, circuit):
         logStream(stream, self.state)
 
-    def stream_failed(self, stream, reason, remote_reason):
+    def stream_failed(self, stream, reason, remote_reason, **kw):
         print 'Stream %d failed because "%s"' % (stream.id, remote_reason)
 
     def circuit_built(self, circuit):
