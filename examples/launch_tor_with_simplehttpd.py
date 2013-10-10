@@ -114,6 +114,8 @@ def main():
 
     # Add the hidden service to a blank configuration
     config = txtorcon.TorConfig()
+    config.SOCKSPort = 0
+    config.ORPort = 9089
     config.HiddenServices = [txtorcon.HiddenService(
         config, hs_temp, ['%i %s:%i' % (hs_public_port, web_host, web_port)])]
     config.save()
