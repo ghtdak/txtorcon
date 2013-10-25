@@ -10,6 +10,7 @@ to attach streams to circuits "by hand"
 """
 
 from twisted.python import log
+from twisted.internet import defer
 from txtorcon.interface import ICircuitContainer, IStreamListener
 from txtorcon.util import find_keywords, maybe_ip_addr
 
@@ -134,7 +135,7 @@ class Stream(object):
         def close_command_is_queued(*args):
             return self._closing_deferred
 
-        d = self.protocol.close_stream(self, **kw)
+        d = self.circuit_container.close_stream(self, **kw)
         d.addCallback(close_command_is_queued)
         return self._closing_deferred
 
