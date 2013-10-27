@@ -267,6 +267,8 @@ class TorControlProtocol(LineOnlyReceiver):
         idle.add_transition(Transition(recv, self._is_continuation_line,
                                        self._start_command))
 
+        recv.add_transition(Transition(recvmulti, self._is_multi_line,
+                                       self._accumulate_response))
         recv.add_transition(Transition(recv, self._is_continuation_line,
                                        self._accumulate_response))
         recv.add_transition(Transition(idle, self._is_finish_line,
@@ -475,6 +477,9 @@ class TorControlProtocol(LineOnlyReceiver):
         """
         returns a Deferred which will fire with the response data when
         we get it
+
+        Note that basically every request is ultimately funelled
+        through this command.
         """
 
         d = defer.Deferred()
