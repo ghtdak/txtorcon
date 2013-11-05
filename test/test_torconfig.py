@@ -533,7 +533,6 @@ OK''')
                          ('HiddenServiceAuthorizeClient', 'auth'))
 
     def test_save_no_protocol(self):
-
         conf = TorConfig()
         conf.HiddenServices = [
             HiddenService(conf, '/fake/path', ['80 127.0.0.1:1234'])
