@@ -634,6 +634,8 @@ class TorControlProtocol(LineOnlyReceiver):
             "The Tor I connected to doesn't support SAFECOOKIE nor COOKIE authentication and I have no password_function specified.")
 
     def _do_password_authentication(self, passwd):
+        if not passwd:
+            raise RuntimeError("No password available.")
         self.authenticate(passwd).addCallback(self._bootstrap).addErrback(
             self._auth_failed)
 
