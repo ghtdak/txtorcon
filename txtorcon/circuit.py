@@ -128,6 +128,7 @@ class Circuit(object):
         self.state = args[1]
 
         kw = find_keywords(args)
+        self.flags = kw
         if 'PURPOSE' in kw:
             self.purpose = kw['PURPOSE']
         if 'BUILD_FLAGS' in kw:
