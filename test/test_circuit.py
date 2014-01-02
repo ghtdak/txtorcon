@@ -6,14 +6,6 @@ from txtorcon import Circuit, Stream, TorControlProtocol, TorState
 from txtorcon.interface import IRouterContainer, ICircuitListener, ICircuitContainer, CircuitListenerMixin, ITorControlProtocol
 
 
-class FakeTorControlProtocol(object):
-    implements(ITorControlProtocol)  # not really, just close_circuit
-
-    def close_circuit(self, circuit):
-        self.deferred = defer.Deferred()
-        return self.deferred
-
-
 class FakeTorController(object):
     implements(IRouterContainer, ICircuitListener, ICircuitContainer)
 
@@ -50,6 +42,10 @@ class FakeTorController(object):
     def find_circuit(self, circid):
         return self.circuits[circid]
 
+    def close_circuit(self, circ):
+        del self.circuits[circ.id]
+        return defer.succeed('OK')
+
 
 class FakeLocation:
 
@@ -78,9 +74,6 @@ examples = [
 
 class CircuitTests(unittest.TestCase):
 
-    def setUp(self):
-        self.protocol = FakeTorControlProtocol()
-
     def test_listener_mixin(self):
         listener = CircuitListenerMixin()
         from zope.interface.verify import verifyObject
@@ -99,7 +92,7 @@ class CircuitTests(unittest.TestCase):
         tor.routers['$E11D2B2269CC25E67CA6C9FB5843497539A74FD0'] = FakeRouter(
             '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0', 'a')
 
-        circuit = Circuit(tor, self.protocol)
+        circuit = Circuit(tor)
         circuit.listen(tor)
         circuit.update('1 LAUNCHED PURPOSE=GENERAL'.split())
         circuit.unlisten(tor)
@@ -125,7 +118,7 @@ class CircuitTests(unittest.TestCase):
 
     def test_wrong_update(self):
         tor = FakeTorController()
-        circuit = Circuit(tor, self.protocol)
+        circuit = Circuit(tor)
         circuit.listen(tor)
         circuit.update('1 LAUNCHED PURPOSE=GENERAL'.split())
         self.assertRaises(Exception, circuit.update,
@@ -133,7 +126,7 @@ class CircuitTests(unittest.TestCase):
 
     def test_closed_remaining_streams(self):
         tor = FakeTorController()
-        circuit = Circuit(tor, self.protocol)
+        circuit = Circuit(tor)
         circuit.listen(tor)
         circuit.update('1 LAUNCHED PURPOSE=GENERAL'.split())
         stream = Stream(tor)
@@ -154,7 +147,7 @@ class CircuitTests(unittest.TestCase):
 
     def test_updates(self):
         tor = FakeTorController()
-        circuit = Circuit(tor, self.protocol)
+        circuit = Circuit(tor)
         circuit.listen(tor)
         tor.routers['$E11D2B2269CC25E67CA6C9FB5843497539A74FD0'] = FakeRouter(
             '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0', 'a')
@@ -183,7 +176,7 @@ class CircuitTests(unittest.TestCase):
         tor.routers['$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5'] = b
         tor.routers['$253DFF1838A2B7782BE7735F74E50090D46CA1BC'] = c
 
-        circuit = Circuit(tor, self.protocol)
+        circuit = Circuit(tor)
         circuit.listen(tor)
 
         circuit.update('365 LAUNCHED PURPOSE=GENERAL'.split())
@@ -214,7 +207,7 @@ class CircuitTests(unittest.TestCase):
         without connectivity, it seems you get EXTENDS messages with no path update.
         '''
         tor = FakeTorController()
-        circuit = Circuit(tor, self.protocol)
+        circuit = Circuit(tor)
         circuit.listen(tor)
 
         circuit.update(
@@ -228,13 +221,13 @@ class CircuitTests(unittest.TestCase):
 
     def test_str(self):
         tor = FakeTorController()
-        circuit = Circuit(tor, self.protocol)
+        circuit = Circuit(tor)
         circuit.id = 1
         str(circuit)
 
     def test_failed_reason(self):
         tor = FakeTorController()
-        circuit = Circuit(tor, self.protocol)
+        circuit = Circuit(tor)
         circuit.listen(tor)
         circuit.update(
             '1 FAILED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL REASON=TIMEOUT'.split(
@@ -256,7 +249,7 @@ class CircuitTests(unittest.TestCase):
         tor.routers['$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5'] = b
         tor.routers['$253DFF1838A2B7782BE7735F74E50090D46CA1BC'] = c
 
-        circuit = Circuit(tor, self.protocol)
+        circuit = Circuit(tor)
         circuit.listen(tor)
 
         circuit.update(
@@ -265,10 +258,15 @@ class CircuitTests(unittest.TestCase):
 
         self.assertEqual(3, len(circuit.path))
         d = circuit.close()
-        self.assertTrue(self.protocol.deferred is not None)
-        # simulate the success of the CIRCUITCLOSED call"
-        self.protocol.deferred.callback("it went swimmingly")
-        # simulate that Tor has really closed the circuit for us (via failing it, in this case)
+        # we already pretended that Tor answered "OK" to the
+        # CLOSECIRCUIT call (see close_circuit() in FakeTorController
+        # above) however the circuit isn't "really" closed yet...
+        self.assertTrue(not d.called)
+        ## not unit-test-y? shouldn't probably delve into internals I suppose...
+        self.assertTrue(circuit._closing_deferred is not None)
+
+        # simulate that Tor has really closed the circuit for us
+        # this should cause our Deferred to callback
         circuit.update(
             '123 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=FINISHED'.split(
             ))
