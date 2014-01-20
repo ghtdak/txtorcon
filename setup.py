@@ -41,6 +41,9 @@ setup(
     ## way to have "development requirements"?
     requires=filter(len, map(pip_to_requirements, open(
         'requirements.txt').readlines())),
+    ## FIXME is requires even doing anything? why is format
+    ## apparently different for install_requires?
+    install_requires=['Twisted>=11.1.0', 'zope.interface>=3.6.1'],
     classifiers=['Framework :: Twisted', 'Development Status :: 4 - Beta',
                  'Intended Audience :: Developers',
                  'License :: OSI Approved :: MIT License',
