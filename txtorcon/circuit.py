@@ -107,7 +107,7 @@ class Circuit(object):
         def close_command_is_queued(*args):
             return self._closing_deferred
 
-        d = self.torstate.close_circuit(self, **kw)
+        d = self.torstate.close_circuit(self.id, **kw)
         d.addCallback(close_command_is_queued)
         return self._closing_deferred
 
