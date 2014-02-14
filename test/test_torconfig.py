@@ -960,6 +960,7 @@ class LaunchTorTests(unittest.TestCase):
                        tor_binary='/bin/echo')
         d.addCallback(self.fail)  # should't get callback
         d.addErrback(self.setup_fails_stderr)
+        self.assertFalse(self.protocol.on_disconnect)
         return d
 
     def test_tor_connection_fails(self):
