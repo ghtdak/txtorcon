@@ -87,7 +87,7 @@ class Circuit(object):
 
     @property
     def time_created(self):
-        if self._time_created != None:
+        if self._time_created is not None:
             return self._time_created
         if 'TIME_CREATED' in self.flags:
             ## strip off milliseconds
