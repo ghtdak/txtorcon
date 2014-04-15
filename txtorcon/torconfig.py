@@ -1110,7 +1110,7 @@ class TorConfig(object):
     @defer.inlineCallbacks
     def _do_setup(self, data):
         for line in data.split('\n'):
-            if line == "config/names=" or line == "OK":
+            if line == "config/names=":
                 continue
 
             (name, value) = line.split()

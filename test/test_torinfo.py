@@ -129,7 +129,7 @@ multi/path a documentation string
         self.assertTrue(hasattr(info, 'multi'))
         self.assertTrue(hasattr(getattr(info, 'multi'), 'path'))
 
-        self.protocol.answers.append('something=\nfoo\nOK')
+        self.protocol.answers.append('something=\nfoo')
 
         d = info.something()
         d.addCallback(CheckAnswer(self, 'foo'))
@@ -146,7 +146,7 @@ something/two a second documentation string
         self.assertTrue(hasattr(info.something, 'one'))
         self.assertTrue(hasattr(info.something, 'two'))
 
-        self.protocol.answers.append('something/two=bar\nOK')
+        self.protocol.answers.append('something/two=bar')
 
         d = info.something.two()
         d.addCallback(CheckAnswer(self, 'bar'))
@@ -222,7 +222,9 @@ multi/path/arg/* a documentation string
         self.assertTrue(hasattr(getattr(info, 'multi'), 'path'))
         self.assertTrue(hasattr(getattr(getattr(info, 'multi'), 'path'), 'arg'))
 
-        self.protocol.answers.append('multi/path/arg/quux=\nbar\nbaz\nquux\nOK')
+        ## FIXME should have a test that "really" goes out through TorControlProtocol instance for this stuff...
+        ## TorControlProtocol now strips the OK line...
+        self.protocol.answers.append('multi/path/arg/quux=\nbar\nbaz\nquux')
 
         try:
             info.multi.path.arg()

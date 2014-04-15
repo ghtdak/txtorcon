@@ -307,7 +307,7 @@ class StateTests(unittest.TestCase):
     def test_single_streams(self):
         self.state.circuits[496] = FakeCircuit(496)
         self.state._stream_status(
-            'stream-status=123 SUCCEEDED 496 www.example.com:6667\r\nOK')
+            'stream-status=123 SUCCEEDED 496 www.example.com:6667')
         self.assertEqual(len(self.state.streams), 1)
 
     def send(self, line):

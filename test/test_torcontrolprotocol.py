@@ -417,7 +417,7 @@ OK''' % cookietmp.name)
         return d
 
     def incremental_check(self, expected, actual):
-        if '=' in actual or actual == 'OK':
+        if '=' in actual:
             return
         self.assertEqual(expected, actual)
 
@@ -461,7 +461,7 @@ OK''' % cookietmp.name)
         return d
 
     def response_ok(self, v):
-        self.assertEqual(v, 'OK')
+        self.assertEqual(v, '')
 
     def test_setconf(self):
         d = self.protocol.set_conf(
@@ -656,7 +656,7 @@ OK''' % cookietmp.name)
             self.assertTrue('FOO' in str(e))
 
     def checkContinuation(self, v):
-        self.assertEqual(v, "key=\nvalue0\nvalue1\nOK")
+        self.assertEqual(v, "key=\nvalue0\nvalue1")
 
     def test_continuationLine(self):
         d = self.protocol.get_info_raw("key")
@@ -685,8 +685,7 @@ OK''' % cookietmp.name)
 r fake YkkmgCNRV1/35OPWDvo7+1bmfoo tanLV/4ZfzpYQW0xtGFqAa46foo 2011-12-12 16:29:16 12.45.56.78 443 80
 s Exit Fast Guard HSDir Named Running Stable V2Dir Valid
 w Bandwidth=518000
-p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863,2082-2083,2086-2087,2095-2096,3128,4321,5050,5190,5222-5223,6679,6697,7771,8000,8008,8080-8081,8090,8118,8123,8181,8300,8443,8888
-OK"""))
+p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863,2082-2083,2086-2087,2095-2096,3128,4321,5050,5190,5222-5223,6679,6697,7771,8000,8008,8080-8081,8090,8118,8123,8181,8300,8443,8888"""))
 
         self.send("250+ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A=")
         self.send(
@@ -723,7 +722,7 @@ class ParseTests(unittest.TestCase):
 
     def test_keywords(self):
         x = parse_keywords(
-            'events/names=CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET\nOK')
+            'events/names=CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
         self.assertTrue('events/names' in x)
         self.assertEqual(x[
             'events/names'
@@ -836,8 +835,7 @@ s Fast Guard HSDir Named Running Stable V2Dir Valid
 w Bandwidth=18700
 p reject 1-65535""")
         self.controller._circuit_status("""circuit-status=
-4472 BUILT $FF1003D2D14B4B9D03933F8EDFBC46C952E82A59=Tecumseh,$C185D4A4B069CD559FCD548C8063B475385D777F=l0l,$7FE4F2FFE07A96062BD0DB5B7FAECEFCBD8CF192=wildnl PURPOSE=GENERAL
-""")
+4472 BUILT $FF1003D2D14B4B9D03933F8EDFBC46C952E82A59=Tecumseh,$C185D4A4B069CD559FCD548C8063B475385D777F=l0l,$7FE4F2FFE07A96062BD0DB5B7FAECEFCBD8CF192=wildnl PURPOSE=GENERAL""")
         self.assertEqual(len(self.controller.circuits), 1)
         self.assertTrue(4472 in self.controller.circuits)
 
