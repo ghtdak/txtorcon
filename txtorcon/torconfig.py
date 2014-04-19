@@ -364,7 +364,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         """
 
         try:
-            self.transport.signalProcess('KILL')
+            self.transport.signalProcess('TERM')
         except error.ProcessExitedAlready:
             self.transport.loseConnection()
         self._did_timeout = True
@@ -394,7 +394,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
 
         self.cleanup()
 
-        if isinstance(status.value, error.ProcessDone):
+        if isinstance(status.value,
+                          error.ProcessDone) and not self._did_timeout:
             return
 
         if status.value.exitCode is None:
