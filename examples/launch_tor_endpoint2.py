@@ -7,6 +7,8 @@
 ## into a TCPHiddenServiceEndpoint object...
 ##
 
+import shutil
+
 from twisted.internet import reactor
 from twisted.web import server, resource
 from twisted.internet.endpoints import serverFromString
@@ -38,11 +40,13 @@ def progress(percent, tag, message):
     print '[%s%s] %s' % ('#' * bar, '.' * (10 - bar), message)
 
 
-hs_endpoint = serverFromString(reactor, "onion:80")
-#hs_endpoint = serverFromString(reactor, "onion:80:controlPort=9089:localPort=8080")
-#hs_endpoint = serverFromString(reactor, "onion:80:controlPort=9089:localPort=8080:hiddenServiceDir=/home/human/src/txtorcon/hidserv")
+hs_endpoint1 = serverFromString(reactor, "onion:80")
+hs_endpoint2 = serverFromString(reactor, "onion:80")
 
-d = hs_endpoint.listen(site)
-d.addCallbacks(setup_complete, setup_failed)
+d1 = hs_endpoint1.listen(site)
+d2 = hs_endpoint2.listen(site)
+
+d1.addCallbacks(setup_complete, setup_failed)
+d2.addCallbacks(setup_complete, setup_failed)
 
 reactor.run()
