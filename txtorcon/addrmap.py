@@ -131,5 +131,5 @@ class AddrMap(object):
             getattr(listener, method)(*args, **kwargs)
 
     def add_listener(self, listener):
-        if not listener in self.listeners:
+        if listener not in self.listeners:
             self.listeners.append(IAddrListener(listener))

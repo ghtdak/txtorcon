@@ -32,7 +32,7 @@ class Listener(object):
                         (v, args))
             elif k == 'kwargs':
                 for (key, value) in v.items():
-                    if not key in kw:
+                    if key not in kw:
                         print key, value, k, v, kw
                         raise RuntimeError(
                             'Expected keyword argument for key "%s" but found nothing.'
