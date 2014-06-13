@@ -10,9 +10,16 @@ from zope.interface import implements
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 from twisted.internet import defer, error, task, tcp
-from twisted.internet.endpoints import TCP4ServerEndpoint, serverFromString, clientFromString
+from twisted.internet.endpoints import TCP4ServerEndpoint
+from twisted.internet.endpoints import serverFromString
+from twisted.internet.endpoints import clientFromString
 from twisted.python.failure import Failure
-from twisted.internet.interfaces import IReactorCore, IProtocolFactory, IProtocol, IReactorTCP, IListeningPort, IAddress
+from twisted.internet.interfaces import IReactorCore
+from twisted.internet.interfaces import IProtocolFactory
+from twisted.internet.interfaces import IProtocol
+from twisted.internet.interfaces import IReactorTCP
+from twisted.internet.interfaces import IListeningPort
+from twisted.internet.interfaces import IAddress
 
 from txtorcon import TorControlProtocol
 from txtorcon import ITorControlProtocol
@@ -104,10 +111,10 @@ class EndpointTests(unittest.TestCase):
         with patch('txtorcon.endpoints.launch_tor') as m:
             with patch('txtorcon.endpoints.build_tor_connection',
                        new_callable=boom) as btc:
-                ep = yield TCPHiddenServiceEndpoint.system_tor(
-                    self.reactor,
-                    clientFromString(self.reactor, "tcp:localhost:port=9050"),
-                    80)
+                client = clientFromString(self.reactor,
+                                          "tcp:localhost:port=9050")
+                ep = yield TCPHiddenServiceEndpoint.system_tor(self.reactor,
+                                                               client, 80)
                 port = yield ep.listen(NoOpProtocolFactory())
                 toa = port.getHost()
                 self.assertTrue(hasattr(toa, 'onion_uri'))
@@ -136,9 +143,6 @@ class EndpointTests(unittest.TestCase):
             # make sure we called listenTCP not connectTCP
             self.assertEqual(e, listen)
 
-        #self.assertIsInstance(port, torconfig.TorOnionListeningPort)
-        #self.assertEqual('127.0.0.1', ep.tcp_endpoint._interface)
-        ## make sure _ListWrapper's __repr__ doesn't explode
         repr(self.config.HiddenServices)
 
     def test_progress_updates(self):
@@ -358,7 +362,7 @@ from test_torconfig import FakeProcessTransport  # FIXME
 from test_torconfig import FakeControlProtocol  # FIXME
 
 
-class FakeReactorTcp(FakeReactor):  #object):
+class FakeReactorTcp(FakeReactor):
     implements(IReactorTCP)
 
     failures = 0
@@ -404,6 +408,7 @@ class FakeReactorTcp(FakeReactor):  #object):
                           reactor=self)
 
         #        print dir(r)
+
         def blam(*args):
             print "BLAAAAAM", args
 
