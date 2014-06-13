@@ -306,6 +306,7 @@ class EndpointLaunchTests(unittest.TestCase):
         # values from a server-endpoint-string)
 
 
+        # FIXME should probably go somewhere else, so other tests can easily use these.
 class FakeProtocol(object):
     implements(IProtocol)
 
