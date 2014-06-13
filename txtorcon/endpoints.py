@@ -48,14 +48,11 @@ _global_tor_lock = defer.DeferredLock()
 
 
 @defer.inlineCallbacks
-def get_global_tor(reactor, socks_port=None, control_port=None,
+def get_global_tor(reactor, control_port=None,
                    progress_updates=None,
                    _tor_launcher=lambda r, c, p: launch_tor(c, r, progress_updates=p)):
     """
     See description of :class:`txtorcon.TCPHiddenServiceEndpoint`'s class-method ``global_tor``
-
-    :param socks_port:
-         a SOCKS port for Tor to listen on. ``None`` means don't listen.
 
     :param control_port:
         a TCP port upon which to run the launched Tor's
@@ -77,11 +74,8 @@ def get_global_tor(reactor, socks_port=None, control_port=None,
     try:
         if _global_tor_config is None:
             _global_tor_config = config = TorConfig()
-            if socks_port is None:
-                socks_port = 0
             if control_port is None:
                 control_port = yield available_tcp_port(reactor)
-            config.SOCKSPort = socks_port
             config.ControlPort = control_port
 
             # start Tor launching
@@ -89,10 +83,6 @@ def get_global_tor(reactor, socks_port=None, control_port=None,
             yield config.post_bootstrap
 
         else:
-            sp = _global_tor_config.SOCKSPort
-            if socks_port is not None and socks_port != sp:
-                raise RuntimeError("SOCKSPort is %s, you wanted %s" %
-                                   (sp, socks_port))
             cp = _global_tor_config.ControlPort
             if control_port is not None and control_port != cp:
                 raise RuntimeError("ControlPort is %s, you wanted %s" %
@@ -218,7 +208,6 @@ class TCPHiddenServiceEndpoint(object):
                    public_port,
                    hidden_service_dir=None,
                    local_port=None,
-                   socks_port=None,
                    control_port=None):
         """
         This returns a TCPHiddenServiceEndpoint connected to a
@@ -244,7 +233,6 @@ class TCPHiddenServiceEndpoint(object):
             progress.target(*args)
 
         config = get_global_tor(reactor,
-                                socks_port=socks_port,
                                 control_port=control_port,
                                 progress_updates=progress)
         # config is a Deferred here, but endpoint resolves in listen()
@@ -539,15 +527,15 @@ class TCPHiddenServiceEndpointParser(object):
 
     ``onion:80``
 
-    If controlPort is specified, it means connect to an already-running Tor on
+    If ``controlPort`` is specified, it means connect to an already-running Tor on
     that port and add a hidden-serivce to it.
 
-    localPort and SOCKSPort are optional and if not specified,
-    SOCKSPort is 0 and localPort is selected by the OS.
+    ``localPort`` is optional and if not specified, a port is selected by
+    the OS.
 
-    If hiddenServiceDir is not specified, one is created with
-    ``tempfile.mkstemp()``. The IStreamServerEndpoint will be an instance of
-    :class:`txtorcon.TCPHiddenServiceEndpoint`
+    If ``hiddenServiceDir`` is not specified, one is created with
+    ``tempfile.mkstemp()``. The IStreamServerEndpoint returned will be
+    an instance of :class:`txtorcon.TCPHiddenServiceEndpoint`
     """
     prefix = "onion"
 
@@ -559,7 +547,6 @@ class TCPHiddenServiceEndpointParser(object):
                           public_port,
                           localPort=None,
                           controlPort=None,
-                          socksPort=None,
                           hiddenServiceDir=None):
         ''':api:`twisted.internet.interfaces.IStreamServerEndpointStringParser`'''
 
@@ -567,8 +554,6 @@ class TCPHiddenServiceEndpointParser(object):
 
         if localPort is not None:
             localPort = int(localPort)
-        if socksPort is not None:
-            socksPort = int(socksPort)
 
         if controlPort:
             try:
@@ -588,5 +573,4 @@ class TCPHiddenServiceEndpointParser(object):
             public_port,
             hidden_service_dir=hiddenServiceDir,
             local_port=localPort,
-            socks_port=socksPort,
             control_port=controlPort)
