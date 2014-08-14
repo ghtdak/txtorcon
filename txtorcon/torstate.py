@@ -198,6 +198,7 @@ class TorState(object):
         self.routers = {}  # keys by hexid (string) and by unique names
         self.routers_by_name = {
         }  # keys on name, value always list (many duplicate "Unnamed" routers, for example)
+        self.routers_by_hash = {}  # keys by hexid (string)
         self.guards = {
         }  # potentially-usable as entry guards, I think? (any router with 'Guard' flag)
         self.entry_guards = {
@@ -313,6 +314,7 @@ class TorState(object):
         else:
             self.routers[self._router.name] = self._router
         self.routers[self._router.id_hex] = self._router
+        self.routers_by_hash[self._router.id_hex] = self._router
 
     def _router_flags(self, data):
         args = data.split()
