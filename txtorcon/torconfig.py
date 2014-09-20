@@ -5,7 +5,6 @@ import sys
 import string
 import types
 import functools
-import random
 import tempfile
 from StringIO import StringIO
 import shlex
@@ -14,20 +13,9 @@ if sys.platform in ('linux2', 'darwin'):
 
 from twisted.python import log
 from twisted.internet import defer, error, protocol
-from twisted.internet.interfaces import IStreamServerEndpoint, IReactorTime
-from twisted.internet.endpoints import TCP4ClientEndpoint, TCP4ServerEndpoint
-from twisted.internet.endpoints import clientFromString
-from zope.interface import implements
-from zope.interface import implementer
-from zope.interface import Interface, Attribute
-from twisted.internet.interfaces import IProtocolFactory, IListeningPort, IAddress
-from twisted.python.util import FancyEqMixin
-from twisted.plugin import IPlugin
-from twisted.internet.interfaces import IStreamServerEndpointStringParser
-from twisted.internet.endpoints import serverFromString
-from twisted.python.usage import UsageError
+from twisted.internet.interfaces import IReactorTime
+from twisted.internet.endpoints import TCP4ClientEndpoint
 
-import txtorcon
 from txtorcon.torcontrolprotocol import parse_keywords, TorProtocolFactory
 from txtorcon.util import delete_file_or_tree, find_keywords, find_tor_binary
 from txtorcon.log import txtorlog
@@ -69,7 +57,9 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         :api:`twisted.internet.endpoints.TCP4ClientEndpoint`
 
         :param connection_creator: A no-parameter callable which
-            returns a Deferred which promises a :api:`twisted.internet.interfaces.IStreamClientEndpoint <IStreamClientEndpoint>`
+            returns a Deferred which promises a
+            :api:`twisted.internet.interfaces.IStreamClientEndpoint
+            <IStreamClientEndpoint>`
 
         :param progress_updates: A callback which received progress
             updates with three args: percent, tag, summary
@@ -97,7 +87,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
             Anything subprocess writes to stderr is sent to .write() on this
 
         :ivar tor_protocol: The TorControlProtocol instance connected
-            to the Tor this :api:`twisted.internet.protocol.ProcessProtocol <ProcessProtocol>`` is speaking to. Will be valid
+            to the Tor this :api:`twisted.internet.protocol.ProcessProtocol
+            <ProcessProtocol>`` is speaking to. Will be valid
             when the `connected_cb` callback runs.
 
         :ivar connected_cb: Triggered when the Tor process we
@@ -125,7 +116,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         if timeout:
             if not ireactortime:
                 raise RuntimeError(
-                    'Must supply an IReactorTime object when supplying a timeout')
+                    'Must supply an IReactorTime object when supplying a '
+                    'timeout')
             ireactortime = IReactorTime(ireactortime)
             self._timeout_delayed_call = ireactortime.callLater(
                 timeout, self.timeout_expired)
@@ -173,8 +165,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
 
         if self.kill_on_stderr:
             self.transport.loseConnection()
-            raise RuntimeError("Received stderr output from slave Tor process: "
-                               + data)
+            raise RuntimeError(
+                "Received stderr output from slave Tor process: " + data)
 
     def cleanup(self):
         """
@@ -201,8 +193,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
             else:
                 err = RuntimeError("Tor was killed (%s)." % status.value.signal)
         else:
-            err = RuntimeError("Tor exited with error-code %d" %
-                               status.value.exitCode)
+            err = RuntimeError(
+                "Tor exited with error-code %d" % status.value.exitCode)
 
         log.err(err)
         if self.connected_cb:
@@ -254,13 +246,14 @@ class TorProcessProtocol(protocol.ProcessProtocol):
             self.config._update_proto(proto)
         self.tor_protocol.is_owned = self.transport.pid
         self.tor_protocol.post_bootstrap.addCallback(
-            self.protocol_bootstrapped).addErrback(self.tor_connection_failed)
+            self.protocol_bootstrapped).addErrback(
+                self.tor_connection_failed)
 
     def protocol_bootstrapped(self, proto):
         txtorlog.msg("Protocol is bootstrapped")
 
-        self.tor_protocol.add_event_listener('STATUS_CLIENT',
-                                             self.status_client)
+        self.tor_protocol.add_event_listener(
+            'STATUS_CLIENT', self.status_client)
 
         ## FIXME: should really listen for these to complete as well
         ## as bootstrap etc. For now, we'll be optimistic.
@@ -303,7 +296,8 @@ def launch_tor(config,
     :param connection_creator: is mostly available to ease testing, so
         you probably don't want to supply this. If supplied, it is a
         callable that should return a Deferred that delivers an
-        :api:`twisted.internet.interfaces.IProtocol <IProtocol>` or ConnectError.
+        :api:`twisted.internet.interfaces.IProtocol <IProtocol>` or
+        ConnectError.
         See :api:`twisted.internet.interfaces.IStreamClientEndpoint`.connect
 
     :param stdout: a file-like object to which we write anything that
@@ -316,10 +310,12 @@ def launch_tor(config,
 
     :return: a Deferred which callbacks with a TorProcessProtocol
         connected to the fully-bootstrapped Tor; this has a
-        :class:`txtorcon.TorControlProtocol` instance as `.tor_protocol`. In Tor,
-        ``__OwningControllerProcess`` will be set and TAKEOWNERSHIP will have
-        been called, so if you close the TorControlProtocol the Tor should
-        exit also (see `control-spec <https://gitweb.torproject.org/torspec.git/blob/HEAD:/control-spec.txt>`_ 3.23).
+        :class:`txtorcon.TorControlProtocol` instance as `.tor_protocol`. In
+        Tor, ``__OwningControllerProcess`` will be set and TAKEOWNERSHIP will
+        have been called, so if you close the TorControlProtocol the Tor should
+        exit also (see `control-spec
+        <https://gitweb.torproject.org/torspec.git/blob/HEAD:/control-spec.txt>`_
+        3.23).
 
     HACKS:
 
@@ -430,7 +426,7 @@ def launch_tor(config,
                                          args=(tor_binary, '-f', torrc),
                                          env={'HOME': data_directory},
                                          path=data_directory)
-        #FIXME? don't need rest of the args: uid, gid, usePTY, childFDs)
+        # FIXME? don't need rest of the args: uid, gid, usePTY, childFDs)
         transport.closeStdin()
 
     except RuntimeError, e:
@@ -614,7 +610,8 @@ class HiddenService(object):
     To create an additional hidden service, append a new instance of
     this class to the config (ignore the conf argument)::
 
-    state.hiddenservices.append(HiddenService('/path/to/dir', ['80 127.0.0.1:1234']))
+    state.hiddenservices.append(HiddenService('/path/to/dir', ['80
+    127.0.0.1:1234']))
     """
 
     def __init__(self, config, thedir, ports, auth=None, ver=2):
@@ -644,9 +641,8 @@ class HiddenService(object):
 
         if not isinstance(ports, types.ListType):
             ports = [ports]
-        self.ports = _ListWrapper(ports,
-                                  functools.partial(self.conf.mark_unsaved,
-                                                    'HiddenServices'))
+        self.ports = _ListWrapper(ports, functools.partial(
+            self.conf.mark_unsaved, 'HiddenServices'))
 
     def __setattr__(self, name, value):
         """
@@ -654,14 +650,12 @@ class HiddenService(object):
         HiddenServices as unsaved in our TorConfig object if anything
         is changed.
         """
-
-        if name in ['dir', 'version', 'authorize_client', 'ports'
-                   ] and self.conf:
+        watched_params = ['dir', 'version', 'authorize_client', 'ports']
+        if name in watched_params and self.conf:
             self.conf.mark_unsaved('HiddenServices')
         if isinstance(value, types.ListType):
-            value = _ListWrapper(value,
-                                 functools.partial(self.conf.mark_unsaved,
-                                                   'HiddenServices'))
+            value = _ListWrapper(value, functools.partial(
+                self.conf.mark_unsaved, 'HiddenServices'))
         self.__dict__[name] = value
 
     def __getattr__(self, name):
@@ -795,7 +789,8 @@ class TorConfig(object):
 
     def _update_proto(self, proto):
         """
-        internal method, used by launch_tor to update the protocol after we're set up.
+        internal method, used by launch_tor to update the protocol after we're
+        set up.
         """
         self.__dict__['_protocol'] = proto
 
@@ -808,15 +803,17 @@ class TorConfig(object):
         attributes we need in the constructor without uusing __dict__
         all over the place.
         """
+        has_setup_attr = lambda o: '_setup_' in o.__dict__
+        has_slutty_attr = lambda o: '_slutty_' in o.__dict__
+        is_hidden_services = lambda s: s.lower() == "hiddenservices"
 
-        if '_setup_' in self.__dict__:
+        if has_setup_attr(self):
             name = self._find_real_name(name)
-            if '_slutty_' not in self.__dict__ and name.lower(
-            ) != 'hiddenservices':
+            if not has_slutty_attr(self) and not is_hidden_services(name):
                 value = self.parsers[name].validate(value, self, name)
             if isinstance(value, types.ListType):
-                value = _ListWrapper(value, functools.partial(self.mark_unsaved,
-                                                              name))
+                value = _ListWrapper(
+                    value, functools.partial(self.mark_unsaved, name))
 
             name = self._find_real_name(name)
             self.unsaved[name] = value
@@ -876,9 +873,10 @@ class TorConfig(object):
              MidReplyLine = "650-" KEYWORD ["=" VALUE] CRLF
              EndReplyLine = "650 OK"
 
-          Tor configuration options have changed (such as via a SETCONF or RELOAD
-          signal). KEYWORD and VALUE specify the configuration option that was changed.
-          Undefined configuration options contain only the KEYWORD.
+          Tor configuration options have changed (such as via a SETCONF or
+          RELOAD signal). KEYWORD and VALUE specify the configuration option
+          that was changed.  Undefined configuration options contain only the
+          KEYWORD.
         """
 
         conf = parse_keywords(arg, multiline_values=False)
@@ -898,7 +896,8 @@ class TorConfig(object):
             ## for Tor versions which don't understand CONF_CHANGED
             ## there's nothing we can really do.
             log.msg(
-                "Can't listen for CONF_CHANGED event; won't stay up-to-date with other clients.")
+                "Can't listen for CONF_CHANGED event; won't stay up-to-date "
+                "with other clients.")
         d = self.protocol.get_info_raw("config/names")
         d.addCallbacks(self._do_setup, log.err)
         d.addCallback(self.do_post_bootstrap)
@@ -1029,8 +1028,9 @@ class TorConfig(object):
                         self.mark_unsaved, name))
 
             else:
-                self.config[self._find_real_name(name)
-                           ] = self.parsers[name].parse(v)
+                self.config[
+                    self._find_real_name(name)
+                ] = self.parsers[name].parse(v)
 
         # can't just return in @inlineCallbacks-decorated methods
         defer.returnValue(self)
@@ -1072,8 +1072,8 @@ class TorConfig(object):
             hs.append(HiddenService(self, directory, ports, auth, ver))
 
         name = 'HiddenServices'
-        self.config[name] = _ListWrapper(hs, functools.partial(
-            self.mark_unsaved, name))
+        self.config[name] = _ListWrapper(
+            hs, functools.partial(self.mark_unsaved, name))
 
     def create_torrc(self):
         rtn = StringIO()
