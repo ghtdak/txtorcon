@@ -59,7 +59,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         :param connection_creator: A no-parameter callable which
             returns a Deferred which promises a
             :api:`twisted.internet.interfaces.IStreamClientEndpoint
-            <IStreamClientEndpoint>`
+            <IStreamClientEndpoint>`. If this is None, we do NOT
+            attempt to connect to the underlying Tor process.
 
         :param progress_updates: A callback which received progress
             updates with three args: percent, tag, summary
@@ -98,10 +99,14 @@ class TorProcessProtocol(protocol.ProcessProtocol):
 
         self.config = config
         self.tor_protocol = None
-        self.connection_creator = connection_creator
         self.progress_updates = progress_updates
 
-        self.connected_cb = defer.Deferred()
+        if connection_creator:
+            self.connection_creator = connection_creator
+            self.connected_cb = defer.Deferred()
+        else:
+            self.connection_creator = None
+            self.connected_cb = None
 
         self.attempted_connect = False
         self.to_delete = []
@@ -138,7 +143,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         ## tor_connection_failed)
 
         txtorlog.msg(data)
-        if not self.attempted_connect and 'Bootstrap' in data:
+        if not self.attempted_connect and self.connection_creator \
+                and 'Bootstrap' in data:
             self.attempted_connect = True
             d = self.connection_creator()
             d.addCallback(self.tor_connected)
@@ -272,17 +278,39 @@ def launch_tor(config,
                stderr=None):
     """launches a new Tor process with the given config.
 
-    :param kill_on_stderr:
-        When True (the default), if Tor prints anything on stderr we
-        kill off the process, close the TorControlProtocol and raise
-        an exception.
+    There may seem to be a ton of options, but don't panic: this
+    method should be easy to use and most options can be ignored
+    except for advanced use-cases. Calling with a completely empty
+    TorConfig should Just Work::
 
-    :param config: an instance of :class:`txtorcon.TorConfig` with any
-        configuration values you want. :meth:`txtorcon.TorConfig.save`
-        should have been called already (anything unsaved won't make
-        it into the torrc produced). If ControlPort isn't set, 9052 is
-        used; if DataDirectory isn't set, tempdir is used to create
-        one.
+        config = TorConfig()
+        d = launch_tor(config, reactor)
+        d.addCallback(...)
+
+    Note that the incoming TorConfig instance is examined and several
+    config options are acted upon appropriately:
+
+    ``DataDirectory``: if supplied, a tempdir is not created, and the
+    one supplied is not deleted.
+
+    ``ControlPort``: if 0 (zero), a control connection is NOT
+    established (and ``connection_creator`` is ignored). In this case
+    we can't wait for Tor to bootstrap, and **you must kill the tor**
+    yourself.
+
+    ``User``: if this exists, we attempt to set ownership of the tempdir
+    to this user (but only if our effective UID is 0).
+
+    This method may set the following options on the supplied
+    TorConfig object: ``DataDirectory, ControlPort,
+    CookieAuthentication, __OwningControllerProcess`` and WILL call
+    :meth:`txtorcon.TorConfig.save`
+
+    :param config:
+        an instance of :class:`txtorcon.TorConfig` with any
+        configuration values you want.  If ``ControlPort`` isn't set,
+        9052 is used; if ``DataDirectory`` isn't set, tempdir is used
+        to create one (in this case, it will be deleted upon exit).
 
     :param reactor: a Twisted IReactorCore implementation (usually
         twisted.internet.reactor)
@@ -293,12 +321,10 @@ def launch_tor(config,
     :param progress_updates: a callback which gets progress updates; gets as
          args: percent, tag, summary (FIXME make an interface for this).
 
-    :param connection_creator: is mostly available to ease testing, so
-        you probably don't want to supply this. If supplied, it is a
-        callable that should return a Deferred that delivers an
-        :api:`twisted.internet.interfaces.IProtocol <IProtocol>` or
-        ConnectError.
-        See :api:`twisted.internet.interfaces.IStreamClientEndpoint`.connect
+    :param kill_on_stderr:
+        When True (the default), if Tor prints anything on stderr we
+        kill off the process, close the TorControlProtocol and raise
+        an exception.
 
     :param stdout: a file-like object to which we write anything that
         Tor prints on stdout (just needs to support write()).
@@ -308,6 +334,14 @@ def launch_tor(config,
         off by default if anything appears on stderr; pass "no_kill=True"
         if you don't like the behavior.
 
+    :param connection_creator: is mostly available to ease testing, so
+        you probably don't want to supply this. If supplied, it is a
+        callable that should return a Deferred that delivers an
+        :api:`twisted.internet.interfaces.IProtocol <IProtocol>` or
+        ConnectError.
+        See :api:`twisted.internet.interfaces.IStreamClientEndpoint`.connect
+        Note that this parameter is ignored if config.ControlPort == 0
+
     :return: a Deferred which callbacks with a TorProcessProtocol
         connected to the fully-bootstrapped Tor; this has a
         :class:`txtorcon.TorControlProtocol` instance as `.tor_protocol`. In
@@ -315,7 +349,9 @@ def launch_tor(config,
         have been called, so if you close the TorControlProtocol the Tor should
         exit also (see `control-spec
         <https://gitweb.torproject.org/torspec.git/blob/HEAD:/control-spec.txt>`_
-        3.23).
+        3.23). Note that if ControlPort was 0, we don't connect at all
+        and therefore don't wait for Tor to be bootstrapped. In this case, it's
+        up to you to kill off the Tor you created.
 
     HACKS:
 
@@ -324,7 +360,6 @@ def launch_tor(config,
         port. It seems that waiting for the first 'bootstrap' message on
         stdout is sufficient. Seems fragile...and doesn't work 100% of
         the time, so FIXME look at Tor source.
-
     """
 
     ## We have a slight problem with the approach: we need to pass a
@@ -346,10 +381,6 @@ def launch_tor(config,
     if tor_binary is None:
         # We fail right here instead of waiting for the reactor to start
         raise TorNotFound('Tor binary could not be found')
-
-    if config.needs_save():
-        log.msg("Config was unsaved when launch_tor() called; calling save().")
-        config.save()
 
     # make sure we got things that have write() for stderr, stdout
     # kwargs
@@ -379,11 +410,15 @@ def launch_tor(config,
     try:
         control_port = config.ControlPort
     except KeyError:
-        control_port = 9052
+        control_port = 9052  # FIXME choose a random, unoccupied one?
         config.ControlPort = control_port
 
-    config.CookieAuthentication = 1
-    config.__OwningControllerProcess = os.getpid()
+    if control_port != 0:
+        config.CookieAuthentication = 1
+        config.__OwningControllerProcess = os.getpid()
+    else:
+        connection_creator = None
+
     config.save()
 
     (fd, torrc) = tempfile.mkstemp(prefix='tortmp')
@@ -392,7 +427,7 @@ def launch_tor(config,
 
     # txtorlog.msg('Running with config:\n', open(torrc, 'r').read())
 
-    if connection_creator is None:
+    if connection_creator is None and control_port > 0:
         connection_creator = functools.partial(
             TCP4ClientEndpoint(reactor, 'localhost', control_port).connect,
             TorProtocolFactory())
@@ -404,10 +439,10 @@ def launch_tor(config,
     # process might be shut down way before the reactor, but if the
     # reactor bombs out without the subprocess getting closed cleanly,
     # we'll want the system shutdown events triggered so the temporary
-    # files get cleaned up
+    # files get cleaned up either way
 
-    # we don't want to delete the user's directories, just our
-    # temporary ones
+    # we don't want to delete the user's directories, just temporary
+    # ones this method created.
     if user_set_data_directory:
         process_protocol.to_delete = [torrc]
         reactor.addSystemEventTrigger('before', 'shutdown',
