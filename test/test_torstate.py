@@ -1107,7 +1107,7 @@ s Fast Guard Running Stable Valid
         ## it's in the running Tor's notion of Entry Guards
         path[0].flags = ['guard']
 
-        self.state.build_circuit(path)
+        self.state.build_circuit(path, using_guards=True)
         self.assertEqual(self.transport.value(
         ), 'EXTENDCIRCUIT 0 0000000000000000000000000000000000000000,0000000000000000000000000000000000000001,0000000000000000000000000000000000000002\r\n')
         ## should have gotten a warning about this not being an entry
@@ -1120,7 +1120,8 @@ s Fast Guard Running Stable Valid
 
     def test_build_circuit_unfound_router(self):
         self.state.build_circuit(
-            routers=['AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'])
+            routers=['AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'],
+            using_guards=False)
         self.assertEqual(
             self.transport.value(),
             'EXTENDCIRCUIT 0 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r\n')
@@ -1147,7 +1148,7 @@ s Fast Guard Running Stable Valid
         ## FIXME TODO we should verify we get a circuit_new event for
         ## this circuit
 
-        d = self.state.build_circuit(path)
+        d = self.state.build_circuit(path, using_guards=True)
         d.addCallback(self.circuit_callback)
         self.assertEqual(self.transport.value(
         ), 'EXTENDCIRCUIT 0 0000000000000000000000000000000000000000,0000000000000000000000000000000000000001,0000000000000000000000000000000000000002\r\n')
