@@ -46,10 +46,8 @@ class EndpointTests(unittest.TestCase):
         self.reactor = FakeReactorTcp(self)
         self.protocol = FakeControlProtocol([])
         self.protocol.event_happened(
-            'INFO',
-            'connection_dir_client_reached_eof(): Uploaded rendezvous '\
-            'descriptor (status 200 ("Service descriptor (v2) stored"))'
-        )
+            'INFO', 'connection_dir_client_reached_eof(): Uploaded rendezvous '
+            'descriptor (status 200 ("Service descriptor (v2) stored"))')
         self.config = TorConfig(self.protocol)
         self.protocol.answers.append(
             'config/names=\nHiddenServiceOptions Virtual')

@@ -46,8 +46,8 @@ class FakeControlProtocol:
         self.post_bootstrap = defer.succeed(self)
         self.on_disconnect = defer.Deferred()
         self.sets = []
-        self.events = {}  # event type -> callback
-        self.pending_events = {}  # event type -> list
+        self.events = {}  #: event type -> callback
+        self.pending_events = {}  #: event type -> list
 
     def event_happened(self, event_type, *args):
         '''
@@ -718,7 +718,7 @@ HiddenServicePort=90 127.0.0.1:2345''')
 
         conf = TorConfig(self.protocol)
         self.assertTrue(self.protocol.post_bootstrap.called)
-        self.assertTrue(conf.post_bootstrap == None or
+        self.assertTrue(conf.post_bootstrap is None or
                         conf.post_bootstrap.called)
         self.assertEqual(len(conf.hiddenservices), 1)
         self.assertTrue(conf.hiddenservices[0].conf)
@@ -957,12 +957,13 @@ class LaunchTorTests(unittest.TestCase):
 
     def test_launch_with_timeout_no_ireactortime(self):
         config = TorConfig()
-        return self.assertRaises(RuntimeError,
-                                 launch_tor,
-                                 config,
-                                 None,
-                                 timeout=5,
-                                 tor_binary='/bin/echo')
+        return self.assertRaises(
+            RuntimeError,
+            launch_tor,
+            config,
+            None,
+            timeout=5,
+            tor_binary='/bin/echo')
 
     @patch('txtorcon.torconfig.sys')
     @patch('txtorcon.torconfig.pwd')
@@ -1378,9 +1379,6 @@ ControlPort Port''')
         self.assertTrue(pp.called)
         self.assertEqual(pp.result, self.process_proto)
         return pp
-
-
-from mock import patch
 
 
 class ErrorTests(unittest.TestCase):

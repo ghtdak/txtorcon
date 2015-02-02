@@ -207,7 +207,7 @@ something/two a second documentation string
 
     def test_accessors_not_setup(self):
         info = TorInfo(self.protocol)
-        self.assertTrue(info.__dict__['_setup'] == False)
+        self.assertTrue(info.__dict__['_setup'] is False)
         self.assertRaises(TypeError, len, info)
         dir(info)
         try:
