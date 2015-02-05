@@ -103,7 +103,7 @@ class Event(object):
         self.callbacks.remove(cb)
 
     def got_update(self, data):
-        #print self.name,"got_update:",data
+        # print self.name,"got_update:",data
         for cb in self.callbacks:
             cb(data)
 
@@ -135,7 +135,7 @@ def parse_keywords(lines, multiline_values=True):
     rtn = {}
     key = None
     value = ''
-    ## FIXME could use some refactoring to reduce code duplication!
+    # FIXME could use some refactoring to reduce code duplication!
     for line in lines.split('\n'):
         if line.strip() == 'OK':
             continue
@@ -249,17 +249,17 @@ class TorControlProtocol(LineOnlyReceiver):
         See the helper method :func:`txtorcon.build_tor_connection`.
         """
 
-        ## variables related to the state machine
+        # variables related to the state machine
         self.defer = None  # Deferred we returned for the current command
         self.response = ''
         self.code = None
         self.command = None  # currently processing this command
         self.commands = []  # queued commands
 
-        ## Here we build up the state machine. Mostly it's pretty
-        ## simply, confounded by the fact that 600's (notify) can come
-        ## at any time AND can be multi-line itself. Luckily, these
-        ## can't be nested, nor can the responses be interleaved.
+        # Here we build up the state machine. Mostly it's pretty
+        # simply, confounded by the fact that 600's (notify) can come
+        # at any time AND can be multi-line itself. Luckily, these
+        # can't be nested, nor can the responses be interleaved.
 
         idle = State("IDLE")
         recv = State("RECV")
@@ -287,8 +287,8 @@ class TorControlProtocol(LineOnlyReceiver):
 
         self.fsm = FSM([recvnotify, idle, recvmulti, recv])
         self.state_idle = idle
-        ## hand-set initial state default start state is first in the
-        ## list; the above looks nice in dotty though
+        # hand-set initial state default start state is first in the
+        # list; the above looks nice in dotty though
         self.fsm.state = idle
         self.stop_debug()
 
@@ -309,13 +309,14 @@ class TorControlProtocol(LineOnlyReceiver):
     def graphviz_data(self):
         return self.fsm.dotty()
 
-    ## see end of file for all the state machine matcher and
-    ## transition methods.
+    # see end of file for all the state machine matcher and
+    # transition methods.
 
     def get_info_raw(self, *args):
         """
-        Mostly for internal use; gives you the raw string back from
-        the GETINFO command. See :meth:`getinfo <txtorcon.TorControlProtocol.get_info>`
+        Mostly for internal use; gives you the raw string back from the
+        GETINFO command. See :meth:`getinfo
+        <txtorcon.TorControlProtocol.get_info>`
         """
         info = ' '.join(map(lambda x: str(x), list(args)))
         return self.queue_command('GETINFO %s' % info)
@@ -334,8 +335,8 @@ class TorControlProtocol(LineOnlyReceiver):
 
         return self.queue_command('GETINFO %s' % key, strip_ok_and_call)
 
-    ## The following methods are the main TorController API and
-    ## probably the most interesting for users.
+    # The following methods are the main TorController API and
+    # probably the most interesting for users.
 
     def get_info(self, *args):
         """
@@ -380,9 +381,9 @@ class TorControlProtocol(LineOnlyReceiver):
         otherwise.
         """
 
-        return self.queue_command(
-            'GETCONF %s' %
-            ' '.join(args)).addCallback(parse_keywords).addErrback(log.err)
+        d = self.queue_command('GETCONF %s' % ' '.join(args))
+        d.addCallback(parse_keywords).addErrback(log.err)
+        return d
 
     def get_conf_raw(self, *args):
         """
@@ -521,9 +522,9 @@ class TorControlProtocol(LineOnlyReceiver):
         self._maybe_issue_command()
         return d
 
-    ## the remaining methods are internal API implementations,
-    ## callbacks and state-tracking methods -- you shouldn't have any
-    ## need to call them.
+    # the remaining methods are internal API implementations,
+    # callbacks and state-tracking methods -- you shouldn't have any
+    # need to call them.
 
     def lineReceived(self, line):
         """
@@ -537,8 +538,9 @@ class TorControlProtocol(LineOnlyReceiver):
     def connectionMade(self):
         "Protocol API"
         txtorlog.msg('got connection, authenticating')
-        self.protocolinfo().addCallback(self._do_authenticate).addErrback(
-            self._auth_failed)
+        d = self.protocolinfo()
+        d.addCallback(self._do_authenticate)
+        d.addErrback(self._auth_failed)
 
     def connectionLost(self, reason):
         "Protocol API"
@@ -601,7 +603,7 @@ class TorControlProtocol(LineOnlyReceiver):
 
         server_hash = base64.b16decode(kw['SERVERHASH'])
         server_nonce = base64.b16decode(kw['SERVERNONCE'])
-        ## FIXME put string in global. or something.
+        # FIXME put string in global. or something.
         expected_server_hash = hmac_sha256(
             "Tor safe cookie authentication server-to-controller hash",
             self.cookie_data + self.client_nonce + server_nonce)
@@ -644,10 +646,12 @@ class TorControlProtocol(LineOnlyReceiver):
                          len(self.cookie_data), "bytes")
             self.client_nonce = os.urandom(32)
 
-            d = self.queue_command('AUTHCHALLENGE SAFECOOKIE %s' %
-                                   base64.b16encode(self.client_nonce))
-            d.addCallback(self._safecookie_authchallenge).addCallback(
-                self._bootstrap).addErrback(self._auth_failed)
+            cmd = 'AUTHCHALLENGE SAFECOOKIE ' + \
+                  base64.b16encode(self.client_nonce)
+            d = self.queue_command(cmd)
+            d.addCallback(self._safecookie_authchallenge)
+            d.addCallback(self._bootstrap)
+            d.addErrback(self._auth_failed)
             return
 
         elif 'COOKIE' in methods:
@@ -656,28 +660,31 @@ class TorControlProtocol(LineOnlyReceiver):
                 data = cookiefile.read()
             if len(data) != 32:
                 raise RuntimeError(
-                    "Expected authentication cookie to be 32 bytes, got %d" %
-                    len(data))
+                    "Expected authentication cookie to be 32 "
+                    "bytes, got %d instead." % len(data))
             txtorlog.msg("Using COOKIE authentication", cookie, len(data),
                          "bytes")
-            self.authenticate(data).addCallback(self._bootstrap).addErrback(
-                self._auth_failed)
+            d = self.authenticate(data)
+            d.addCallback(self._bootstrap)
+            d.addErrback(self._auth_failed)
             return
 
         if self.password_function:
-            passwd = defer.maybeDeferred(self.password_function)
-            passwd.addCallback(self._do_password_authentication).addErrback(
-                self._auth_failed)
+            d = defer.maybeDeferred(self.password_function)
+            d.addCallback(self._do_password_authentication)
+            d.addErrback(self._auth_failed)
             return
 
         raise RuntimeError(
-            "The Tor I connected to doesn't support SAFECOOKIE nor COOKIE authentication and I have no password_function specified.")
+            "The Tor I connected to doesn't support SAFECOOKIE nor COOKIE"
+            " authentication and I have no password_function specified.")
 
     def _do_password_authentication(self, passwd):
         if not passwd:
             raise RuntimeError("No password available.")
-        self.authenticate(passwd).addCallback(self._bootstrap).addErrback(
-            self._auth_failed)
+        d = self.authenticate(passwd)
+        d.addCallback(self._bootstrap)
+        d.addErrback(self._auth_failed)
 
     def _set_valid_events(self, events):
         "used as a callback; see _bootstrap"
@@ -695,10 +702,11 @@ class TorControlProtocol(LineOnlyReceiver):
         callback.
         """
 
-        ## unfortunately I don't see a way to get this from the runing
-        ## tor like the events...so this was taken from some version
-        ## of the control-spec and must be kept up-to-date (or accpet
-        ## any signal name and just wait for the reply?
+        # unfortunately I don't see a way to get this from the runing
+        # tor like the events...so this was taken from some version
+        # of the control-spec and must be kept up-to-date (or accpet
+        # any signal name and just wait for the reply?
+        # FIXME XXX there is now "GETINFO signal/names"
         self.valid_signals = ["RELOAD", "DUMP", "DEBUG", "NEWNYM",
                               "CLEARDNSCACHE"]
 
@@ -714,10 +722,8 @@ class TorControlProtocol(LineOnlyReceiver):
         self.post_bootstrap.callback(self)
         defer.returnValue(self)
 
-    ##
-    ## State Machine transitions and matchers. See the __init__ method
-    ## for a way to output a GraphViz dot diagram of the machine.
-    ##
+    # State Machine transitions and matchers. See the __init__ method
+    # for a way to output a GraphViz dot diagram of the machine.
 
     def _is_end_line(self, line):
         "for FSM"
@@ -735,7 +741,7 @@ class TorControlProtocol(LineOnlyReceiver):
             return False
 
         sl = len(line) > 3 and line[3] == ' '
-        #print "single line?",line,sl
+        # print "single line?",line,sl
         if sl:
             self.code = code
             return True
@@ -803,9 +809,8 @@ class TorControlProtocol(LineOnlyReceiver):
         "for FSM"
         # print "BCAST",line
         if len(line) > 3:
-            if self.code >= 200 and self.code < 300 and self.command and self.command[
-                    2
-            ] is not None:
+            if self.code >= 200 and self.code < 300 and \
+               self.command and self.command[2] is not None:
                 self.command[2](line[4:])
                 resp = ''
 
@@ -831,10 +836,10 @@ class TorControlProtocol(LineOnlyReceiver):
         elif self.code is None:
             raise RuntimeError("No code set yet in broadcast response.")
         else:
-            raise RuntimeError("Unknown code in broadcast response %d." %
-                               self.code)
+            raise RuntimeError(
+                "Unknown code in broadcast response %d." % self.code)
 
-        ## note: we don't do this for 600-level responses
+        # note: we don't do this for 600-level responses
         self.command = None
         self.code = None
         self.defer = None

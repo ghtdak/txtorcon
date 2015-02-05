@@ -5,7 +5,10 @@ from twisted.internet import defer
 from zope.interface import implements
 
 from txtorcon import Circuit, Stream, TorControlProtocol, TorState
-from txtorcon.interface import IRouterContainer, ICircuitListener, ICircuitContainer, CircuitListenerMixin
+from txtorcon.interface import IRouterContainer
+from txtorcon.interface import ICircuitListener
+from txtorcon.interface import ICircuitContainer
+from txtorcon.interface import CircuitListenerMixin
 
 
 class FakeTorController(object):
@@ -109,9 +112,9 @@ class CircuitTests(unittest.TestCase):
         from zope.interface.verify import verifyObject
         self.assertTrue(verifyObject(ICircuitListener, listener))
 
-        ## call all the methods with None for each arg. This is mostly
-        ## just to gratuitously increase test coverage, but also
-        ## serves to ensure these methods don't just blow up
+        # call all the methods with None for each arg. This is mostly
+        # just to gratuitously increase test coverage, but also
+        # serves to ensure these methods don't just blow up
         for (methodname, desc) in ICircuitListener.namesAndDescriptions():
             method = getattr(listener, methodname)
             args = [None] * len(desc.positional)
@@ -142,8 +145,8 @@ class CircuitTests(unittest.TestCase):
             '1 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL'.split(
             ))
         self.assertEqual(1, len(circuit.path))
-        self.assertEqual('$E11D2B2269CC25E67CA6C9FB5843497539A74FD0',
-                         circuit.path[0].id_hex)
+        self.assertEqual(
+            '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0', circuit.path[0].id_hex)
         self.assertEqual('eris', circuit.path[0].name)
 
     def test_wrong_update(self):
@@ -151,8 +154,8 @@ class CircuitTests(unittest.TestCase):
         circuit = Circuit(tor)
         circuit.listen(tor)
         circuit.update('1 LAUNCHED PURPOSE=GENERAL'.split())
-        self.assertRaises(Exception, circuit.update,
-                          '2 LAUNCHED PURPOSE=GENERAL'.split())
+        self.assertRaises(
+            Exception, circuit.update, '2 LAUNCHED PURPOSE=GENERAL'.split())
 
     def test_closed_remaining_streams(self):
         tor = FakeTorController()
@@ -191,8 +194,8 @@ class CircuitTests(unittest.TestCase):
             self.assertEqual(circuit.state, ex.split()[2])
             self.assertEqual(circuit.purpose, 'GENERAL')
             if '$' in ex:
-                self.assertEqual(len(circuit.path),
-                                 len(ex.split()[3].split(',')))
+                self.assertEqual(
+                    len(circuit.path), len(ex.split()[3].split(',')))
                 for (r, p) in zip(ex.split()[3].split(','), circuit.path):
                     d = r.split('=')[0]
                     self.assertEqual(d, p.hash)
@@ -234,7 +237,8 @@ class CircuitTests(unittest.TestCase):
 
     def test_extends_no_path(self):
         '''
-        without connectivity, it seems you get EXTENDS messages with no path update.
+        without connectivity, it seems you get EXTENDS messages with no
+        path update.
         '''
         tor = FakeTorController()
         circuit = Circuit(tor)
@@ -292,7 +296,8 @@ class CircuitTests(unittest.TestCase):
         # CLOSECIRCUIT call (see close_circuit() in FakeTorController
         # above) however the circuit isn't "really" closed yet...
         self.assertTrue(not d.called)
-        ## not unit-test-y? shouldn't probably delve into internals I suppose...
+        # not unit-test-y? shouldn't probably delve into internals I
+        # suppose...
         self.assertTrue(circuit._closing_deferred is not None)
 
         # simulate that Tor has really closed the circuit for us
@@ -302,6 +307,7 @@ class CircuitTests(unittest.TestCase):
             ))
 
         # confirm that our circuit callback has been triggered already
-        self.assertRaises(defer.AlreadyCalledError, d.callback,
-                          "should have been called already")
+        self.assertRaises(
+            defer.AlreadyCalledError, d.callback,
+            "should have been called already")
         return d

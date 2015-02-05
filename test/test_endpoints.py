@@ -52,8 +52,9 @@ class EndpointTests(unittest.TestCase):
         self.protocol.answers.append(
             'config/names=\nHiddenServiceOptions Virtual')
         self.protocol.answers.append('HiddenServiceOptions')
-        self.patcher = patch('txtorcon.torconfig.find_tor_binary',
-                             return_value='/not/tor')
+        self.patcher = patch(
+            'txtorcon.torconfig.find_tor_binary',
+            return_value='/not/tor')
         self.patcher.start()
 
     def tearDown(self):
@@ -65,14 +66,16 @@ class EndpointTests(unittest.TestCase):
 
     @defer.inlineCallbacks
     def test_global_tor(self):
-        config = yield get_global_tor(Mock(),
-                                      _tor_launcher=lambda x, y, z: True)
+        config = yield get_global_tor(
+            Mock(),
+            _tor_launcher=lambda x, y, z: True)
         self.assertEqual(0, config.SOCKSPort)
 
     @defer.inlineCallbacks
     def test_global_tor_error(self):
-        config0 = yield get_global_tor(Mock(),
-                                       _tor_launcher=lambda x, y, z: True)
+        config0 = yield get_global_tor(
+            Mock(),
+            _tor_launcher=lambda x, y, z: True)
         # now if we specify a control_port it should be an error since
         # the above should have launched one.
         try:
@@ -126,8 +129,8 @@ class EndpointTests(unittest.TestCase):
         with patch('txtorcon.endpoints.launch_tor') as m:
             with patch('txtorcon.endpoints.build_tor_connection',
                        new_callable=boom) as btc:
-                client = clientFromString(self.reactor,
-                                          "tcp:host=localhost:port=9050")
+                client = clientFromString(
+                    self.reactor, "tcp:host=localhost:port=9050")
                 ep = yield TCPHiddenServiceEndpoint.system_tor(self.reactor,
                                                                client, 80)
                 port = yield ep.listen(NoOpProtocolFactory())
@@ -196,7 +199,8 @@ class EndpointTests(unittest.TestCase):
             1234,
             hidden_service_dir='/dev/null')
 
-        # FIXME Mock() should work somehow for this, but I couldn't make it "go"
+        # FIXME Mock() should work somehow for this, but I couldn't
+        # make it "go"
         class Blam(object):
 
             @property
@@ -268,7 +272,8 @@ class EndpointTests(unittest.TestCase):
         return None
 
     def test_parse_via_plugin(self):
-        # make sure we have a valid thing from get_global_tor without actually launching tor
+        # make sure we have a valid thing from get_global_tor without
+        # actually launching tor
         config = TorConfig()
         config.post_bootstrap = defer.succeed(config)
         from txtorcon import torconfig
@@ -286,7 +291,8 @@ class EndpointTests(unittest.TestCase):
         # this makes sure we expand users and symlinks in
         # hiddenServiceDir args. see Issue #77
 
-        # make sure we have a valid thing from get_global_tor without actually launching tor
+        # make sure we have a valid thing from get_global_tor without
+        # actually launching tor
         config = TorConfig()
         config.post_bootstrap = defer.succeed(config)
         from txtorcon import torconfig
@@ -300,14 +306,15 @@ class EndpointTests(unittest.TestCase):
         # would be nice to have a fixed path here, but then would have
         # to run as a known user :/
         # maybe using the docker stuff to run integration tests better here?
-        self.assertEqual(os.path.expanduser('~/blam/blarg'),
-                         ep.hidden_service_dir)
+        self.assertEqual(
+            os.path.expanduser('~/blam/blarg'), ep.hidden_service_dir)
 
     def test_parse_relative_path(self):
         # this makes sure we convert a relative path to absolute
         # hiddenServiceDir args. see Issue #77
 
-        # make sure we have a valid thing from get_global_tor without actually launching tor
+        # make sure we have a valid thing from get_global_tor without
+        # actually launching tor
         config = TorConfig()
         config.post_bootstrap = defer.succeed(config)
         from txtorcon import torconfig
@@ -381,8 +388,8 @@ class EndpointLaunchTests(unittest.TestCase):
         """
 
         reactor = proto_helpers.MemoryReactor()
-        ep = serverFromString(reactor,
-                              'onion:8888:controlPort=9055:localPort=1234')
+        ep = serverFromString(
+            reactor, 'onion:8888:controlPort=9055:localPort=1234')
         r = yield ep.listen(NoOpProtocolFactory())
         self.assertEqual(global_tor.call_count, 0)
         self.assertEqual(private_tor.call_count, 0)
@@ -492,17 +499,13 @@ class FakeReactorTcp(FakeReactor):
 
     def connectTCP(self, host, port, factory, timeout, bindAddress):
         '''should return IConnector'''
-        #        print "CONN", host, port, factory
-        #        print dir(factory)
-        #        print "XX", factory
-        r = tcp.Connector(host,
-                          port,
-                          factory,
-                          timeout,
-                          bindAddress,
-                          reactor=self)
-
-        #        print dir(r)
+        r = tcp.Connector(
+            host,
+            port,
+            factory,
+            timeout,
+            bindAddress,
+            reactor=self)
 
         def blam(*args):
             print "BLAAAAAM", args

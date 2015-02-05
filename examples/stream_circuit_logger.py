@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-##
-## This uses an IStreamListener and an ICircuitListener to log all
-## built circuits and all streams that succeed.
-##
+# This uses an IStreamListener and an ICircuitListener to log all
+# built circuits and all streams that succeed.
 
 import sys
 from twisted.python import log
@@ -20,10 +18,11 @@ def logCircuit(circuit):
 def logStream(stream, state):
     circ = ''
     if stream.circuit:
-        circ = ' via circuit %d (%s)' % (stream.circuit.id, '->'.join(map(
-            lambda x: x.location.countrycode, stream.circuit.path)))
-    proc = txtorcon.util.process_from_address(stream.source_addr,
-                                              stream.source_port, state)
+        path = '->'.join(map(lambda x: x.location.countrycode,
+                             stream.circuit.path))
+        circ = ' via circuit %d (%s)' % (stream.circuit.id, path)
+    proc = txtorcon.util.process_from_address(
+        stream.source_addr, stream.source_port, state)
     if proc:
         proc = ' from process "%s"' % (proc,)
 

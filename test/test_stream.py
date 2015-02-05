@@ -3,7 +3,10 @@ from twisted.trial import unittest
 from twisted.internet import defer
 from zope.interface import implements
 
-from txtorcon import Stream, IStreamListener, ICircuitContainer, StreamListenerMixin
+from txtorcon import Stream
+from txtorcon import IStreamListener
+from txtorcon import ICircuitContainer
+from txtorcon import StreamListenerMixin
 
 
 class FakeCircuit:
@@ -22,8 +25,8 @@ class Listener(object):
 
     def checker(self, state, stream, *args, **kw):
         if self.expected[0][0] != state:
-            raise RuntimeError('Expected event "%s" not "%s".' %
-                               (self.expected[0][0], state))
+            raise RuntimeError(
+                'Expected event "%s" not "%s".' % (self.expected[0][0], state))
         for (k, v) in self.expected[0][1].items():
             if k == 'args':
                 if v != args:
@@ -89,7 +92,7 @@ class StreamTests(unittest.TestCase):
         self.circuits = {}
 
     def test_lowercase_flags(self):
-        ## testing an internal method, maybe a no-no?
+        # testing an internal method, maybe a no-no?
         stream = Stream(self)
         kw = dict(FOO='bar', BAR='baz')
         flags = stream._create_flags(kw)
@@ -106,9 +109,9 @@ class StreamTests(unittest.TestCase):
         from zope.interface.verify import verifyObject
         self.assertTrue(verifyObject(IStreamListener, listener))
 
-        ## call all the methods with None for each arg. This is mostly
-        ## just to gratuitously increase test coverage, but also
-        ## serves to ensure these methods don't just blow up
+        # call all the methods with None for each arg. This is mostly
+        # just to gratuitously increase test coverage, but also
+        # serves to ensure these methods don't just blow up
         for (methodname, desc) in IStreamListener.namesAndDescriptions():
             method = getattr(listener, methodname)
             args = [None] * len(desc.positional)
@@ -159,10 +162,12 @@ class StreamTests(unittest.TestCase):
     def test_listener_attach(self):
         self.circuits[186] = FakeCircuit(186)
 
-        listener = Listener([(
-            'new', {'target_host': 'www.yahoo.com',
-                    'target_port': 80}), (
-                        'attach', {'target_addr': maybe_ip_addr('1.2.3.4')})])
+        listener = Listener(
+            [
+                ('new', {'target_host': 'www.yahoo.com',
+                         'target_port': 80}
+                ), ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')})
+            ])
 
         stream = Stream(self)
         stream.listen(listener)
@@ -254,11 +259,13 @@ class StreamTests(unittest.TestCase):
         self.circuits[456] = FakeCircuit(456)
 
         listener = Listener(
-            [('new', {'target_host': 'www.yahoo.com',
-                      'target_port': 80}), ('attach', {}),
-             ('detach', {'kwargs': dict(reason='END',
-                                        remote_reason='MISC')}), ('attach', {}
-                             )])
+            [
+                ('new', {'target_host': 'www.yahoo.com',
+                         'target_port': 80}), ('attach', {}
+                ), ('detach',
+                    {'kwargs': dict(reason='END',
+                                    remote_reason='MISC')}), ('attach', {})
+            ])
 
         stream = Stream(self)
         stream.listen(listener)
@@ -281,11 +288,13 @@ class StreamTests(unittest.TestCase):
         self.circuits[186] = FakeCircuit(186)
 
         listener = Listener(
-            [('new', {'target_host': 'www.yahoo.com',
-                      'target_port': 80}),
-             ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')}), (
-                 'closed', {'kwargs': dict(REASON='END',
-                                           REMOTE_REASON='DONE')})])
+            [
+                ('new', {'target_host': 'www.yahoo.com',
+                         'target_port': 80}
+                ), ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')}),
+                ('closed', {'kwargs': dict(REASON='END',
+                                           REMOTE_REASON='DONE')})
+            ])
         stream = Stream(self)
         stream.listen(listener)
         stream.update(
@@ -299,12 +308,14 @@ class StreamTests(unittest.TestCase):
 
     def test_listener_fail(self):
         listener = Listener(
-            [('new', {'target_host': 'www.yahoo.com',
-                      'target_port': 80}), (
-                          'attach', {'target_addr': maybe_ip_addr('1.2.3.4')}),
-             ('failed',
-              {'kwargs': dict(REASON='TIMEOUT',
-                              REMOTE_REASON='DESTROYED')})])
+            [
+                ('new', {'target_host': 'www.yahoo.com',
+                         'target_port': 80}
+                ), ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')}),
+                ('failed',
+                 {'kwargs': dict(REASON='TIMEOUT',
+                                 REMOTE_REASON='DESTROYED')})
+            ])
         stream = Stream(self)
         stream.listen(listener)
         stream.update(
@@ -342,9 +353,12 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(stream.target_addr, maybe_ip_addr('::1'))
 
     def test_ipv6_source(self):
-        listener = Listener([(
-            'new', {'source_addr': maybe_ip_addr('::1'),
-                    'source_port': 12345})])
+        listener = Listener(
+            [
+                ('new',
+                 {'source_addr': maybe_ip_addr('::1'),
+                  'source_port': 12345})
+            ])
 
         stream = Stream(self)
         stream.listen(listener)

@@ -5,7 +5,12 @@ from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet.interfaces import IProtocolFactory
 from zope.interface import implements
 
-from txtorcon.util import process_from_address, delete_file_or_tree, find_keywords, ip_from_int, find_tor_binary, maybe_ip_addr
+from txtorcon.util import process_from_address
+from txtorcon.util import delete_file_or_tree
+from txtorcon.util import find_keywords
+from txtorcon.util import ip_from_int
+from txtorcon.util import find_tor_binary
+from txtorcon.util import maybe_ip_addr
 
 import os
 import tempfile
@@ -183,14 +188,14 @@ class TestProcessFromUtil(unittest.TestCase):
 
     @defer.inlineCallbacks
     def test_real_addr(self):
-        ## FIXME should choose a port which definitely isn't used.
+        # FIXME should choose a port which definitely isn't used.
 
-        ## it's apparently frowned upon to use the "real" reactor in
-        ## tests, but I was using "nc" before, and I think this is
-        ## preferable.
+        # it's apparently frowned upon to use the "real" reactor in
+        # tests, but I was using "nc" before, and I think this is
+        # preferable.
         from twisted.internet import reactor
-        listener = yield TCP4ServerEndpoint(reactor,
-                                            9887).listen(FakeProtocolFactory())
+        ep = TCP4ServerEndpoint(reactor, 9887)
+        listener = yield ep.listen(FakeProtocolFactory())
 
         try:
             pid = process_from_address('0.0.0.0', 9887, self.fakestate)
@@ -229,7 +234,7 @@ class TestDelete(unittest.TestCase):
 class TestFindTor(unittest.TestCase):
 
     def test_simple_find_tor(self):
-        ## just test that this doesn't raise an exception
+        # just test that this doesn't raise an exception
         find_tor_binary()
 
     def test_find_tor_globs(self):
