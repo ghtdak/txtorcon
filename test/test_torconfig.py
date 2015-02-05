@@ -1435,6 +1435,19 @@ ControlPort Port''')
         return pp
 
 
+class IteratorTests(unittest.TestCase):
+
+    def test_iterate_torconfig(self):
+        cfg = TorConfig()
+        cfg.FooBar = 'quux'
+        cfg.save()
+        cfg.Quux = 'blimblam'
+
+        keys = sorted([k for k in cfg])
+
+        self.assertEqual(['FooBar', 'Quux'], keys)
+
+
 class ErrorTests(unittest.TestCase):
 
     @patch('txtorcon.torconfig.find_tor_binary')
