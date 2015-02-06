@@ -37,6 +37,9 @@ class RouterTests(unittest.TestCase):
                       "77.183.225.114", "24051", "24052")
         self.assertEqual(
             router.id_hex, "$00786E43CCC5409753F25E36031C5CEA6EA43702")
+
+        # we assert this twice to cover the cached + uncached cases
+        self.assertTrue(isinstance(router.modified, datetime))
         self.assertTrue(isinstance(router.modified, datetime))
         self.assertEqual(router.policy, '')
 

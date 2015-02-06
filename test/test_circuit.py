@@ -4,7 +4,11 @@ from twisted.trial import unittest
 from twisted.internet import defer
 from zope.interface import implements
 
-from txtorcon import Circuit, Stream, TorControlProtocol, TorState
+from txtorcon import Circuit
+from txtorcon import Stream
+from txtorcon import TorControlProtocol
+from txtorcon import TorState
+from txtorcon import Router
 from txtorcon.interface import IRouterContainer
 from txtorcon.interface import ICircuitListener
 from txtorcon.interface import ICircuitContainer
@@ -127,6 +131,7 @@ class CircuitTests(unittest.TestCase):
 
         circuit = Circuit(tor)
         circuit.listen(tor)
+        circuit.listen(tor)
         circuit.update('1 LAUNCHED PURPOSE=GENERAL'.split())
         circuit.unlisten(tor)
         circuit.update(
@@ -136,6 +141,7 @@ class CircuitTests(unittest.TestCase):
         self.assertTrue(1 in tor.circuits)
         self.assertEqual(len(tor.extend), 0)
         self.assertEqual(1, len(circuit.path))
+        self.assertEqual(0, len(circuit.listeners))
 
     def test_path_update(self):
         cp = TorControlProtocol()
@@ -257,6 +263,9 @@ class CircuitTests(unittest.TestCase):
         tor = FakeTorController()
         circuit = Circuit(tor)
         circuit.id = 1
+        str(circuit)
+        router = Router(tor)
+        circuit.path.append(router)
         str(circuit)
 
     def test_failed_reason(self):
