@@ -6,7 +6,7 @@ import functools
 
 from txtorcon.util import available_tcp_port
 
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 from twisted.python import log
 from twisted.internet.interfaces import IStreamServerEndpointStringParser
 from twisted.internet.interfaces import IStreamClientEndpointStringParser
@@ -17,6 +17,7 @@ from twisted.internet.interfaces import IAddress
 from twisted.internet.endpoints import serverFromString
 from twisted.internet.endpoints import clientFromString
 from twisted.internet.endpoints import TCP4ClientEndpoint
+from twisted.internet import error
 from twisted.plugin import IPlugin
 from twisted.python.util import FancyEqMixin
 
