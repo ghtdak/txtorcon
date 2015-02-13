@@ -580,6 +580,7 @@ class TCPHiddenServiceEndpointParser(object):
                                                    local_port=localPort,
                                                    control_port=controlPort)
 
+
 def DefaultTCP4EndpointGenerator(*args, **kw):
     """
     Default generator used to create client-side TCP4ClientEndpoint instances.
@@ -587,25 +588,34 @@ def DefaultTCP4EndpointGenerator(*args, **kw):
     """
     return TCP4ClientEndpoint(*args, **kw)
 
+
 @implementer(IStreamClientEndpoint)
 class TorClientEndpoint(object):
-    """I am an endpoint class who attempts to establish a SOCKS5 connection
-    with the system tor process. Either the user must pass a SOCKS port into my
-    constructor OR I will attempt to guess the Tor SOCKS port by iterating over a list of ports
-    that tor is likely to be listening on.
+    """
+    I am an endpoint class who attempts to establish a SOCKS5
+    connection with the system tor process. Either the user must pass
+    a SOCKS port into my constructor OR I will attempt to guess the
+    Tor SOCKS port by iterating over a list of ports that tor is
+    likely to be listening on.
 
-    :param host: The hostname to connect to.
-    This of course can be a Tor Hidden Service onion address.
+    :param host:
+        The hostname to connect to. This of course can be a Tor Hidden
+        Service onion address.
 
     :param port: The tcp port or Tor Hidden Service port.
 
     :param proxyEndpointGenerator: This is used for unit tests.
 
-    :param socksPort: This optional argument lets the user specify which Tor SOCKS port should be used.
+    :param socksPort:
+       This optional argument lets the user specify which Tor SOCKS
+       port should be used.
     """
     socks_ports_to_try = [9050, 9150]
 
-    def __init__(self, host, port, proxyEndpointGenerator=DefaultTCP4EndpointGenerator, socksHostname=None, socksPort=None, socksUsername=None, socksPassword=None):
+    def __init__(self, host, port,
+                 socksHostname=None, socksPort=None,
+                 socksUsername=None, socksPassword=None,
+                 proxyEndpointGenerator=DefaultTCP4EndpointGenerator):
         if host is None or port is None:
             raise ValueError('host and port must be specified')
 
@@ -633,14 +643,25 @@ class TorClientEndpoint(object):
         return d
 
     def _try_connect(self):
-        self.torSocksEndpoint = self.proxyEndpointGenerator(reactor, self.socksHostname, self.socksPort)
+        self.torSocksEndpoint = self.proxyEndpointGenerator(
+            reactor,
+            self.socksHostname,
+            self.socksPort
+        )
 
         if self.socksUsername is None or self.socksPassword is None:
-            socks5ClientEndpoint = SOCKS5ClientEndpoint(self.host, self.port, self.torSocksEndpoint)
+            socks5ClientEndpoint = SOCKS5ClientEndpoint(
+                self.host,
+                self.port,
+                self.torSocksEndpoint
+            )
         else:
-            socks5ClientEndpoint = SOCKS5ClientEndpoint(self.host, self.port, self.torSocksEndpoint,
-                                                        methods={ 'login': (self.socksUsername, self.socksPassword) })
-
+            socks5ClientEndpoint = SOCKS5ClientEndpoint(
+                self.host,
+                self.port,
+                self.torSocksEndpoint,
+                methods=dict(login=(self.socksUsername, self.socksPassword))
+            )
 
         d = socks5ClientEndpoint.connect(self.protocolfactory)
         if self.socksGuessingEnabled:
@@ -678,7 +699,9 @@ class TorClientEndpointStringParser(object):
     """
     prefix = "tor"
 
-    def _parseClient(self, host=None, port=None, socksHostname=None, socksPort=None, socksUsername=None, socksPassword=None):
+    def _parseClient(self, host=None, port=None,
+                     socksHostname=None, socksPort=None,
+                     socksUsername=None, socksPassword=None):
         if port is not None:
             port = int(port)
         if socksHostname is None:
@@ -686,7 +709,11 @@ class TorClientEndpointStringParser(object):
         if socksPort is not None:
             socksPort = int(socksPort)
 
-        return TorClientEndpoint(host, port, socksHostname=socksHostname, socksPort=socksPort, socksUsername=socksUsername, socksPassword=socksPassword)
+        return TorClientEndpoint(
+            host, port,
+            socksHostname=socksHostname, socksPort=socksPort,
+            socksUsername=socksUsername, socksPassword=socksPassword
+        )
 
     def parseStreamClient(self, *args, **kwargs):
         return self._parseClient(*args, **kwargs)
