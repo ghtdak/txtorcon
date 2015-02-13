@@ -699,13 +699,17 @@ class TorClientEndpointStringParser(object):
 
     ``tor:host=torproject.org:port=443:socksUsername=foo:socksPassword=bar``
 
-    If ``socksPort`` is specified, it means only use that port to attempt to
-    proxy through Tor. If unspecified then try some likely socksPorts
-    such as [9050, 9150].
+    If ``socksPort`` is specified, it means only use that port to
+    attempt to proxy through Tor. If unspecified then try some likely
+    socksPorts such as [9050, 9150].
 
     NOTE that I'm using camelCase variable names in the endpoint
     string to be consistent with the rest of Twisted's naming (and
     their endpoint parsers).
+
+    XXX FIXME if there is no Tor instance found at socksPort, we
+    should launch one. Perhaps a separate option? (Should be on by
+    default, though, I think).
     """
     prefix = "tor"
 
