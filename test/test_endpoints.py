@@ -600,6 +600,10 @@ class TestTorClientEndpoint(unittest.TestCase):
     def test_parser_basic(self):
         ep = clientFromString(None, 'tor:host=timaq4ygg2iegci7.onion:port=80:socksPort=9050')
 
+        self.assertEqual(ep.host, 'timaq4ygg2iegci7.onion')
+        self.assertEqual(ep.port, 80)
+        self.assertEqual(ep.socksPort, 9050)
+
     def test_defaultFactory(self):
         """
         This test is equivalent to txsocksx's TestSOCKS5ClientEndpoint.test_defaultFactory
