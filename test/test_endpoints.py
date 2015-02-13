@@ -573,6 +573,20 @@ class TestTorClientEndpoint(unittest.TestCase):
         d = endpoint.connect(None)
         return self.assertFailure(d, ConnectionRefusedError)
 
+    def test_clientConnectionFailedUserPassword(self):
+        """
+        Same as above, but with a username/password.
+        """
+        def FailTorSocksEndpointGenerator(*args, **kw):
+            kw['failure'] = connectionRefusedFailure
+            return FakeTorSocksEndpoint(*args, **kw)
+        endpoint = TorClientEndpoint(
+            'invalid host', 0,
+            socksUsername='billy', socksPassword='s333cure',
+            proxyEndpointGenerator=FailTorSocksEndpointGenerator)
+        d = endpoint.connect(None)
+        return self.assertFailure(d, ConnectionRefusedError)
+
     def test_default_generator(self):
         # just ensuring the default generator doesn't blow updoesn't blow up
         defaultTCP4EndpointGenerator(None, 'foo.bar', 1234)
