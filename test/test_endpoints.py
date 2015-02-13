@@ -34,6 +34,7 @@ from txtorcon import IProgressProvider
 from txtorcon import TorOnionAddress
 from txtorcon.util import NoOpProtocolFactory
 from txtorcon.endpoints import get_global_tor                       # FIXME
+from txtorcon.endpoints import defaultTCP4EndpointGenerator
 
 import util
 
@@ -571,6 +572,19 @@ class TestTorClientEndpoint(unittest.TestCase):
         endpoint = TorClientEndpoint('', 0, proxyEndpointGenerator=FailTorSocksEndpointGenerator)
         d = endpoint.connect(None)
         return self.assertFailure(d, ConnectionRefusedError)
+
+    def test_default_generator(self):
+        # just ensuring the default generator doesn't blow updoesn't blow up
+        defaultTCP4EndpointGenerator(None, 'foo.bar', 1234)
+
+    def test_no_host(self):
+        self.assertRaises(
+            ValueError,
+            TorClientEndpoint, None, None
+        )
+
+    def test_parser_basic(self):
+        ep = clientFromString(None, 'tor:host=timaq4ygg2iegci7.onion:port=80:socksPort=9050')
 
     def test_defaultFactory(self):
         """
