@@ -769,8 +769,51 @@ class HiddenService(object):
         return rtn
 
 
+class EphemeralHiddenService(object):
+    '''
+    This uses the ephemeral hidden-service APIs (in comparison to
+    torrc or SETCONF). This means your hidden-service private-key is
+    never in a file. It also means that when the process exits, that
+    HS goes away. See documentation for ADD_ONION in torspec:
+    https://gitweb.torproject.org/torspec.git/tree/control-spec.txt#n1295
+    '''
+
+    def __init__(self, ports, key_blob_or_type='NEW:BEST', auth=[], ver=2):
+        if type(ports) is not types.ListType:
+            ports = [ports]
+        self.ports = ports
+        self.key_blob = key_blob_or_type
+        self.auth = auth  # FIXME ununsed
+        # FIXME nicer than assert, plz
+        assert ' ' not in self.key_blob
+        assert type(ports) is types.ListType
+        if not key_blob_or_type.startswith('NEW:') and len(key_blob_or_type) != (812 + 8):
+            raise RuntimeError('Wrong size key-blob')
+
+    @defer.inlineCallbacks
+    def add_to_tor(self, protocol):
+        '''
+        Returns a Deferred which fires with None
+        '''
+        ports = ' '.join(map(lambda x: 'Port=' + x.strip(), self.ports))
+        cmd = 'ADD_ONION %s %s' % (self.key_blob, ports)
+        ans = yield protocol.queue_command(cmd)
+        ans = find_keywords(ans.split('\n'))
+        self.hostname = ans['ServiceID'] + '.onion'
+        self.private_key = ans['PrivateKey']
+
+    @defer.inlineCallbacks
+    def remove_from_tor(self, protocol):
+        '''
+        Returns a Deferred which fires with None
+        '''
+        r = yield protocol.queue_command('DEL_ONION %s' % self.hostname[:-6])
+        if r.strip() != 'OK':
+            raise RuntimeError('Failed to remove hidden service: "%s".' % r)
+
+
 def parse_rsa_blob(lines):
-    return ''.join(lines[1:-1])
+    return 'RSA1024:' + ''.join(lines[1:-1])
 
 
 def parse_client_keys(stream):
