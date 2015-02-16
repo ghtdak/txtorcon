@@ -436,15 +436,19 @@ class TCPHiddenServiceEndpoint(object):
         self._tor_progress_update(100.0, 'wait_descriptor',
                                   'At least one descriptor uploaded.')
 
-        log.msg(
-            'Started hidden service "%s" on port %d' %
-            (self.onion_uri, self.public_port))
+### FIXME XXX need to work out what happens here on stealth-auth'd
+### things. maybe we need a separate StealthHiddenService
+### vs. HiddenService ?!
+
+#        log.msg(
+#            'Started hidden service "%s" on port %d' %
+#            (self.onion_uri, self.public_port))
         log.msg('Keys are in "%s".' % (self.hidden_service_dir,))
         defer.returnValue(
             TorOnionListeningPort(
                 self.tcp_listening_port,
                 self.hidden_service_dir,
-                self.onion_uri,
+                '', ##self.onion_uri,
                 self.public_port,
                 self.config,
             )

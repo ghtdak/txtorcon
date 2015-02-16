@@ -739,7 +739,8 @@ class HiddenService(object):
 
     def __getattr__(self, name):
         '''
-        FIXME just move to @property things instead?
+        FIXME can't we just move this to @property decorated methods
+        instead?
         '''
 
         # For stealth authentication, the .onion is per-client. So in
@@ -751,6 +752,15 @@ class HiddenService(object):
             with open(os.path.join(self.dir, name)) as f:
                 data = f.read().strip()
             self.__dict__[name] = data
+
+        elif name == 'clients':
+            clients = []
+            with open(os.path.join(self.dir, 'hostname')) as f:
+                for line in f.readlines():
+                    args = line.split()
+                    clients.append((args[0], args[1]))
+            self.__dict__[name] = clients
+
         elif name == 'hostname':
             with open(os.path.join(self.dir, name)) as f:
                 data = f.read().strip()
@@ -765,6 +775,7 @@ class HiddenService(object):
                         "with multiple onion addresses."
                     )
             self.__dict__[name] = h
+
         elif name == 'client_keys':
             fname = os.path.join(self.dir, name)
             keys = []
