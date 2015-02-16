@@ -17,6 +17,12 @@ unreleased
  * can now parse ~75000 microdescriptors/second per core of 3.4GHz Xeon E3
  * ``launch_tor`` now doesn't use a temporary ``torrc`` (command-line options instead)
  * tons of pep8 cleanups
+ * `david415 <https://github.com/david415>`_ ported his ``tor:``
+   endpoint parser so now both client and server endpoints are
+   supported. This means **any** Twisted program using endpoints can
+   use Tor as a client. For example, to connect to txtorcon's Web site:
+   ``ep = clientFromString("tor:timaq4ygg2iegci7.onion:80")``.
+   (In the future, I'd like to automatically launch Tor if required, too).
 
 
 v0.12.0
