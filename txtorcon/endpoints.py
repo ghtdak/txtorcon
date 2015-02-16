@@ -650,10 +650,10 @@ class TorClientEndpoint(object):
             raise ValueError('host and port must be specified')
 
         self.host = host
-        self.port = port
+        self.port = int(port)
         self.proxyEndpointGenerator = proxyEndpointGenerator
         self.socks_hostname = socks_hostname
-        self.socks_port = socks_port
+        self.socks_port = int(socks_port)
         self.socks_username = socks_username
         self.socks_password = socks_password
 

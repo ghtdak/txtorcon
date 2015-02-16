@@ -1174,8 +1174,10 @@ class TorConfig(object):
 
             if isinstance(value, types.ListType):
                 for x in value:
-                    args.append(key)
-                    args.append(str(x))
+                    # FIXME XXX
+                    if x.strip() != 'DEFAULT':
+                        args.append(key)
+                        args.append(str(x))
 
             else:
                 args.append(key)
