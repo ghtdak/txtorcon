@@ -1139,13 +1139,24 @@ class TorConfig(object):
             return defer.succeed(self)
 
         args = []
+        directories = []
         for (key, value) in self.unsaved.items():
             if key == 'HiddenServices':
                 self.config['HiddenServices'] = value
                 for hs in value:
                     for (k, v) in hs.config_attributes():
-                        args.append(k)
-                        args.append(v)
+                        if k == 'HiddenServiceDir':
+                            if v not in directories:
+                                directories.append(v)
+                                args.append(k)
+                                args.append(v)
+                            else:
+                                raise RuntimeError(
+                                    "Trying to add hidden service with same HiddenServiceDir: %s"
+                                    % v)
+                        else:
+                            args.append(k)
+                            args.append(v)
                 continue
 
             if isinstance(value, types.ListType):
@@ -1235,10 +1246,25 @@ class TorConfig(object):
         defer.returnValue(self)
 
     def _setup_hidden_services(self, servicelines):
+
+        def maybe_add_hidden_service():
+            if directory is not None:
+                if directory not in directories:
+                    directories.append(directory)
+                    hs.append(
+                        HiddenService(
+                            self, directory, ports, auth, ver, group_read))
+                else:
+                    raise RuntimeError(
+                        "Trying to add hidden service with same HiddenServiceDir: %s"
+                        % directory)
+
         hs = []
         directory = None
+        directories = []
         ports = []
         ver = None
+        group_read = None
         auth = None
         for line in servicelines.split('\n'):
             if not len(line.strip()):
@@ -1248,10 +1274,7 @@ class TorConfig(object):
                 continue
             k, v = line.split('=')
             if k == 'HiddenServiceDir':
-                if directory is not None:
-                    hs.append(
-                        HiddenService(
-                            self, directory, ports, auth, ver, group_read))
+                maybe_add_hidden_service()
                 directory = v
                 _directory = directory
                 directory = os.path.abspath(directory)
@@ -1279,10 +1302,7 @@ class TorConfig(object):
             else:
                 raise RuntimeError("Can't parse HiddenServiceOptions: " + k)
 
-        if directory is not None:
-            hs.append(
-                HiddenService(
-                    self, directory, ports, auth, ver, group_read))
+        maybe_add_hidden_service()
 
         name = 'HiddenServices'
         self.config[name] = _ListWrapper(
