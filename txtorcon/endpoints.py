@@ -298,7 +298,7 @@ class TCPHiddenServiceEndpoint(object):
 
         :param stealth_auth:
             A list of strings, one name for each stealth authenticator
-            you want.
+            you want. Like: ``['alice', 'bob']``
 
         :param endpoint_generator:
             A callable that generates a new instance of something that
@@ -653,7 +653,7 @@ class TorClientEndpoint(object):
         self.port = int(port)
         self.proxyEndpointGenerator = proxyEndpointGenerator
         self.socks_hostname = socks_hostname
-        self.socks_port = int(socks_port)
+        self.socks_port = int(socks_port) if socks_port else None
         self.socks_username = socks_username
         self.socks_password = socks_password
 

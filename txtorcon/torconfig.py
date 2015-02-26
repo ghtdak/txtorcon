@@ -17,7 +17,7 @@ from twisted.internet import defer, error, protocol
 from twisted.internet.interfaces import IReactorTime
 from twisted.internet.endpoints import TCP4ClientEndpoint
 
-from txtorcon.torcontrolprotocol import parse_keywords, TorProtocolFactory
+from txtorcon.torcontrolprotocol import parse_keywords, TorProtocolFactory, DEFAULT_VALUE
 from txtorcon.util import delete_file_or_tree, find_keywords, find_tor_binary
 from txtorcon.log import txtorlog
 from txtorcon.interface import ITorControlProtocol
@@ -1175,7 +1175,7 @@ class TorConfig(object):
             if isinstance(value, types.ListType):
                 for x in value:
                     # FIXME XXX
-                    if x.strip() != 'DEFAULT':
+                    if x is not DEFAULT_VALUE:
                         args.append(key)
                         args.append(str(x))
 
