@@ -422,8 +422,8 @@ class TCPHiddenServiceEndpoint(object):
 
         self.config.protocol.add_event_listener('INFO', info_event)
 
-        if not self.hidden_service_dir in map(lambda hs: hs.dir,
-                                                  self.config.HiddenServices):
+        if self.hidden_service_dir not in map(lambda hs: hs.dir,
+                                              self.config.HiddenServices):
             self.hiddenservice = HiddenService(
                 self.config,
                 self.hidden_service_dir,

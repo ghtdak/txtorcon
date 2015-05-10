@@ -800,7 +800,7 @@ def parse_client_keys(stream):
             self.key = []
 
         def create_key(self):
-            if self.name != None:
+            if self.name is not None:
                 self.keys.append(HiddenServiceClientAuth(self.name, self.cookie,
                                                          self.key))
             self.reset()
