@@ -1585,6 +1585,26 @@ class EphemeralHiddenServiceTest(unittest.TestCase):
         self.assertEqual("blam", eph.private_key)
         self.assertEqual("ohai.onion", eph.hostname)
 
+    def test_descriptor_wait(self):
+        eph = torconfig.EphemeralHiddenService("80 127.0.0.1:80")
+        proto = Mock()
+        proto.queue_command = Mock(return_value=defer.succeed("PrivateKey=blam\nServiceID=ohai\n"))
+
+        eph.add_to_tor(proto)
+
+        # get the event-listener callback that torconfig code added;
+        # the last call [-1] was to add_event_listener; we want the
+        # [1] arg of that
+        cb = proto.method_calls[-1][1][1]
+
+        # Tor doesn't actually provide the .onion, but we can test it anyway
+        cb('UPLOADED ohai UNKNOWN somehsdir')
+        cb('UPLOADED UNKNOWN UNKNOWN somehsdir')
+
+        self.assertEqual("blam", eph.private_key)
+        self.assertEqual("ohai.onion", eph.hostname)
+
+
     def test_remove(self):
         eph = torconfig.EphemeralHiddenService("80 127.0.0.1:80")
         eph.hostname = 'foo.onion'
