@@ -830,10 +830,15 @@ class EphemeralHiddenService(object):
             args = evt.split()
             subtype = args[0]
             if subtype == 'UPLOADED':
-                addr = args[1]
                 # will be "UNKNOWN" now, always
-                # callback with the target HSDi
-                uploaded.callback(args[3])
+                addr = args[1]
+                do_callback = True
+                if addr != 'UNKNOWN':
+                    do_callback = (addr == self.hostname[:-6])
+
+                if do_callback:
+                    # callback with the target HSDir
+                    uploaded.callback(args[3])
 
         yield protocol.add_event_listener('HS_DESC', hs_desc)
         yield uploaded
