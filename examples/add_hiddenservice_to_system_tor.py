@@ -34,19 +34,7 @@ def main(reactor):
     yield hs.add_to_tor(tor_protocol)
     print "Added ephemeral HS to Tor:", hs.hostname
 
-    print "waiting for descriptor upload"
-    # now we need to wait for the descriptor to be published
-    info_callback = defer.Deferred()
-
-    def info_event(msg):
-        # hack-tacular
-        if 'Service descriptor (v2) stored' in msg:
-            info_callback.callback(None)
-            tor_protocol.remove_event_listener('INFO', info_event)
-    tor_protocol.add_event_listener('INFO', info_event)
-    yield info_callback
-    print "there we go, starting the Site"
-
+    print "Starting site"
     site = server.Site(Simple())
     hs_endpoint = TCP4ServerEndpoint(reactor, hs_port, interface='127.0.0.1')
     yield hs_endpoint.listen(site)
