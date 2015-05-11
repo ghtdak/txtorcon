@@ -781,7 +781,11 @@ class EphemeralHiddenService(object):
     def __init__(self, ports, key_blob_or_type='NEW:BEST', auth=[], ver=2):
         if type(ports) is not types.ListType:
             ports = [ports]
-        self.ports = ports
+        # for "normal" HSes the port-config bit looks like "80
+        # 127.0.0.1:1234" whereas this one wants a comma, so we leave
+        # the public API the same and fix up the space. Or of course
+        # you can just use the "real" comma-syntax if you wanted.
+        self.ports = map(lambda x: x.replace(' ', ','), ports)
         self.key_blob = key_blob_or_type
         self.auth = auth  # FIXME ununsed
         # FIXME nicer than assert, plz
@@ -801,6 +805,31 @@ class EphemeralHiddenService(object):
         ans = find_keywords(ans.split('\n'))
         self.hostname = ans['ServiceID'] + '.onion'
         self.private_key = ans['PrivateKey']
+
+        log.msg('Created hidden-service at', self.hostname)
+
+        # Now we want to wait for the descriptor uploads. This doesn't
+        # quite work, as the UPLOADED events always say "UNKNOWN" for
+        # the HSAddress so we can't correlate it to *this* onion for
+        # sure :/ "yet", though. Yawning says on IRC this is coming.
+
+        uploaded = defer.Deferred()
+
+        def hs_desc(evt):
+            if uploaded.called:
+                return
+            args = evt.split()
+            subtype = args[0]
+            if subtype == 'UPLOADED':
+                addr = args[1]
+                # will be "UNKNOWN" now, always
+                # callback with the target HSDi
+                uploaded.callback(args[3])
+
+        yield protocol.add_event_listener('HS_DESC', hs_desc)
+        yield uploaded
+        yield protocol.remove_event_listener('HS_DESC', hs_desc)
+        log.msg('At least one descriptor uploaded.')
 
     @defer.inlineCallbacks
     def remove_from_tor(self, protocol):
