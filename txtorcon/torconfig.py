@@ -778,6 +778,15 @@ class EphemeralHiddenService(object):
     https://gitweb.torproject.org/torspec.git/tree/control-spec.txt#n1295
     '''
 
+    # XXX the "ports" stuff is still kind of an awkward API, especialy
+    # making the actual list public (since it'll have
+    # "80,127.0.0.1:80" instead of with a space
+
+    # XXX descriptor upload stuff needs more features from Tor (the
+    # actual uploaded key; the event always says UNKNOWN)
+
+    # XXX "auth" is unused (also, no Tor support I don't think?)
+
     def __init__(self, ports, key_blob_or_type='NEW:BEST', auth=[], ver=2):
         if type(ports) is not types.ListType:
             ports = [ports]
@@ -785,11 +794,11 @@ class EphemeralHiddenService(object):
         # 127.0.0.1:1234" whereas this one wants a comma, so we leave
         # the public API the same and fix up the space. Or of course
         # you can just use the "real" comma-syntax if you wanted.
-        self.ports = map(lambda x: x.replace(' ', ','), ports)
-        self.key_blob = key_blob_or_type
+        self._ports = map(lambda x: x.replace(' ', ','), ports)
+        self._key_blob = key_blob_or_type
         self.auth = auth  # FIXME ununsed
         # FIXME nicer than assert, plz
-        assert ' ' not in self.key_blob
+        assert ' ' not in self._key_blob
         assert type(ports) is types.ListType
         if not key_blob_or_type.startswith('NEW:') and len(key_blob_or_type) != (812 + 8):
             raise RuntimeError('Wrong size key-blob')
@@ -799,8 +808,8 @@ class EphemeralHiddenService(object):
         '''
         Returns a Deferred which fires with None
         '''
-        ports = ' '.join(map(lambda x: 'Port=' + x.strip(), self.ports))
-        cmd = 'ADD_ONION %s %s' % (self.key_blob, ports)
+        ports = ' '.join(map(lambda x: 'Port=' + x.strip(), self._ports))
+        cmd = 'ADD_ONION %s %s' % (self._key_blob, ports)
         ans = yield protocol.queue_command(cmd)
         ans = find_keywords(ans.split('\n'))
         self.hostname = ans['ServiceID'] + '.onion'
