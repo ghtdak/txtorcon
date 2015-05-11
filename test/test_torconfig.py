@@ -1566,12 +1566,12 @@ class HiddenServiceAuthTests(unittest.TestCase):
 
 class EphemeralHiddenServiceTest(unittest.TestCase):
     def test_defaults(self):
-        eph = torconfig.EphemeralHiddenService(80)
-        self.assertEqual(eph.ports, [80])
+        eph = torconfig.EphemeralHiddenService("80 localhost:80")
+        self.assertEqual(eph._ports, ["80,localhost:80"])
 
     def test_wrong_blob(self):
         try:
-            eph = torconfig.EphemeralHiddenService(80, "foo")
+            eph = torconfig.EphemeralHiddenService("80 localhost:80", "foo")
             self.fail("should get exception")
         except RuntimeError as e:
             pass
