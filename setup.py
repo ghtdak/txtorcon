@@ -30,6 +30,7 @@ setup(
         dev=[
             'mock',
             'GeoIP',
+            'coverage',
         ],),
     classifiers=
     ['Framework :: Twisted', 'Development Status :: 4 - Beta',
