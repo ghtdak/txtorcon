@@ -31,6 +31,7 @@ setup(
             'mock',
             'GeoIP',
             'coverage',
+            'pep8',
         ],),
     classifiers=
     ['Framework :: Twisted', 'Development Status :: 4 - Beta',
