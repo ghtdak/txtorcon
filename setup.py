@@ -27,12 +27,7 @@ setup(
     install_requires=open('requirements.txt').readlines(),
     # "pip install -e .[dev]" will install development requirements
     extras_require=dict(
-        dev=[
-            'mock',
-            'GeoIP',
-            'coverage',
-            'pep8',
-        ],),
+        dev=open('dev-requirements.txt').readlines(),),
     classifiers=
     ['Framework :: Twisted', 'Development Status :: 4 - Beta',
      'Intended Audience :: Developers',
