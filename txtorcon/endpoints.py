@@ -632,9 +632,9 @@ class TorClientEndpoint(object):
 
     :param port: The tcp port or Tor Hidden Service port.
 
-    :param proxy_endpoint_generator: This is used for unit tests.
+    :param _proxy_endpoint_generator: This is used for unit tests.
 
-    :param socksPort:
+    :param socks_port:
        This optional argument lets the user specify which Tor SOCKS
        port should be used.
     """
@@ -649,13 +649,13 @@ class TorClientEndpoint(object):
                  socks_port=None,
                  socks_username=None,
                  socks_password=None,
-                 proxy_endpoint_generator=default_tcp4_endpoint_generator):
+                 _proxy_endpoint_generator=default_tcp4_endpoint_generator):
         if host is None or port is None:
             raise ValueError('host and port must be specified')
 
         self.host = host
         self.port = port
-        self.proxy_endpoint_generator = proxy_endpoint_generator
+        self._proxy_endpoint_generator = _proxy_endpoint_generator
         self.socks_hostname = socks_hostname
         self.socks_port = socks_port
         self.socks_username = socks_username
@@ -677,7 +677,7 @@ class TorClientEndpoint(object):
         return d
 
     def _try_connect(self):
-        self.tor_socks_endpoint = self.proxy_endpoint_generator(
+        self.tor_socks_endpoint = self._proxy_endpoint_generator(
             reactor, self.socks_hostname, self.socks_port)
 
         if self.socks_username is None or self.socks_password is None:
