@@ -1092,7 +1092,7 @@ ControlPort Port''')
 
         tpp.timeout_expired()
 
-        tpp.transport.loseConnection.assert_called()
+        self.assertTrue(tpp.transport.loseConnection.called)
 
     @defer.inlineCallbacks
     def test_launch_timeout_process_exits(self):
