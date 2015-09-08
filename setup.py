@@ -1,7 +1,12 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import absolute_import
+from __future__ import print_function
+
 try:
     import pypissh
 except:
-    print "WARNING: not using PyPi over SSH!"
+    print("WARNING: not using PyPi over SSH!")
 import sys
 import os
 import shutil
@@ -49,18 +54,17 @@ setup(
     ## the documentation etc. Do we really want "share/txtorcon" for
     ## the first member of the tuple? Why does it seem I need to
     ## duplicate this in MANIFEST.in?
-    data_files=[('share/txtorcon', ['INSTALL', 'README.rst', 'TODO',
-                                    'meejah.asc']),
-                ## this includes the Sphinx source for the
-                ## docs. The "map+filter" construct grabs all .rst
-                ## files and re-maps the path
-                ('share/txtorcon', ['docs/apilinks_sphinxext.py',
-                                    'docs/conf.py', 'docs/Makefile'] +
-                 map(lambda x: os.path.join('docs', x), filter(
-                     lambda x: x[-3:] == 'rst', os.listdir('docs'))) + map(
-                         lambda x: os.path.join('docs/_static', x), os.listdir(
-                             'docs/_static'))),
-                ## include all the examples
-                ('share/txtorcon/examples', map(
-                    lambda x: os.path.join('examples', x), filter(
-                        lambda x: x[-3:] == '.py', os.listdir('examples'))))])
+    data_files=
+    [('share/txtorcon', ['INSTALL', 'README.rst', 'TODO', 'meejah.asc']),
+     ## this includes the Sphinx source for the
+     ## docs. The "map+filter" construct grabs all .rst
+     ## files and re-maps the path
+     ('share/txtorcon', ['docs/apilinks_sphinxext.py', 'docs/conf.py',
+                         'docs/Makefile'] +
+      [os.path.join('docs', x) for x in [x for x in os.listdir(
+          'docs') if x[-3:] == 'rst']] + [os.path.join('docs/_static', x) for x
+                                          in os.listdir('docs/_static')]),
+     ## include all the examples
+     ('share/txtorcon/examples', [os.path.join(
+         'examples', x) for x in [x for x in os.listdir('examples') if x[-3:] ==
+                                  '.py']])])

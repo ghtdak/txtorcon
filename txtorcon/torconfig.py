@@ -1,13 +1,15 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import absolute_import
+from __future__ import print_function
 from __future__ import with_statement
 
 import os
 import sys
-import string
-import types
 import functools
 import tempfile
 import warnings
-from StringIO import StringIO
+from io import StringIO
 import shlex
 if sys.platform in ('linux2', 'darwin'):
     import pwd
@@ -466,7 +468,7 @@ def launch_tor(config,
         # FIXME? don't need rest of the args: uid, gid, usePTY, childFDs)
         transport.closeStdin()
 
-    except RuntimeError, e:
+    except RuntimeError as e:
         return defer.fail(e)
 
     if process_protocol.connected_cb:
@@ -559,7 +561,7 @@ class Time(TorConfigType):
 class CommaList(TorConfigType):
 
     def parse(self, s):
-        return map(string.strip, s.split(','))
+        return [x.strip() for x in s.split(',')]
 
 
 # FIXME: in latest master; what is it?
@@ -585,12 +587,12 @@ class Filename(String):
 class LineList(TorConfigType):
 
     def parse(self, s):
-        if isinstance(s, types.ListType):
-            return map(str, s)
-        return map(string.strip, s.split('\n'))
+        if isinstance(s, list):
+            return [str(x).strip() for x in s]
+        return [x.strip() for x in s.split('\n')]
 
     def validate(self, obj, instance, name):
-        if not isinstance(obj, types.ListType):
+        if not isinstance(obj, list):
             raise ValueError("Not valid for %s: %s" % (self.__class__, obj))
         return _ListWrapper(obj, functools.partial(instance.mark_unsaved, name))
 
@@ -707,7 +709,7 @@ class HiddenService(object):
         # in case people are passing '' for the auth
         if not auth:
             auth = []
-        elif not isinstance(auth, types.ListType):
+        elif not isinstance(auth, list):
             auth = [auth]
         self.authorize_client = _ListWrapper(
             auth, functools.partial(
@@ -720,7 +722,7 @@ class HiddenService(object):
         # OK' it seems from tor code that the keys will always have
         # been created on disk by that point
 
-        if not isinstance(ports, types.ListType):
+        if not isinstance(ports, list):
             ports = [ports]
         self.ports = _ListWrapper(ports, functools.partial(
             self.conf.mark_unsaved, 'HiddenServices'))
@@ -734,7 +736,7 @@ class HiddenService(object):
         watched_params = ['dir', 'version', 'authorize_client', 'ports']
         if name in watched_params and self.conf:
             self.conf.mark_unsaved('HiddenServices')
-        if isinstance(value, types.ListType):
+        if isinstance(value, list):
             value = _ListWrapper(value, functools.partial(
                 self.conf.mark_unsaved, 'HiddenServices'))
         self.__dict__[name] = value
@@ -1012,7 +1014,7 @@ class TorConfig(object):
             name = self._find_real_name(name)
             if not has_slutty_attr(self) and not is_hidden_services(name):
                 value = self.parsers[name].validate(value, self, name)
-            if isinstance(value, types.ListType):
+            if isinstance(value, list):
                 value = _ListWrapper(
                     value, functools.partial(self.mark_unsaved, name))
 
@@ -1159,7 +1161,7 @@ class TorConfig(object):
                             args.append(v)
                 continue
 
-            if isinstance(value, types.ListType):
+            if isinstance(value, list):
                 for x in value:
                     args.append(key)
                     args.append(str(x))
@@ -1190,7 +1192,8 @@ class TorConfig(object):
         return self
 
     def _find_real_name(self, name):
-        keys = self.__dict__['parsers'].keys() + self.__dict__['config'].keys()
+        keys = list(self.__dict__['parsers'].keys()) + list(
+            self.__dict__['config'].keys())
         for x in keys:
             if x.lower() == name.lower():
                 return x
@@ -1321,7 +1324,7 @@ class TorConfig(object):
 
         '''
 
-        for (k, v) in self.config.items() + self.unsaved.items():
+        for (k, v) in list(self.config.items()) + list(self.unsaved.items()):
             if type(v) is _ListWrapper:
                 if k.lower() == 'hiddenservices':
                     for x in v:
@@ -1341,6 +1344,6 @@ class TorConfig(object):
         rtn = StringIO()
 
         for (k, v) in self.config_args():
-            rtn.write('%s %s\n' % (k, v))
+            rtn.write(u'%s %s\n' % (k, v))
 
         return rtn.getvalue()
