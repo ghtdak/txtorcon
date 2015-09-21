@@ -25,8 +25,7 @@ def main(reactor, tor_binary):
             config,
             reactor,
             tor_binary=tor_binary,
-            stdout=sys.stdout
-        )
+            stdout=sys.stdout)
         print "success! We support Tor2Web mode"
 
     except RuntimeError as e:

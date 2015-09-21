@@ -42,18 +42,15 @@ def setup_failed(arg):
     print "SETUP FAILED", arg
     reactor.stop()
 
+
 hs_port = 9876
 hs_public_port = 80
 hs_temp = tempfile.mkdtemp(prefix='torhiddenservice')
 
 # register something to clean up our tempdir
 reactor.addSystemEventTrigger(
-    'before', 'shutdown',
-    functools.partial(
-        txtorcon.util.delete_file_or_tree,
-        hs_temp
-    )
-)
+    'before', 'shutdown', functools.partial(
+        txtorcon.util.delete_file_or_tree, hs_temp))
 
 # configure the hidden service we want.
 # obviously, we'd want a more-persistent place to keep the hidden
@@ -68,10 +65,7 @@ config.SOCKSPort = 0
 config.ORPort = 9089
 config.HiddenServices = [
     txtorcon.HiddenService(
-        config,
-        hs_temp,
-        ["%d 127.0.0.1:%d" % (hs_public_port, hs_port)]
-    )
+        config, hs_temp, ["%d 127.0.0.1:%d" % (hs_public_port, hs_port)])
 ]
 config.save()
 

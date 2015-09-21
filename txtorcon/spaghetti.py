@@ -51,6 +51,7 @@ class FSM(object):
 
 
 class State(object):
+
     def __init__(self, name):
         self.name = name
         self.transitions = []
@@ -82,14 +83,14 @@ class State(object):
         r = r + 'edge [fontsize=8]\n'
         r = r + 'rankdir=TB;\nnodesep=2;\n'
         for t in self.transitions:
-            r = r + '%s -> %s [label="%s\\n%s"]\n' % (self.name,
-                                                      t.next_state.name,
-                                                      t.matcher.__name__,
-                                                      t.handler.__name__)
+            r = r + '%s -> %s [label="%s\\n%s"]\n' % (
+                self.name, t.next_state.name, t.matcher.__name__,
+                t.handler.__name__)
         return r
 
 
 class Transition(object):
+
     def __init__(self, next_state, matcher, handler):
         self.matcher = matcher
         self.handler = handler

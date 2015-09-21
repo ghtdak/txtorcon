@@ -24,16 +24,28 @@ class TorPage(livepage.LivePage):
     docFactory = loaders.stan(
         tags.html[
             tags.head[
-                tags.directive('liveglue')],
-            tags.body[
-                tags.h1["Tor Launching..."],
-                # obviously you might want a javascript library or
-                # something here instead of this hackery...
-                tags.div(id='progress', style='position:abso lute; left:20em; top:10px; width:300px; height:50px; border:2px solid black;background-color:#ffaaaa;')[
-                    tags.div(id='progress_done', style='position:absolute; top:0px; left:0px; width:0%; height: 100%; background-color:#aaffaa;')],
-
-                # this is where the messages will go
-                tags.div(id='status', style='padding:5px; background-color:#ffaaaa; text-indent:2em; width: 50em; font-weight:bold; border: 2px solid black;')[""]]])
+                tags.directive('liveglue')
+            ], tags.body[
+                tags.h1["Tor Launching..."],  # obviously you might want a javascript library or
+  # something here instead of this hackery...
+                tags.div(
+                    id='progress',
+                    style=
+                    'position:abso lute; left:20em; top:10px; width:300px; height:50px; border:2px solid black;background-color:#ffaaaa;'
+                )[
+                    tags.div(
+                        id='progress_done',
+                        style=
+                        'position:absolute; top:0px; left:0px; width:0%; height: 100%; background-color:#aaffaa;')
+                ],  # this is where the messages will go
+                tags.div(
+                    id='status',
+                    style
+                    =
+                    'padding:5px; background-color:#ffaaaa; text-indent:2em; width: 50em; font-weight:bold; border: 2px solid black;'
+                )[""]
+            ]
+        ])
 
     def goingLive(self, ctx, client):
         '''
@@ -53,21 +65,26 @@ class TorPage(livepage.LivePage):
             return
 
         point = int(300 * (float(percent) / 100.0))
-        self.client.send(livepage.js('''document.getElementById('progress_done').style.width = "%dpx";''' % point))
+        self.client.send(livepage.js(
+            '''document.getElementById('progress_done').style.width = "%dpx";'''
+            % point))
 
         if percent == 100:
             # done, turn message box green too
-            self.client.send(livepage.js('''document.getElementById("status").style.backgroundColor="#aaffaa";'''))
+            self.client.send(livepage.js(
+                '''document.getElementById("status").style.backgroundColor="#aaffaa";'''))
 
         if self.continuous_update:
             # add a text node for each update, creating a continuous list
-            self.client.send(livepage.js('''var newNode = document.createElement('div');
+            self.client.send(livepage.js(
+                '''var newNode = document.createElement('div');
 newNode.appendChild(document.createTextNode("%d%% -- %s"));
-document.getElementById('status').appendChild(newNode);''' % (percent, summary)))
+document.getElementById('status').appendChild(newNode);''' % (percent, summary
+                                                             )))
 
         else:
-            self.client.send(livepage.set('status', "%d%% &mdash; %s" % (percent, summary)))
-
+            self.client.send(livepage.set('status', "%d%% &mdash; %s" % (
+                percent, summary)))
 
 # This only properly works with one client (the last one to load the
 # page). To work with multiples, we'd have to track all clients so

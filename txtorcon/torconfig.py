@@ -35,9 +35,15 @@ class TorNotFound(RuntimeError):
 
 class TorProcessProtocol(protocol.ProcessProtocol):
 
-    def __init__(self, connection_creator, progress_updates=None, config=None,
-                 ireactortime=None, timeout=None, kill_on_stderr=True,
-                 stdout=None, stderr=None):
+    def __init__(self,
+                 connection_creator,
+                 progress_updates=None,
+                 config=None,
+                 ireactortime=None,
+                 timeout=None,
+                 kill_on_stderr=True,
+                 stdout=None,
+                 stderr=None):
         """
         This will read the output from a Tor process and attempt a
         connection to its control port when it sees any 'Bootstrapped'
@@ -191,8 +197,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
             if self._did_timeout:
                 err = RuntimeError("Timeout waiting for Tor launch..")
             else:
-                err = RuntimeError(
-                    "Tor was killed (%s)." % status.value.signal)
+                err = RuntimeError("Tor was killed (%s)." % status.value.signal)
         else:
             err = RuntimeError(
                 "Tor exited with error-code %d" % status.value.exitCode)
@@ -262,13 +267,15 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         self.tor_protocol.queue_command('RESETCONF __OwningControllerProcess')
 
 
-def launch_tor(config, reactor,
+def launch_tor(config,
+               reactor,
                tor_binary=None,
                progress_updates=None,
                connection_creator=None,
                timeout=None,
                kill_on_stderr=True,
-               stdout=None, stderr=None):
+               stdout=None,
+               stderr=None):
     """launches a new Tor process with the given config.
 
     There may seem to be a ton of options, but don't panic: this
@@ -415,8 +422,7 @@ def launch_tor(config, reactor,
         if connection_creator is None:
             connection_creator = functools.partial(
                 TCP4ClientEndpoint(reactor, 'localhost', control_port).connect,
-                TorProtocolFactory()
-            )
+                TorProtocolFactory())
     else:
         connection_creator = None
 
@@ -433,14 +439,8 @@ def launch_tor(config, reactor,
     # txtorlog.msg('Running with config:\n', ' '.join(config_args))
 
     process_protocol = TorProcessProtocol(
-        connection_creator,
-        progress_updates,
-        config, reactor,
-        timeout,
-        kill_on_stderr,
-        stdout,
-        stderr
-    )
+        connection_creator, progress_updates, config, reactor, timeout,
+        kill_on_stderr, stdout, stderr)
 
     # we set both to_delete and the shutdown events because this
     # process might be shut down way before the reactor, but if the
@@ -454,8 +454,7 @@ def launch_tor(config, reactor,
         process_protocol.to_delete = [data_directory]
         reactor.addSystemEventTrigger(
             'before', 'shutdown',
-            functools.partial(delete_file_or_tree, data_directory)
-        )
+            functools.partial(delete_file_or_tree, data_directory))
 
     try:
         log.msg('Spawning tor process with DataDirectory', data_directory)
@@ -465,8 +464,7 @@ def launch_tor(config, reactor,
             tor_binary,
             args=args,
             env={'HOME': data_directory},
-            path=data_directory
-        )
+            path=data_directory)
         # FIXME? don't need rest of the args: uid, gid, usePTY, childFDs)
         transport.closeStdin()
 
@@ -500,6 +498,7 @@ class TorConfigType(object):
 
 
 class Boolean(TorConfigType):
+
     def parse(self, s):
         if int(s):
             return True
@@ -522,6 +521,7 @@ class Boolean_Auto(TorConfigType):
 
 
 class Integer(TorConfigType):
+
     def parse(self, s):
         return int(s)
 
@@ -548,6 +548,7 @@ class DataSize(Integer):
 
 
 class Float(TorConfigType):
+
     def parse(self, s):
         return float(s)
 
@@ -558,6 +559,7 @@ class Time(TorConfigType):
 
 
 class CommaList(TorConfigType):
+
     def parse(self, s):
         return [x.strip() for x in s.split(',')]
 
@@ -583,6 +585,7 @@ class Filename(String):
 
 
 class LineList(TorConfigType):
+
     def parse(self, s):
         if isinstance(s, list):
             return [str(x).strip() for x in s]
@@ -591,13 +594,13 @@ class LineList(TorConfigType):
     def validate(self, obj, instance, name):
         if not isinstance(obj, list):
             raise ValueError("Not valid for %s: %s" % (self.__class__, obj))
-        return _ListWrapper(
-            obj, functools.partial(instance.mark_unsaved, name))
+        return _ListWrapper(obj, functools.partial(instance.mark_unsaved, name))
+
 
 config_types = [Boolean, Boolean_Auto, LineList, Integer, SignedInteger, Port,
-                TimeInterval, TimeMsecInterval,
-                DataSize, Float, Time, CommaList, String, LineList, Filename,
-                RouterList, TimeIntervalCommaList]
+                TimeInterval, TimeMsecInterval, DataSize, Float, Time,
+                CommaList, String, LineList, Filename, RouterList,
+                TimeIntervalCommaList]
 
 
 def is_list_config_type(klass):
@@ -612,11 +615,12 @@ def _wrapture(orig):
     the list.
     """
 
-#    @functools.wraps(orig)
+    #    @functools.wraps(orig)
     def foo(*args):
         obj = args[0]
         obj.on_modify()
         return orig(*args)
+
     return foo
 
 
@@ -678,8 +682,7 @@ class HiddenService(object):
     127.0.0.1:1234']))
     """
 
-    def __init__(self, config, thedir, ports,
-                 auth=[], ver=2, group_readable=0):
+    def __init__(self, config, thedir, ports, auth=[], ver=2, group_readable=0):
         """
         config is the TorConfig to which this will belong, thedir
         corresponds to 'HiddenServiceDir' and will ultimately contain
@@ -710,9 +713,7 @@ class HiddenService(object):
             auth = [auth]
         self.authorize_client = _ListWrapper(
             auth, functools.partial(
-                self.conf.mark_unsaved, 'HiddenServices'
-            )
-        )
+                self.conf.mark_unsaved, 'HiddenServices'))
 
         # there are three magic attributes, "hostname" and
         # "private_key" are gotten from the dir if they're still None
@@ -790,6 +791,7 @@ def parse_client_keys(stream):
         raise RuntimeError("Parse error at: " + data)
 
     class ParserState(object):
+
         def __init__(self):
             self.keys = []
             self.reset()
@@ -801,7 +803,8 @@ def parse_client_keys(stream):
 
         def create_key(self):
             if self.name is not None:
-                self.keys.append(HiddenServiceClientAuth(self.name, self.cookie, self.key))
+                self.keys.append(HiddenServiceClientAuth(self.name, self.cookie,
+                                                         self.key))
             self.reset()
 
         def set_name(self, name):
@@ -826,28 +829,37 @@ def parse_client_keys(stream):
 
     # initial state; we want "client-name" or it's an error
     init.add_transitions([
-        Transition(got_name, lambda line: line.startswith('client-name '), parser_state.set_name),
-        Transition(init, lambda line: not line.startswith('client-name '), parse_error),
+        Transition(got_name, lambda line: line.startswith('client-name '),
+                   parser_state.set_name),
+        Transition(init, lambda line: not line.startswith('client-name '),
+                   parse_error),
     ])
 
     # next up is "descriptor-cookie" or it's an error
     got_name.add_transitions([
-        Transition(got_cookie, lambda line: line.startswith('descriptor-cookie '), parser_state.set_cookie),
-        Transition(init, lambda line: not line.startswith('descriptor-cookie '), parse_error),
+        Transition(got_cookie,
+                   lambda line: line.startswith('descriptor-cookie '),
+                   parser_state.set_cookie),
+        Transition(init, lambda line: not line.startswith('descriptor-cookie '),
+                   parse_error),
     ])
 
     # the "interesting bit": there's either a client-name if we're a
     # "basic" file, or an RSA key (with "client-key" before it)
     got_cookie.add_transitions([
-        Transition(reading_key, lambda line: line.startswith('client-key'), None),
-        Transition(got_name, lambda line: line.startswith('client-name '), parser_state.set_name),
+        Transition(reading_key, lambda line: line.startswith('client-key'),
+                   None),
+        Transition(got_name, lambda line: line.startswith('client-name '),
+                   parser_state.set_name),
     ])
 
     # if we're reading an RSA key, we accumulate it in current_key.key
     # until we hit a line starting with "client-name"
     reading_key.add_transitions([
-        Transition(reading_key, lambda line: not line.startswith('client-name'), parser_state.add_key_line),
-        Transition(got_name, lambda line: line.startswith('client-name '), parser_state.set_name),
+        Transition(reading_key, lambda line: not line.startswith('client-name'),
+                   parser_state.add_key_line),
+        Transition(got_name, lambda line: line.startswith('client-name '),
+                   parser_state.set_name),
     ])
 
     # create our FSM and parse the data
@@ -932,9 +944,7 @@ class TorConfig(object):
         # following features. A thing goes in here if TorConfig
         # behaves differently depending upon whether it shows up in
         # "GETINFO config/names"
-        self._supports = dict(
-            HiddenServiceDirGroupReadable=False
-        )
+        self._supports = dict(HiddenServiceDirGroupReadable=False)
 
         self.post_bootstrap = defer.Deferred()
         if self.protocol:
@@ -956,8 +966,10 @@ class TorConfig(object):
     set it, which can only be done if we don't already have a
     protocol.
     """
+
     def _get_protocol(self):
         return self.__dict__['_protocol']
+
     protocol = property(_get_protocol)
 
     def attach_protocol(self, proto):
@@ -1089,8 +1101,7 @@ class TorConfig(object):
         pass an arg, it is ignored.
         '''
         try:
-            self.protocol.add_event_listener(
-                'CONF_CHANGED', self._conf_changed)
+            self.protocol.add_event_listener('CONF_CHANGED', self._conf_changed)
         except RuntimeError:
             # for Tor versions which don't understand CONF_CHANGED
             # there's nothing we can really do.
@@ -1142,7 +1153,9 @@ class TorConfig(object):
                                 args.append(k)
                                 args.append(v)
                             else:
-                                raise RuntimeError("Trying to add hidden service with same HiddenServiceDir: %s" % v)
+                                raise RuntimeError(
+                                    "Trying to add hidden service with same HiddenServiceDir: %s"
+                                    % v)
                         else:
                             args.append(k)
                             args.append(v)
@@ -1179,7 +1192,8 @@ class TorConfig(object):
         return self
 
     def _find_real_name(self, name):
-        keys = list(self.__dict__['parsers'].keys()) + list(self.__dict__['config'].keys())
+        keys = list(self.__dict__['parsers'].keys()) + list(
+            self.__dict__['config'].keys())
         for x in keys:
             if x.lower() == name.lower():
                 return x
@@ -1235,17 +1249,18 @@ class TorConfig(object):
         defer.returnValue(self)
 
     def _setup_hidden_services(self, servicelines):
+
         def maybe_add_hidden_service():
             if directory is not None:
                 if directory not in directories:
                     directories.append(directory)
                     hs.append(
                         HiddenService(
-                            self, directory, ports, auth, ver, group_read
-                        )
-                    )
+                            self, directory, ports, auth, ver, group_read))
                 else:
-                    raise RuntimeError("Trying to add hidden service with same HiddenServiceDir: %s" % directory)
+                    raise RuntimeError(
+                        "Trying to add hidden service with same HiddenServiceDir: %s"
+                        % directory)
 
         hs = []
         directory = None
@@ -1268,9 +1283,8 @@ class TorConfig(object):
                 directory = os.path.abspath(directory)
                 if directory != _directory:
                     warnings.warn(
-                        "Directory path: %s changed to absolute path: %s" % (_directory, directory),
-                        RuntimeWarning
-                    )
+                        "Directory path: %s changed to absolute path: %s" %
+                        (_directory, directory), RuntimeWarning)
                 ports = []
                 ver = None
                 auth = []

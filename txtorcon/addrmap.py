@@ -55,8 +55,8 @@ class Addr(object):
                 else:
                     gmtexpires = args[3]
 
-        self.name = name                # "www.example.com"
-        self.ip = maybe_ip_addr(ip)     # IPV4Address instance, or string
+        self.name = name  # "www.example.com"
+        self.ip = maybe_ip_addr(ip)  # IPV4Address instance, or string
 
         if self.ip == '<error>':
             self._expire()
@@ -107,6 +107,7 @@ class AddrMap(object):
     addrmap_added(Addr)
     addrmap_expired(name)
     """
+
     def __init__(self):
         self.addr = {}
         self.scheduler = IReactorTime(reactor)

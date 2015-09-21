@@ -4,6 +4,7 @@ from twisted.internet import reactor
 from twisted.internet.endpoints import TCP4ClientEndpoint
 import txtorcon
 
+
 def example(state):
     """
     This callback gets called after we've connected and loaded all the

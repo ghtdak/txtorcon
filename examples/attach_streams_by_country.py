@@ -74,8 +74,7 @@ class MyAttacher(txtorcon.CircuitListenerMixin):
         if self.waiting_on(circuit):
             path = '->'.join(map(lambda x: x.location.countrycode,
                                  circuit.path))
-            print "  circuit %d (%s). Path now %s" % (circuit.id,
-                                                      router.id_hex,
+            print "  circuit %d (%s). Path now %s" % (circuit.id, router.id_hex,
                                                       path)
 
     def circuit_built(self, circuit):
@@ -83,8 +82,7 @@ class MyAttacher(txtorcon.CircuitListenerMixin):
         if circuit.purpose != 'GENERAL':
             return
 
-        path = '->'.join(map(lambda r: r.location.countrycode,
-                             circuit.path))
+        path = '->'.join(map(lambda r: r.location.countrycode, circuit.path))
         print "circuit built", circuit.id, path
         for (circid, d, stream_cc) in self.waiting_circuits:
             if circid == circuit.id:
@@ -163,14 +161,13 @@ class MyAttacher(txtorcon.CircuitListenerMixin):
         # start with an entry guard, put anything in the middle and
         # put one of our exits at the end.
         path = [random.choice(self.state.entry_guards.values()),
-                random.choice(self.state.routers.values()),
-                random.choice(last)]
+                random.choice(self.state.routers.values()), random.choice(last)]
 
-        print "  requesting a circuit:", '->'.join(map(lambda r:
-                                                       r.location.countrycode,
-                                                       path))
+        print "  requesting a circuit:", '->'.join(map(
+            lambda r: r.location.countrycode, path))
 
         class AppendWaiting:
+
             def __init__(self, attacher, d, stream_cc):
                 self.attacher = attacher
                 self.d = d
@@ -217,6 +214,7 @@ def do_setup(state):
 def setup_failed(arg):
     print "SETUP FAILED", arg
     reactor.stop()
+
 
 d = txtorcon.build_local_tor_connection(reactor)
 d.addCallback(do_setup).addErrback(setup_failed)

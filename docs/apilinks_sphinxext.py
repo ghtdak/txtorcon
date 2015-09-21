@@ -15,8 +15,8 @@ Note, this is downloaded from:
 with a couple local tweaks ("label = full_name" and https for URL).
 '''
 
-def make_api_link(name, rawtext, text, lineno, inliner,
-                     options={}, content=[]):
+
+def make_api_link(name, rawtext, text, lineno, inliner, options={}, content=[]):
 
     from docutils import nodes, utils
 
@@ -31,7 +31,7 @@ def make_api_link(name, rawtext, text, lineno, inliner,
 
     #get the base url for api links from the config file
     env = inliner.document.settings.env
-    base_url =  env.config.apilinks_base_url
+    base_url = env.config.apilinks_base_url
 
     # not really sufficient, but just testing...
     # ...hmmm, maybe this is good enough after all
@@ -44,11 +44,11 @@ def make_api_link(name, rawtext, text, lineno, inliner,
     sys_msgs = []
     return nodes, sys_msgs
 
-
 # setup function to register the extension
 
+
 def setup(app):
-    app.add_config_value('apilinks_base_url', 
-                         'https://twistedmatrix.com/documents/current/api/', 
+    app.add_config_value('apilinks_base_url',
+                         'https://twistedmatrix.com/documents/current/api/',
                          'env')
     app.add_role('api', make_api_link)

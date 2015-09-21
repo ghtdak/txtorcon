@@ -1,4 +1,3 @@
-
 import txtorcon.spaghetti
 from txtorcon.spaghetti import *
 from twisted.trial import unittest
@@ -84,8 +83,8 @@ class FsmTests(unittest.TestCase):
                 _, stderr = proc.communicate()
                 retcode = proc.poll()
                 if retcode:
-                    self.fail('Calling dot returned %i (%s)' % (retcode,
-                                                                stderr))
+                    self.fail('Calling dot returned %i (%s)' % (retcode, stderr
+                                                               ))
         finally:
             os.unlink(fname)
 
@@ -93,9 +92,7 @@ class FsmTests(unittest.TestCase):
         idle = State("I")
         cmd = State("C")
 
-        idle.add_transitions([Transition(cmd,
-                                         self.match,
-                                         lambda x: idle)])
+        idle.add_transitions([Transition(cmd, self.match, lambda x: idle)])
 
         fsm = FSM([idle, cmd])
         self.commands = []
@@ -107,9 +104,7 @@ class FsmTests(unittest.TestCase):
         idle = State("I")
         cmd = State("C")
 
-        idle.add_transitions([Transition(cmd,
-                                         self.match,
-                                         None)])
+        idle.add_transitions([Transition(cmd, self.match, None)])
 
         fsm = FSM([idle, cmd])
         self.commands = []

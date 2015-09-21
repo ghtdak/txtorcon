@@ -349,6 +349,7 @@ class IRouterContainer(Interface):
 
 
 class IAddrListener(Interface):
+
     def addrmap_added(addr):
         """
         A new address was added to the address map.

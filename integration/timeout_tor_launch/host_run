@@ -14,12 +14,17 @@ import sys
 from xml.dom import minidom
 
 d = os.path.realpath(os.path.curdir)
-container = subprocess.check_output(['docker', 'run', '-v', d+':/txtorcon:ro',
-                                     '-d', 'txtorcon-tester', '/txtorcon/integration/timeout_tor_launch/container_run']).strip()
+container = subprocess.check_output(
+    ['docker', 'run', '-v', d + ':/txtorcon:ro', '-d', 'txtorcon-tester',
+     '/txtorcon/integration/timeout_tor_launch/container_run']).strip()
 print 'container:', container
+
+
 def kill_container(container):
     print "killing", container
     subprocess.check_output(['docker', 'kill', container])
+
+
 atexit.register(functools.partial(kill_container, container))
 
 print "waiting 15 seconds"

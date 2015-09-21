@@ -55,8 +55,7 @@ def bootstrap(c):
     print "Connection is live, bootstrapping state..."
 
 
-d = build_local_tor_connection(reactor, build_state=False,
-                               wait_for_proto=False)
+d = build_local_tor_connection(reactor, build_state=False, wait_for_proto=False)
 # do not use addCallbacks() here, in case bootstrap has an error
 d.addCallback(bootstrap).addErrback(setup_failed)
 

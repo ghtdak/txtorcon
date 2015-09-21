@@ -74,6 +74,7 @@ class MagicContainer(object):
 
 
 class ConfigMethod(object):
+
     def __init__(self, info_key, protocol, takes_arg=False):
         self.info_key = info_key
         self.proto = protocol
@@ -89,8 +90,7 @@ class ConfigMethod(object):
         if self.takes_arg:
             if len(args) != 1:
                 raise TypeError(
-                    '"%s" takes exactly one argument' % self.info_key
-                )
+                    '"%s" takes exactly one argument' % self.info_key)
             req = '%s/%s' % (self.info_key, str(args[0]))
 
         else:
@@ -259,8 +259,7 @@ class TorInfo(object):
                     mine = mine.attrs[bit]
                     if not isinstance(mine, MagicContainer):
                         raise RuntimeError(
-                            "Already had something: %s for %s" % (bit, name)
-                        )
+                            "Already had something: %s for %s" % (bit, name))
 
                 else:
                     c = MagicContainer(bit)
@@ -270,10 +269,9 @@ class TorInfo(object):
             n = bits[-1].replace('-', '_')
             if n in mine.attrs:
                 raise RuntimeError(
-                    "Already had something: %s for %s" % (n, name)
-                )
-            mine._add_attribute(n, ConfigMethod('/'.join(bits),
-                                                self.protocol, takes_arg))
+                    "Already had something: %s for %s" % (n, name))
+            mine._add_attribute(n, ConfigMethod('/'.join(bits), self.protocol,
+                                                takes_arg))
 
         for c in added_magic:
             c._setup_complete()

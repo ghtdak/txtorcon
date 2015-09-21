@@ -69,13 +69,16 @@ class FakeRouter:
         self.hash = hsh
         self.location = FakeLocation()
 
-examples = ['CIRC 365 LAUNCHED PURPOSE=GENERAL',
-            'CIRC 365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL',
-            'CIRC 365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus PURPOSE=GENERAL',
-            'CIRC 365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL',
-            'CIRC 365 BUILT $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL',
-            'CIRC 365 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=FINISHED',
-            'CIRC 365 FAILED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=TIMEOUT']
+
+examples = [
+    'CIRC 365 LAUNCHED PURPOSE=GENERAL',
+    'CIRC 365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL',
+    'CIRC 365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus PURPOSE=GENERAL',
+    'CIRC 365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL',
+    'CIRC 365 BUILT $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL',
+    'CIRC 365 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=FINISHED',
+    'CIRC 365 FAILED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=TIMEOUT'
+]
 
 
 class CircuitTests(unittest.TestCase):
@@ -88,7 +91,8 @@ class CircuitTests(unittest.TestCase):
 
         circuit = Circuit(tor)
         now = datetime.datetime.now()
-        update = '1 LAUNCHED PURPOSE=GENERAL TIME_CREATED=%s' % time.strftime('%Y-%m-%dT%H:%M:%S')
+        update = '1 LAUNCHED PURPOSE=GENERAL TIME_CREATED=%s' % time.strftime(
+            '%Y-%m-%dT%H:%M:%S')
         circuit.update(update.split())
         diff = circuit.age(now=now)
         self.assertEquals(diff, 0)
@@ -123,15 +127,16 @@ class CircuitTests(unittest.TestCase):
     def test_unlisten(self):
         tor = FakeTorController()
         tor.routers['$E11D2B2269CC25E67CA6C9FB5843497539A74FD0'] = FakeRouter(
-            '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0', 'a'
-        )
+            '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0', 'a')
 
         circuit = Circuit(tor)
         circuit.listen(tor)
         circuit.listen(tor)
         circuit.update('1 LAUNCHED PURPOSE=GENERAL'.split())
         circuit.unlisten(tor)
-        circuit.update('1 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL'.split())
+        circuit.update(
+            '1 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL'.split(
+            ))
         self.assertEqual(len(tor.circuits), 1)
         self.assertTrue(1 in tor.circuits)
         self.assertEqual(len(tor.extend), 0)
@@ -142,12 +147,12 @@ class CircuitTests(unittest.TestCase):
         cp = TorControlProtocol()
         state = TorState(cp, False)
         circuit = Circuit(state)
-        circuit.update('1 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL'.split())
+        circuit.update(
+            '1 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL'.split(
+            ))
         self.assertEqual(1, len(circuit.path))
         self.assertEqual(
-            '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0',
-            circuit.path[0].id_hex
-        )
+            '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0', circuit.path[0].id_hex)
         self.assertEqual('eris', circuit.path[0].name)
 
     def test_wrong_update(self):
@@ -156,10 +161,7 @@ class CircuitTests(unittest.TestCase):
         circuit.listen(tor)
         circuit.update('1 LAUNCHED PURPOSE=GENERAL'.split())
         self.assertRaises(
-            Exception,
-            circuit.update,
-            '2 LAUNCHED PURPOSE=GENERAL'.split()
-        )
+            Exception, circuit.update, '2 LAUNCHED PURPOSE=GENERAL'.split())
 
     def test_closed_remaining_streams(self):
         tor = FakeTorController()
@@ -167,12 +169,18 @@ class CircuitTests(unittest.TestCase):
         circuit.listen(tor)
         circuit.update('1 LAUNCHED PURPOSE=GENERAL'.split())
         stream = Stream(tor)
-        stream.update("1 NEW 0 94.23.164.42.$43ED8310EB968746970896E8835C2F1991E50B69.exit:9001 SOURCE_ADDR=(Tor_internal):0 PURPOSE=DIR_FETCH".split())
+        stream.update(
+            "1 NEW 0 94.23.164.42.$43ED8310EB968746970896E8835C2F1991E50B69.exit:9001 SOURCE_ADDR=(Tor_internal):0 PURPOSE=DIR_FETCH".split(
+            ))
         circuit.streams.append(stream)
         self.assertEqual(len(circuit.streams), 1)
 
-        circuit.update('1 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=FINISHED'.split())
-        circuit.update('1 FAILED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=TIMEOUT'.split())
+        circuit.update(
+            '1 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=FINISHED'.split(
+            ))
+        circuit.update(
+            '1 FAILED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=TIMEOUT'.split(
+            ))
         errs = self.flushLoggedErrors()
         self.assertEqual(len(errs), 2)
 
@@ -181,14 +189,11 @@ class CircuitTests(unittest.TestCase):
         circuit = Circuit(tor)
         circuit.listen(tor)
         tor.routers['$E11D2B2269CC25E67CA6C9FB5843497539A74FD0'] = FakeRouter(
-            '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0', 'a'
-        )
+            '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0', 'a')
         tor.routers['$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5'] = FakeRouter(
-            '$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5', 'b'
-        )
+            '$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5', 'b')
         tor.routers['$253DFF1838A2B7782BE7735F74E50090D46CA1BC'] = FakeRouter(
-            '$253DFF1838A2B7782BE7735F74E50090D46CA1BC', 'c'
-        )
+            '$253DFF1838A2B7782BE7735F74E50090D46CA1BC', 'c')
 
         for ex in examples[:-1]:
             circuit.update(ex.split()[1:])
@@ -196,9 +201,7 @@ class CircuitTests(unittest.TestCase):
             self.assertEqual(circuit.purpose, 'GENERAL')
             if '$' in ex:
                 self.assertEqual(
-                    len(circuit.path),
-                    len(ex.split()[3].split(','))
-                )
+                    len(circuit.path), len(ex.split()[3].split(',')))
                 for (r, p) in zip(ex.split()[3].split(','), circuit.path):
                     d = r.split('=')[0]
                     self.assertEqual(d, p.hash)
@@ -217,16 +220,22 @@ class CircuitTests(unittest.TestCase):
 
         circuit.update('365 LAUNCHED PURPOSE=GENERAL'.split())
         self.assertEqual(tor.extend, [])
-        circuit.update('365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL'.split())
+        circuit.update(
+            '365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL'.split(
+            ))
         self.assertEqual(len(tor.extend), 1)
         self.assertEqual(tor.extend[0], (circuit, a))
 
-        circuit.update('365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus PURPOSE=GENERAL'.split())
+        circuit.update(
+            '365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus PURPOSE=GENERAL'.split(
+            ))
         self.assertEqual(len(tor.extend), 2)
         self.assertEqual(tor.extend[0], (circuit, a))
         self.assertEqual(tor.extend[1], (circuit, b))
 
-        circuit.update('365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL'.split())
+        circuit.update(
+            '365 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL'.split(
+            ))
         self.assertEqual(len(tor.extend), 3)
         self.assertEqual(tor.extend[0], (circuit, a))
         self.assertEqual(tor.extend[1], (circuit, b))
@@ -241,7 +250,9 @@ class CircuitTests(unittest.TestCase):
         circuit = Circuit(tor)
         circuit.listen(tor)
 
-        circuit.update('753 EXTENDED BUILD_FLAGS=IS_INTERNAL,NEED_CAPACITY,NEED_UPTIME PURPOSE=MEASURE_TIMEOUT TIME_CREATED=2012-07-30T18:23:18.956704'.split())
+        circuit.update(
+            '753 EXTENDED BUILD_FLAGS=IS_INTERNAL,NEED_CAPACITY,NEED_UPTIME PURPOSE=MEASURE_TIMEOUT TIME_CREATED=2012-07-30T18:23:18.956704'.split(
+            ))
         self.assertEqual(tor.extend, [])
         self.assertEqual(circuit.path, [])
         self.assertTrue('IS_INTERNAL' in circuit.build_flags)
@@ -261,7 +272,9 @@ class CircuitTests(unittest.TestCase):
         tor = FakeTorController()
         circuit = Circuit(tor)
         circuit.listen(tor)
-        circuit.update('1 FAILED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL REASON=TIMEOUT'.split())
+        circuit.update(
+            '1 FAILED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris PURPOSE=GENERAL REASON=TIMEOUT'.split(
+            ))
         self.assertEqual(len(tor.failed), 1)
         circ, kw = tor.failed[0]
         self.assertEqual(circ, circuit)
@@ -282,7 +295,9 @@ class CircuitTests(unittest.TestCase):
         circuit = Circuit(tor)
         circuit.listen(tor)
 
-        circuit.update('123 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL'.split())
+        circuit.update(
+            '123 EXTENDED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL'.split(
+            ))
 
         self.assertEqual(3, len(circuit.path))
         d = circuit.close()
@@ -296,12 +311,12 @@ class CircuitTests(unittest.TestCase):
 
         # simulate that Tor has really closed the circuit for us
         # this should cause our Deferred to callback
-        circuit.update('123 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=FINISHED'.split())
+        circuit.update(
+            '123 CLOSED $E11D2B2269CC25E67CA6C9FB5843497539A74FD0=eris,$50DD343021E509EB3A5A7FD0D8A4F8364AFBDCB5=venus,$253DFF1838A2B7782BE7735F74E50090D46CA1BC=chomsky PURPOSE=GENERAL REASON=FINISHED'.split(
+            ))
 
         # confirm that our circuit callback has been triggered already
         self.assertRaises(
-            defer.AlreadyCalledError,
-            d.callback,
-            "should have been called already"
-        )
+            defer.AlreadyCalledError, d.callback,
+            "should have been called already")
         return d

@@ -21,18 +21,21 @@ class AddrMapTests(unittest.TestCase):
         now = datetime.datetime.now() + datetime.timedelta(seconds=10)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
         # we need to not-barf on extra args as per control-spec.txt
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s" FOO=bar BAR=baz' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s" FOO=bar BAR=baz' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
         am = AddrMap()
         am.update(line)
         addr = am.find('www.example.com')
 
-        self.assertTrue(addr.ip == '72.30.2.43' or addr.ip.exploded == '72.30.2.43')
+        self.assertTrue(addr.ip == '72.30.2.43' or addr.ip.exploded ==
+                        '72.30.2.43')
         # maybe not the most robust, should convert to
         # seconds-since-epoch instead? the net result of the parsing
         # is we've rounded to seconds...
         self.assertEqual(addr.expires.ctime(), nowutc.ctime())
 
-        line = 'www.example.com 72.30.2.43 "%s" "%s"' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" "%s"' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
         am.update(line)
         self.assertEqual(addr.expires.ctime(), nowutc.ctime())
 
@@ -52,7 +55,8 @@ class AddrMapTests(unittest.TestCase):
 
         now = datetime.datetime.now() + datetime.timedelta(seconds=10)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
 
         am.update(line)
 
@@ -88,7 +92,8 @@ class AddrMapTests(unittest.TestCase):
 
         now = datetime.datetime.now() + datetime.timedelta(seconds=-10)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=-10)
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
 
         am.update(line)
         self.assertTrue('www.example.com' in am.addr)
@@ -111,14 +116,16 @@ class AddrMapTests(unittest.TestCase):
         # now do an actual update to an existing Addr entry.
         now = datetime.datetime.now() + datetime.timedelta(seconds=10)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
         am.update(line)
         self.assertTrue(am.find('www.example.com'))
 
         # the update
         now = datetime.datetime.now() + datetime.timedelta(seconds=20)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=20)
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
         am.update(line)
         self.assertTrue('www.example.com' in am.addr)
 
@@ -189,7 +196,8 @@ class AddrMapTests(unittest.TestCase):
 
         now = datetime.datetime.now() + datetime.timedelta(seconds=10)
         nowutc = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
-        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (now.strftime(self.fmt), nowutc.strftime(self.fmt))
+        line = 'www.example.com 72.30.2.43 "%s" EXPIRES="%s"' % (
+            now.strftime(self.fmt), nowutc.strftime(self.fmt))
 
         am.update(line)
 

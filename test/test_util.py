@@ -72,19 +72,17 @@ class TestFindKeywords(unittest.TestCase):
         "make sure we filter out keys that look like router IDs"
         self.assertEqual(
             find_keywords("foo=bar $1234567890=routername baz=quux".split()),
-            {'foo': 'bar', 'baz': 'quux'}
-        )
+            {'foo': 'bar',
+             'baz': 'quux'})
 
 
 class FakeGeoIP(object):
+
     def __init__(self, version=2):
         self.version = version
 
     def record_by_addr(self, ip):
-        r = dict(country_code='XX',
-                 latitude=50.0,
-                 longitude=0.0,
-                 city='City')
+        r = dict(country_code='XX', latitude=50.0, longitude=0.0, city='City')
         if self.version == 2:
             r['region_code'] = 'Region'
         else:
@@ -123,9 +121,12 @@ class TestNetLocation(unittest.TestCase):
         from txtorcon import util
         orig = util.city
         try:
+
             class Thrower(object):
+
                 def record_by_addr(*args, **kw):
                     raise RuntimeError("testing failure")
+
             util.city = Thrower()
             nl = util.NetLocation('127.0.0.1')
             self.assertEqual(None, nl.city)
@@ -143,8 +144,10 @@ class TestNetLocation(unittest.TestCase):
             obj = object()
 
             class CountryCoder(object):
+
                 def country_code_by_addr(self, ipaddr):
                     return obj
+
             util.country = CountryCoder()
             nl = util.NetLocation('127.0.0.1')
             self.assertEqual(obj, nl.countrycode)
@@ -164,8 +167,10 @@ class TestNetLocation(unittest.TestCase):
             util.country = None
 
             class Thrower:
+
                 def org_by_addr(*args, **kw):
                     raise RuntimeError("testing failure")
+
             util.asn = Thrower()
             nl = util.NetLocation('127.0.0.1')
             self.assertEqual('', nl.countrycode)
@@ -273,7 +278,9 @@ class TestIpAddr(unittest.TestCase):
 
     @patch('txtorcon.util.ipaddr')
     def test_create_ipaddr(self, ipaddr):
+
         def foo(blam):
             raise ValueError('testing')
+
         ipaddr.IPAddress.side_effect = foo
         ip = maybe_ip_addr('1.2.3.4')

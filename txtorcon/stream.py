@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 Contains an implementation of a :class:`Stream abstraction used by
 :class:`TorState to represent all streams in Tor's state. There is
@@ -148,6 +147,7 @@ class Stream(object):
 
         def close_command_is_queued(*args):
             return self._closing_deferred
+
         d = self.circuit_container.close_stream(self, **kw)
         d.addCallback(close_command_is_queued)
         return self._closing_deferred
@@ -260,10 +260,8 @@ class Stream(object):
                     if self.circuit.id != cid:
                         log.err(
                             RuntimeError(
-                                'Circuit ID changed from %d to %d.' %
-                                (self.circuit.id, cid)
-                            )
-                        )
+                                'Circuit ID changed from %d to %d.' % (
+                                    self.circuit.id, cid)))
 
     def maybe_call_closing_deferred(self):
         """
@@ -279,9 +277,6 @@ class Stream(object):
         c = ''
         if self.circuit:
             c = 'on %d ' % self.circuit.id
-        return "<Stream %s %d %s%s -> %s port %d>" % (self.state,
-                                                      self.id,
-                                                      c,
-                                                      self.target_host,
-                                                      str(self.target_addr),
-                                                      self.target_port)
+        return "<Stream %s %d %s%s -> %s port %d>" % (
+            self.state, self.id, c, self.target_host, str(self.target_addr),
+            self.target_port)

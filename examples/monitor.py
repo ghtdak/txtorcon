@@ -22,6 +22,7 @@ def setup_failed(arg):
     print "SETUP FAILED", arg
     reactor.stop()
 
+
 d = txtorcon.build_local_tor_connection(reactor, build_state=False)
 d.addCallback(setup).addErrback(setup_failed)
 reactor.run()

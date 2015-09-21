@@ -19,6 +19,7 @@ import base64
 
 
 class CallbackChecker:
+
     def __init__(self, expected):
         self.expected_value = expected
         self.called_back = False
@@ -28,13 +29,13 @@ class CallbackChecker:
         if v != self.expected_value:
             print "WRONG"
             raise RuntimeError(
-                'Expected "%s" but got "%s"' % (self.expected_value, v)
-            )
+                'Expected "%s" but got "%s"' % (self.expected_value, v))
         self.called_back = True
         return v
 
 
 class InterfaceTests(unittest.TestCase):
+
     def test_implements(self):
         self.assertTrue(ITorControlProtocol.implementedBy(TorControlProtocol))
 
@@ -62,6 +63,7 @@ class LogicTests(unittest.TestCase):
 
 
 class FactoryTests(unittest.TestCase):
+
     def test_create(self):
         TorProtocolFactory().buildProtocol(None)
 
@@ -83,14 +85,14 @@ class AuthenticationTests(unittest.TestCase):
         with open('authcookie', 'w') as f:
             f.write(cookie_data)
         self.send('250-PROTOCOLINFO 1')
-        self.send('250-AUTH METHODS=COOKIE,HASHEDPASSWORD COOKIEFILE="authcookie"')
+        self.send(
+            '250-AUTH METHODS=COOKIE,HASHEDPASSWORD COOKIEFILE="authcookie"')
         self.send('250-VERSION Tor="0.2.2.34"')
         self.send('250 OK')
 
         self.assertEqual(
             self.transport.value(),
-            'AUTHENTICATE %s\r\n' % cookie_data.encode("hex")
-        )
+            'AUTHENTICATE %s\r\n' % cookie_data.encode("hex"))
 
     def test_authenticate_password(self):
         self.protocol.password_function = lambda: 'foo'
@@ -102,7 +104,8 @@ class AuthenticationTests(unittest.TestCase):
         self.send('250-VERSION Tor="0.2.2.34"')
         self.send('250 OK')
 
-        self.assertEqual(self.transport.value(), 'AUTHENTICATE %s\r\n' % "foo".encode("hex"))
+        self.assertEqual(self.transport.value(), 'AUTHENTICATE %s\r\n' %
+                         "foo".encode("hex"))
 
     def test_authenticate_password_deferred(self):
         d = defer.Deferred()
@@ -122,9 +125,7 @@ class AuthenticationTests(unittest.TestCase):
 
         # now make sure we DID try to authenticate
         self.assertEqual(
-            self.transport.value(),
-            'AUTHENTICATE %s\r\n' % "foo".encode("hex")
-        )
+            self.transport.value(), 'AUTHENTICATE %s\r\n' % "foo".encode("hex"))
 
     def test_authenticate_password_deferred_but_no_password(self):
         d = defer.Deferred()
@@ -158,6 +159,7 @@ class AuthenticationTests(unittest.TestCase):
 
 
 class DisconnectionTests(unittest.TestCase):
+
     def setUp(self):
         self.protocol = TorControlProtocol()
         self.protocol.connectionMade = lambda: None
@@ -174,9 +176,11 @@ class DisconnectionTests(unittest.TestCase):
         see that we get our callback on_disconnect if the transport
         goes away
         """
+
         def it_was_called(*args):
             it_was_called.yes = True
             return None
+
         it_was_called.yes = False
         self.protocol.on_disconnect.addCallback(it_was_called)
         self.protocol.on_disconnect.addErrback(it_was_called)
@@ -189,9 +193,11 @@ class DisconnectionTests(unittest.TestCase):
         see that we get our callback on_disconnect if the transport
         goes away
         """
+
         def it_was_called(*args):
             it_was_called.yes = True
             return None
+
         it_was_called.yes = False
         self.protocol.on_disconnect.addCallback(it_was_called)
         self.protocol.on_disconnect.addErrback(it_was_called)
@@ -319,20 +325,17 @@ AUTH METHODS=SAFECOOKIE COOKIEFILE="%s"
 VERSION Tor="0.2.2.35"
 OK''' % cookietmp.name)
             self.assertTrue(
-                'AUTHCHALLENGE SAFECOOKIE ' in self.transport.value()
-            )
+                'AUTHCHALLENGE SAFECOOKIE ' in self.transport.value())
             client_nonce = base64.b16decode(self.transport.value().split()[-1])
             self.transport.clear()
             server_nonce = str(bytearray([0] * 32))
             server_hash = hmac_sha256(
                 "Tor safe cookie authentication server-to-controller hash",
-                cookiedata + client_nonce + server_nonce
-            )
+                cookiedata + client_nonce + server_nonce)
 
             self.send(
                 '250 AUTHCHALLENGE SERVERHASH=%s SERVERNONCE=%s' %
-                (base64.b16encode(server_hash), base64.b16encode(server_nonce))
-            )
+                (base64.b16encode(server_hash), base64.b16encode(server_nonce)))
             self.assertTrue('AUTHENTICATE ' in self.transport.value())
 
     def test_authenticate_safecookie_wrong_hash(self):
@@ -347,15 +350,15 @@ OK''' % cookietmp.name)
         try:
             self.protocol._safecookie_authchallenge(
                 '250 AUTHCHALLENGE SERVERHASH=%s SERVERNONCE=%s' %
-                (base64.b16encode(server_hash), base64.b16encode(server_nonce))
-            )
+                (base64.b16encode(server_hash), base64.b16encode(server_nonce)))
             self.assertTrue(False)
         except RuntimeError, e:
             self.assertTrue('hash not expected' in str(e))
 
     def confirm_version_events(self, arg):
         self.assertEqual(self.protocol.version, 'foo')
-        events = 'GUARD STREAM CIRC NS NEWCONSENSUS ORCONN NEWDESC ADDRMAP STATUS_GENERAL'.split()
+        events = 'GUARD STREAM CIRC NS NEWCONSENSUS ORCONN NEWDESC ADDRMAP STATUS_GENERAL'.split(
+        )
         self.assertEqual(len(self.protocol.valid_events), len(events))
         self.assertTrue(all(x in self.protocol.valid_events for x in events))
 
@@ -411,11 +414,8 @@ OK''' % cookietmp.name)
 
         self.protocol._set_valid_events('CIRC')
         self.protocol.add_event_listener(
-            'CIRC',
-            CallbackChecker(
-                "1000 EXTENDED moria1,moria2\nEXTRAMAGIC=99\nANONYMITY=high"
-            )
-        )
+            'CIRC', CallbackChecker(
+                "1000 EXTENDED moria1,moria2\nEXTRAMAGIC=99\nANONYMITY=high"))
         self.send("250 OK")
 
         d = self.protocol.get_conf("SOCKSPORT ORPORT")
@@ -448,9 +448,7 @@ OK''' % cookietmp.name)
 
     def test_getinfo_incremental(self):
         d = self.protocol.get_info_incremental(
-            "FOO",
-            functools.partial(self.incremental_check, "bar")
-        )
+            "FOO", functools.partial(self.incremental_check, "bar"))
         self.send("250+FOO=")
         self.send("bar")
         self.send("bar")
@@ -460,9 +458,7 @@ OK''' % cookietmp.name)
 
     def test_getinfo_incremental_continuation(self):
         d = self.protocol.get_info_incremental(
-            "FOO",
-            functools.partial(self.incremental_check, "bar")
-        )
+            "FOO", functools.partial(self.incremental_check, "bar"))
         self.send("250-FOO=")
         self.send("250-bar")
         self.send("250-bar")
@@ -471,9 +467,7 @@ OK''' % cookietmp.name)
 
     def test_getinfo_one_line(self):
         d = self.protocol.get_info(
-            "foo",
-            functools.partial(self.incremental_check, "bar")
-        )
+            "foo", functools.partial(self.incremental_check, "bar"))
         self.send('250 foo=bar')
         return d
 
@@ -496,8 +490,7 @@ OK''' % cookietmp.name)
 
     def test_setconf(self):
         d = self.protocol.set_conf("foo", "bar").addCallback(
-            functools.partial(self.response_ok)
-        )
+            functools.partial(self.response_ok))
         self.send("250 OK")
         self._wait(d)
         self.assertEqual(self.transport.value(), "SETCONF foo=bar\r\n")
@@ -508,9 +501,7 @@ OK''' % cookietmp.name)
         self.send("250 OK")
         self._wait(d)
         self.assertEqual(
-            self.transport.value(),
-            'SETCONF foo="a value with a space"\r\n'
-        )
+            self.transport.value(), 'SETCONF foo="a value with a space"\r\n')
 
     def test_setconf_multi(self):
         d = self.protocol.set_conf("foo", "bar", "baz", 1)
@@ -567,9 +558,7 @@ OK''' % cookietmp.name)
     def test_650_after_authenticate(self):
         self.protocol._set_valid_events('CONF_CHANGED')
         self.protocol.add_event_listener(
-            'CONF_CHANGED',
-            CallbackChecker("Foo=bar")
-        )
+            'CONF_CHANGED', CallbackChecker("Foo=bar"))
         self.send("250 OK")
 
         self.send("650-CONF_CHANGED")
@@ -578,9 +567,7 @@ OK''' % cookietmp.name)
     def test_notify_after_getinfo(self):
         self.protocol._set_valid_events('CIRC')
         self.protocol.add_event_listener(
-            'CIRC',
-            CallbackChecker("1000 EXTENDED moria1,moria2")
-        )
+            'CIRC', CallbackChecker("1000 EXTENDED moria1,moria2"))
         self.send("250 OK")
 
         d = self.protocol.get_info("a")
@@ -640,8 +627,12 @@ iO3EUE0AEYah2W9gdz8t+i3Dtr0zgqLS841GC/TyDKCm+MKmN8d098qnwK0NGF9q
 -----END SIGNATURE-----
 .
 250 OK"""
+
         d = self.protocol.get_info("desc/name/moria1")
-        d.addCallback(CallbackChecker({'desc/name/moria1': '\n' + '\n'.join(descriptor_info.split('\n')[1:-2])}))
+        d.addCallback(CallbackChecker({
+            'desc/name/moria1': '\n' + '\n'.join(descriptor_info.split('\n')[1:-
+                                                                             2])
+        }))
         d.addErrback(self.fail)
 
         for line in descriptor_info.split('\n'):
@@ -658,9 +649,7 @@ iO3EUE0AEYah2W9gdz8t+i3Dtr0zgqLS841GC/TyDKCm+MKmN8d098qnwK0NGF9q
         self.send("250 OK")
         self._wait(d)
         self.assertEqual(
-            self.transport.value().split('\r\n')[-2],
-            "SETEVENTS FOO"
-        )
+            self.transport.value().split('\r\n')[-2], "SETEVENTS FOO")
         self.transport.clear()
 
         self.protocol.add_event_listener('BAR', lambda _: None)
@@ -672,8 +661,7 @@ iO3EUE0AEYah2W9gdz8t+i3Dtr0zgqLS841GC/TyDKCm+MKmN8d098qnwK0NGF9q
 
         try:
             self.protocol.add_event_listener(
-                'SOMETHING_INVALID', lambda _: None
-            )
+                'SOMETHING_INVALID', lambda _: None)
             self.assertTrue(False)
         except:
             pass
@@ -771,19 +759,23 @@ iO3EUE0AEYah2W9gdz8t+i3Dtr0zgqLS841GC/TyDKCm+MKmN8d098qnwK0NGF9q
         TorStateTests.test_newdesc_parse)
         """
 
-        self.protocol.get_info_raw('ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A')
+        self.protocol.get_info_raw(
+            'ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A')
         d = self.protocol.defer
-        d.addCallback(CallbackChecker("""ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A=
+        d.addCallback(CallbackChecker(
+            """ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A=
 r fake YkkmgCNRV1/35OPWDvo7+1bmfoo tanLV/4ZfzpYQW0xtGFqAa46foo 2011-12-12 16:29:16 12.45.56.78 443 80
 s Exit Fast Guard HSDir Named Running Stable V2Dir Valid
 w Bandwidth=518000
 p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863,2082-2083,2086-2087,2095-2096,3128,4321,5050,5190,5222-5223,6679,6697,7771,8000,8008,8080-8081,8090,8118,8123,8181,8300,8443,8888"""))
 
         self.send("250+ns/id/624926802351575FF7E4E3D60EFA3BFB56E67E8A=")
-        self.send("r fake YkkmgCNRV1/35OPWDvo7+1bmfoo tanLV/4ZfzpYQW0xtGFqAa46foo 2011-12-12 16:29:16 12.45.56.78 443 80")
+        self.send(
+            "r fake YkkmgCNRV1/35OPWDvo7+1bmfoo tanLV/4ZfzpYQW0xtGFqAa46foo 2011-12-12 16:29:16 12.45.56.78 443 80")
         self.send("s Exit Fast Guard HSDir Named Running Stable V2Dir Valid")
         self.send("w Bandwidth=518000")
-        self.send("p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863,2082-2083,2086-2087,2095-2096,3128,4321,5050,5190,5222-5223,6679,6697,7771,8000,8008,8080-8081,8090,8118,8123,8181,8300,8443,8888")
+        self.send(
+            "p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863,2082-2083,2086-2087,2095-2096,3128,4321,5050,5190,5222-5223,6679,6697,7771,8000,8008,8080-8081,8090,8118,8123,8181,8300,8443,8888")
         self.send(".")
         self.send("250 OK")
 
@@ -791,7 +783,8 @@ p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863
 
     def test_plus_line_no_command(self):
         self.protocol.lineReceived("650+NS\r\n")
-        self.protocol.lineReceived("r Gabor gFpAHsFOHGATy12ZUswRf0ZrqAU GG6GDp40cQfR3ODvkBT0r+Q09kw 2012-05-12 16:54:56 91.219.238.71 443 80\r\n")
+        self.protocol.lineReceived(
+            "r Gabor gFpAHsFOHGATy12ZUswRf0ZrqAU GG6GDp40cQfR3ODvkBT0r+Q09kw 2012-05-12 16:54:56 91.219.238.71 443 80\r\n")
 
     def test_minus_line_no_command(self):
         """
@@ -811,9 +804,12 @@ class ParseTests(unittest.TestCase):
         self.controller.connectionMade = lambda _: None
 
     def test_keywords(self):
-        x = parse_keywords('events/names=CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
+        x = parse_keywords(
+            'events/names=CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
         self.assertTrue('events/names' in x)
-        self.assertEqual(x['events/names'], 'CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
+        self.assertEqual(x[
+            'events/names'
+        ], 'CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
         self.assertEqual(len(x.keys()), 1)
 
     def test_keywords_mutli_equals(self):
@@ -875,8 +871,7 @@ OK
         x = parse_keywords('''Foo=bar\nBar''')
         self.assertEqual(x, {'Foo': 'bar\nBar'})
         x = parse_keywords('''Foo=bar\nBar''', multiline_values=False)
-        self.assertEqual(x, {'Foo': 'bar',
-                             'Bar': DEFAULT_VALUE})
+        self.assertEqual(x, {'Foo': 'bar', 'Bar': DEFAULT_VALUE})
 
     def test_unquoted_keywords(self):
         x = parse_keywords('''Tor="0.1.2.3.4-rc44"''')

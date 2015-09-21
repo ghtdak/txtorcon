@@ -94,6 +94,7 @@ class Event(object):
     TorController.add_event The callbacks will be called every time
     the event in question is received.
     """
+
     def __init__(self, name):
         self.name = name
         self.callbacks = []
@@ -251,11 +252,11 @@ class TorControlProtocol(LineOnlyReceiver):
         """
 
         # variables related to the state machine
-        self.defer = None        # Deferred we returned for the current command
+        self.defer = None  # Deferred we returned for the current command
         self.response = ''
         self.code = None
-        self.command = None      # currently processing this command
-        self.commands = []       # queued commands
+        self.command = None  # currently processing this command
+        self.commands = []  # queued commands
 
         # Here we build up the state machine. Mostly it's pretty
         # simply, confounded by the fact that 600's (notify) can come
@@ -267,31 +268,23 @@ class TorControlProtocol(LineOnlyReceiver):
         recvmulti = State("RECV_PLUS")
         recvnotify = State("NOTIFY_MULTILINE")
 
-        idle.add_transition(Transition(idle,
-                                       self._is_single_line_response,
+        idle.add_transition(Transition(idle, self._is_single_line_response,
                                        self._broadcast_response))
-        idle.add_transition(Transition(recvmulti,
-                                       self._is_multi_line,
+        idle.add_transition(Transition(recvmulti, self._is_multi_line,
                                        self._start_command))
-        idle.add_transition(Transition(recv,
-                                       self._is_continuation_line,
+        idle.add_transition(Transition(recv, self._is_continuation_line,
                                        self._start_command))
 
-        recv.add_transition(Transition(recvmulti,
-                                       self._is_multi_line,
+        recv.add_transition(Transition(recvmulti, self._is_multi_line,
                                        self._accumulate_response))
-        recv.add_transition(Transition(recv,
-                                       self._is_continuation_line,
+        recv.add_transition(Transition(recv, self._is_continuation_line,
                                        self._accumulate_response))
-        recv.add_transition(Transition(idle,
-                                       self._is_finish_line,
+        recv.add_transition(Transition(idle, self._is_finish_line,
                                        self._broadcast_response))
 
-        recvmulti.add_transition(Transition(recv,
-                                            self._is_end_line,
+        recvmulti.add_transition(Transition(recv, self._is_end_line,
                                             lambda x: None))
-        recvmulti.add_transition(Transition(recvmulti,
-                                            self._is_not_end_line,
+        recvmulti.add_transition(Transition(recvmulti, self._is_not_end_line,
                                             self._accumulate_multi_response))
 
         self.fsm = FSM([recvnotify, idle, recvmulti, recv])
@@ -305,12 +298,14 @@ class TorControlProtocol(LineOnlyReceiver):
         self.debuglog = open('txtorcon-debug.log', 'w')
 
     def stop_debug(self):
+
         def noop(*args, **kw):
             pass
 
         class NullLog(object):
             write = noop
             flush = noop
+
         self.debuglog = NullLog()
 
     def graphviz_data(self):
@@ -339,6 +334,7 @@ class TorControlProtocol(LineOnlyReceiver):
         def strip_ok_and_call(line):
             if line.strip() != 'OK':
                 line_cb(line)
+
         return self.queue_command('GETINFO %s' % key, strip_ok_and_call)
 
     # The following methods are the main TorController API and
@@ -430,6 +426,7 @@ class TorControlProtocol(LineOnlyReceiver):
             if ' ' in s:
                 return '"%s"' % s
             return s
+
         values = [maybe_quote(v) for v in values]
         args = ' '.join(map(lambda x, y: '%s=%s' % (x, y), keys, values))
         return self.queue_command('SETCONF ' + args)
@@ -624,20 +621,17 @@ class TorControlProtocol(LineOnlyReceiver):
         # FIXME put string in global. or something.
         expected_server_hash = hmac_sha256(
             "Tor safe cookie authentication server-to-controller hash",
-            self.cookie_data + self.client_nonce + server_nonce
-        )
+            self.cookie_data + self.client_nonce + server_nonce)
 
         if not compare_via_hash(expected_server_hash, server_hash):
             raise RuntimeError(
                 'Server hash not expected; wanted "%s" and got "%s".' %
                 (base64.b16encode(expected_server_hash),
-                 base64.b16encode(server_hash))
-            )
+                 base64.b16encode(server_hash)))
 
         client_hash = hmac_sha256(
             "Tor safe cookie authentication controller-to-server hash",
-            self.cookie_data + self.client_nonce + server_nonce
-        )
+            self.cookie_data + self.client_nonce + server_nonce)
         client_hash_hex = base64.b16encode(client_hash)
         return self.queue_command('AUTHENTICATE %s' % client_hash_hex)
 
@@ -654,8 +648,7 @@ class TorControlProtocol(LineOnlyReceiver):
                 methods = kw['METHODS'].split(',')
         if not methods:
             raise RuntimeError(
-                "Didn't find AUTH line in PROTOCOLINFO response."
-            )
+                "Didn't find AUTH line in PROTOCOLINFO response.")
 
         if 'SAFECOOKIE' in methods:
             cookie = re.search('COOKIEFILE="(.*)"', protoinfo).group(1)
@@ -663,8 +656,7 @@ class TorControlProtocol(LineOnlyReceiver):
             if len(self.cookie_data) != 32:
                 raise RuntimeError(
                     "Expected authentication cookie to be 32 bytes, got %d" %
-                    len(self.cookie_data)
-                )
+                    len(self.cookie_data))
             txtorlog.msg("Using SAFECOOKIE authentication", cookie,
                          len(self.cookie_data), "bytes")
             self.client_nonce = os.urandom(32)
@@ -684,10 +676,9 @@ class TorControlProtocol(LineOnlyReceiver):
             if len(data) != 32:
                 raise RuntimeError(
                     "Expected authentication cookie to be 32 "
-                    "bytes, got %d instead." % len(data)
-                )
-            txtorlog.msg("Using COOKIE authentication",
-                         cookie, len(data), "bytes")
+                    "bytes, got %d instead." % len(data))
+            txtorlog.msg("Using COOKIE authentication", cookie, len(data),
+                         "bytes")
             d = self.authenticate(data)
             d.addCallback(self._bootstrap)
             d.addErrback(self._auth_failed)
@@ -701,8 +692,7 @@ class TorControlProtocol(LineOnlyReceiver):
 
         raise RuntimeError(
             "The Tor I connected to doesn't support SAFECOOKIE nor COOKIE"
-            " authentication and I have no password_function specified."
-        )
+            " authentication and I have no password_function specified.")
 
     def _do_password_authentication(self, passwd):
         if not passwd:
@@ -846,8 +836,7 @@ class TorControlProtocol(LineOnlyReceiver):
         if self.code >= 200 and self.code < 300:
             if self.defer is None:
                 raise RuntimeError(
-                    'Got a response, but didn\'t issue a command: "%s"' % resp
-                )
+                    'Got a response, but didn\'t issue a command: "%s"' % resp)
             if resp.endswith('\nOK'):
                 resp = resp[:-3]
             self.defer.callback(resp)
@@ -862,8 +851,7 @@ class TorControlProtocol(LineOnlyReceiver):
             raise RuntimeError("No code set yet in broadcast response.")
         else:
             raise RuntimeError(
-                "Unknown code in broadcast response %d." % self.code
-            )
+                "Unknown code in broadcast response %d." % self.code)
 
         # note: we don't do this for 600-level responses
         self.command = None

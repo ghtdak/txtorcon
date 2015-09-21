@@ -23,13 +23,13 @@ class Options(usage.Options):
     """
 
     optParameters = [
-        ['failed', 'f', 0, 'Starting value for number of failed circuits.',
-         int],
-        ['built', 'b', 0,
-         'Starting value for the total number of built cicuits.', int],
-        ['connect', 'c', None, 'Tor control socket to connect to in '
-         'host:port format, like "localhost:9051" (the default).'],
-        ['delay', 'n', 60, 'Seconds to wait between status updates.', int]]
+        ['failed', 'f', 0, 'Starting value for number of failed circuits.', int
+        ], ['built', 'b', 0,
+            'Starting value for the total number of built cicuits.', int
+        ], ['connect', 'c', None, 'Tor control socket to connect to in '
+            'host:port format, like "localhost:9051" (the default).'
+        ], ['delay', 'n', 60, 'Seconds to wait between status updates.', int]
+    ]
 
     def __init__(self):
         usage.Options.__init__(self)
@@ -55,9 +55,9 @@ class CircuitFailureWatcher(txtorcon.CircuitListenerMixin):
         print time.ctime(reactor.seconds()) + ': ' + self.information()
 
     def update_percent(self):
-        self.percent = 100.0 * (float(self.failed_circuits) /
-                                float(self.built_circuits +
-                                      self.failed_circuits))
+        self.percent = 100.0 * (
+            float(self.failed_circuits) /
+            float(self.built_circuits + self.failed_circuits))
         if self.percent > 50.0:
             print 'WARNING: %02.1f percent of all routes' % self.percent
             print ' have failed: %d failed, %d built' % (self.failed_circuits,
@@ -68,9 +68,8 @@ class CircuitFailureWatcher(txtorcon.CircuitListenerMixin):
         rtn += 'have failed: %d failed, %d built' % (self.failed_circuits,
                                                      self.built_circuits)
         for g in self.per_guard_built.keys():
-            per_guard_percent = 100.0 * (self.per_guard_failed[g] /
-                                         (self.per_guard_built[g] +
-                                          self.per_guard_failed[g]))
+            per_guard_percent = 100.0 * (self.per_guard_failed[g] / (
+                self.per_guard_built[g] + self.per_guard_failed[g]))
             current = ' '
             for guard in self.state.entry_guards.values():
                 if g == guard.name or g == guard.id_hex:
@@ -193,13 +192,13 @@ except usage.UsageError:
 
 def on_shutdown(listener, *args):
     print '\nTo carry on where you left off, run:'
-    print '  %s --failed %d --built %d' % (sys.argv[0],
-                                           listener.failed_circuits,
-                                           listener.built_circuits),
+    print '  %s --failed %d --built %d' % (
+        sys.argv[0], listener.failed_circuits, listener.built_circuits),
     for name in listener.per_guard_built.keys():
         print '--guard %s,%d,%d' % (name, listener.per_guard_built[name],
                                     listener.per_guard_failed[name]),
     print
+
 
 listener = CircuitFailureWatcher()
 

@@ -14,12 +14,17 @@ import sys
 from xml.dom import minidom
 
 d = os.path.realpath(os.path.curdir)
-container = subprocess.check_output(['docker', 'run', '-v', d+':/txtorcon:ro', '-d',
-                                     'txtorcon-tester', '/txtorcon/integration/hidden_service_listen_ports/container_run']).strip()
+container = subprocess.check_output(
+    ['docker', 'run', '-v', d + ':/txtorcon:ro', '-d', 'txtorcon-tester',
+     '/txtorcon/integration/hidden_service_listen_ports/container_run']).strip()
 print 'container:', container
+
+
 def kill_container(container):
     print "killing", container
     subprocess.check_output(['docker', 'kill', container])
+
+
 atexit.register(functools.partial(kill_container, container))
 
 data = subprocess.check_output(['docker', 'inspect', container])
@@ -43,8 +48,8 @@ while True:
 print "running nmap (scanning all 65535 TCP ports)..."
 fname = 'txtorcon-nmap'
 #print subprocess.check_output(['nmap', '-T5', '-PN', ip])
-nmap = subprocess.check_output(['nmap', '-T5', '-p', '1-65535', '-oX', fname, 
-                               '--open', '-sS', ip])
+nmap = subprocess.check_output(['nmap', '-T5', '-p', '1-65535', '-oX', fname,
+                                '--open', '-sS', ip])
 
 dom = minidom.parse(open(fname, 'r'))
 ports = dom.getElementsByTagName('port')

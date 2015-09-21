@@ -47,7 +47,9 @@ def _wait_for_proto(proto):
     return proto.post_bootstrap
 
 
-def build_tor_connection(connection, build_state=True, wait_for_proto=True,
+def build_tor_connection(connection,
+                         build_state=True,
+                         wait_for_proto=True,
                          password_function=lambda: None):
     """
     This is used to build a valid TorState (which has .protocol for
@@ -89,37 +91,32 @@ def build_tor_connection(connection, build_state=True, wait_for_proto=True,
     elif isinstance(connection, tuple):
         if len(connection) == 2:
             reactor, socket = connection
-            if (os.path.exists(socket) and
-                os.stat(socket).st_mode & (stat.S_IRGRP | stat.S_IRUSR |
-                                           stat.S_IROTH)):
+            if (os.path.exists(socket) and os.stat(socket).st_mode
+                & (stat.S_IRGRP | stat.S_IRUSR | stat.S_IROTH)):
                 endpoint = UNIXClientEndpoint(reactor, socket)
             else:
-                raise ValueError('Can\'t use "%s" as a socket' % (socket, ))
+                raise ValueError('Can\'t use "%s" as a socket' % (socket,))
         elif len(connection) == 3:
             endpoint = TCP4ClientEndpoint(*connection)
         else:
             raise TypeError('Expected either a (reactor, socket)- or a '
                             '(reactor, host, port)-tuple for argument '
-                            '"connection", got %s' % (connection, ))
+                            '"connection", got %s' % (connection,))
     else:
         raise TypeError('Expected a (reactor, socket)- or a (reactor, host, '
                         'port)-tuple or an object implementing IStreamClient'
                         'Endpoint for argument "connection", got %s' %
-                        (connection, ))
+                        (connection,))
 
     d = endpoint.connect(
         TorProtocolFactory(
-            password_function=password_function
-        )
-    )
+            password_function=password_function))
     if build_state:
-        d.addCallback(build_state
-                      if isinstance(build_state, collections.Callable)
-                      else _build_state)
+        d.addCallback(build_state if isinstance(
+            build_state, collections.Callable) else _build_state)
     elif wait_for_proto:
-        d.addCallback(wait_for_proto
-                      if isinstance(wait_for_proto, collections.Callable)
-                      else _wait_for_proto)
+        d.addCallback(wait_for_proto if isinstance(
+            wait_for_proto, collections.Callable) else _wait_for_proto)
     return d
 
 
@@ -227,19 +224,22 @@ class TorState(object):
         self.stream_listeners = []
 
         self.addrmap = AddrMap()
-        self.circuits = {}               # keys on id (integer)
-        self.streams = {}                # keys on id (integer)
+        self.circuits = {}  # keys on id (integer)
+        self.streams = {}  # keys on id (integer)
 
-        self.all_routers = set()         # list of unique routers
-        self.routers = {}                # keys by hexid (string) and by unique names
-        self.routers_by_name = {}        # keys on name, value always list (many duplicate "Unnamed" routers, for example)
-        self.routers_by_hash = {}        # keys by hexid (string)
-        self.guards = {}                 # potentially-usable as entry guards, I think? (any router with 'Guard' flag)
-        self.entry_guards = {}           # from GETINFO entry-guards, our current entry guards
+        self.all_routers = set()  # list of unique routers
+        self.routers = {}  # keys by hexid (string) and by unique names
+        self.routers_by_name = {
+        }  # keys on name, value always list (many duplicate "Unnamed" routers, for example)
+        self.routers_by_hash = {}  # keys by hexid (string)
+        self.guards = {
+        }  # potentially-usable as entry guards, I think? (any router with 'Guard' flag)
+        self.entry_guards = {
+        }  # from GETINFO entry-guards, our current entry guards
         self.unusable_entry_guards = []  # list of entry guards we didn't parse out
-        self.authorities = {}            # keys by name
+        self.authorities = {}  # keys by name
 
-        self.cleanup = None              # see set_attacher
+        self.cleanup = None  # see set_attacher
 
         class die(object):
             __name__ = 'die'  # FIXME? just to ease spagetti.py:82's pain
@@ -260,29 +260,49 @@ class TorState(object):
             return x in ['.', 'OK', ''] or x.startswith('ns/')
 
         waiting_r.add_transition(Transition(waiting_r, ignorable_line, None))
-        waiting_r.add_transition(Transition(waiting_s, lambda x: x.startswith('r '), self._router_begin))
+        waiting_r.add_transition(Transition(
+            waiting_s, lambda x: x.startswith('r '), self._router_begin))
         # FIXME use better method/func than die!!
-        waiting_r.add_transition(Transition(waiting_r, lambda x: not x.startswith('r '), die('Expected "r " while parsing routers not "%s"')))
+        waiting_r.add_transition(Transition(
+            waiting_r, lambda x: not x.startswith('r '), die(
+                'Expected "r " while parsing routers not "%s"')))
 
-        waiting_s.add_transition(Transition(waiting_w, lambda x: x.startswith('s '), self._router_flags))
-        waiting_s.add_transition(Transition(waiting_s, lambda x: x.startswith('a '), self._router_address))
+        waiting_s.add_transition(Transition(
+            waiting_w, lambda x: x.startswith('s '), self._router_flags))
+        waiting_s.add_transition(Transition(
+            waiting_s, lambda x: x.startswith('a '), self._router_address))
         waiting_s.add_transition(Transition(waiting_r, ignorable_line, None))
-        waiting_s.add_transition(Transition(waiting_r, lambda x: not x.startswith('s ') and not x.startswith('a '), die('Expected "s " while parsing routers not "%s"')))
-        waiting_s.add_transition(Transition(waiting_r, lambda x: x.strip() == '.', None))
+        waiting_s.add_transition(Transition(
+            waiting_r,
+            lambda x: not x.startswith('s ') and not x.startswith('a '), die(
+                'Expected "s " while parsing routers not "%s"')))
+        waiting_s.add_transition(Transition(waiting_r,
+                                            lambda x: x.strip() == '.', None))
 
-        waiting_w.add_transition(Transition(waiting_p, lambda x: x.startswith('w '), self._router_bandwidth))
+        waiting_w.add_transition(Transition(
+            waiting_p, lambda x: x.startswith('w '), self._router_bandwidth))
         waiting_w.add_transition(Transition(waiting_r, ignorable_line, None))
-        waiting_w.add_transition(Transition(waiting_s, lambda x: x.startswith('r '), self._router_begin))  # "w" lines are optional
-        waiting_w.add_transition(Transition(waiting_r, lambda x: not x.startswith('w '), die('Expected "w " while parsing routers not "%s"')))
-        waiting_w.add_transition(Transition(waiting_r, lambda x: x.strip() == '.', None))
+        waiting_w.add_transition(Transition(
+            waiting_s, lambda x: x.startswith('r '), self._router_begin))  # "w" lines are optional
+        waiting_w.add_transition(Transition(
+            waiting_r, lambda x: not x.startswith('w '), die(
+                'Expected "w " while parsing routers not "%s"')))
+        waiting_w.add_transition(Transition(waiting_r,
+                                            lambda x: x.strip() == '.', None))
 
-        waiting_p.add_transition(Transition(waiting_r, lambda x: x.startswith('p '), self._router_policy))
+        waiting_p.add_transition(Transition(
+            waiting_r, lambda x: x.startswith('p '), self._router_policy))
         waiting_p.add_transition(Transition(waiting_r, ignorable_line, None))
-        waiting_p.add_transition(Transition(waiting_s, lambda x: x.startswith('r '), self._router_begin))  # "p" lines are optional
-        waiting_p.add_transition(Transition(waiting_r, lambda x: x[:2] != 'p ', die('Expected "p " while parsing routers not "%s"')))
-        waiting_p.add_transition(Transition(waiting_r, lambda x: x.strip() == '.', None))
+        waiting_p.add_transition(Transition(
+            waiting_s, lambda x: x.startswith('r '), self._router_begin))  # "p" lines are optional
+        waiting_p.add_transition(Transition(
+            waiting_r, lambda x: x[:2] != 'p ', die(
+                'Expected "p " while parsing routers not "%s"')))
+        waiting_p.add_transition(Transition(waiting_r,
+                                            lambda x: x.strip() == '.', None))
 
-        self._network_status_parser = FSM([waiting_r, waiting_s, waiting_w, waiting_p])
+        self._network_status_parser = FSM([waiting_r, waiting_s, waiting_w,
+                                           waiting_p])
 
         self.post_bootstrap = defer.Deferred()
         if bootstrap:
@@ -294,13 +314,13 @@ class TorState(object):
         self._router = Router(self.protocol)
         self._router.from_consensus = True
         self._router.update(
-            args[1],                  # nickname
-            args[2],                  # idhash
-            args[3],                  # orhash
+            args[1],  # nickname
+            args[2],  # idhash
+            args[3],  # orhash
             args[4] + ' ' + args[5],  # modified (like '%Y-%m-%f %H:%M:%S')
-            args[6],                  # ip address
-            args[7],                  # ORPort
-            args[8],                  # DirPort
+            args[6],  # ip address
+            args[7],  # ORPort
+            args[8],  # DirPort
         )
 
         if self._router.id_hex in self.routers:
@@ -356,9 +376,7 @@ class TorState(object):
         # the de-duplication of named routers
 
         ns = yield self.protocol.get_info_incremental(
-            'ns/all',
-            self._network_status_parser.process
-        )
+            'ns/all', self._network_status_parser.process)
         self._update_network_status(ns)
 
         # update list of existing circuits
@@ -376,7 +394,7 @@ class TorState(object):
         am = am[len(key) + 1:]
         for line in am.split('\n'):
             if len(line.strip()) == 0:
-                continue            # FIXME
+                continue  # FIXME
             self.addrmap.update(line)
 
         self._add_events()
@@ -459,20 +477,21 @@ class TorState(object):
         return d
 
     stream_close_reasons = {
-        'REASON_MISC': 1,               # (catch-all for unlisted reasons)
-        'REASON_RESOLVEFAILED': 2,      # (couldn't look up hostname)
-        'REASON_CONNECTREFUSED': 3,     # (remote host refused connection) [*]
-        'REASON_EXITPOLICY': 4,         # (OR refuses to connect to host or port)
-        'REASON_DESTROY': 5,            # (Circuit is being destroyed)
-        'REASON_DONE': 6,               # (Anonymized TCP connection was closed)
-        'REASON_TIMEOUT': 7,            # (Connection timed out, or OR timed out while connecting)
-        'REASON_NOROUTE': 8,            # (Routing error while attempting to contact destination)
-        'REASON_HIBERNATING': 9,        # (OR is temporarily hibernating)
-        'REASON_INTERNAL': 10,          # (Internal error at the OR)
-        'REASON_RESOURCELIMIT': 11,     # (OR has no resources to fulfill request)
-        'REASON_CONNRESET': 12,         # (Connection was unexpectedly reset)
-        'REASON_TORPROTOCOL': 13,       # (Sent when closing connection because of Tor protocol violations.)
-        'REASON_NOTDIRECTORY': 14}      # (Client sent RELAY_BEGIN_DIR to a non-directory relay.)
+        'REASON_MISC': 1,  # (catch-all for unlisted reasons)
+        'REASON_RESOLVEFAILED': 2,  # (couldn't look up hostname)
+        'REASON_CONNECTREFUSED': 3,  # (remote host refused connection) [*]
+        'REASON_EXITPOLICY': 4,  # (OR refuses to connect to host or port)
+        'REASON_DESTROY': 5,  # (Circuit is being destroyed)
+        'REASON_DONE': 6,  # (Anonymized TCP connection was closed)
+        'REASON_TIMEOUT': 7,  # (Connection timed out, or OR timed out while connecting)
+        'REASON_NOROUTE': 8,  # (Routing error while attempting to contact destination)
+        'REASON_HIBERNATING': 9,  # (OR is temporarily hibernating)
+        'REASON_INTERNAL': 10,  # (Internal error at the OR)
+        'REASON_RESOURCELIMIT': 11,  # (OR has no resources to fulfill request)
+        'REASON_CONNRESET': 12,  # (Connection was unexpectedly reset)
+        'REASON_TORPROTOCOL': 13,  # (Sent when closing connection because of Tor protocol violations.)
+        'REASON_NOTDIRECTORY': 14
+    }  # (Client sent RELAY_BEGIN_DIR to a non-directory relay.)
 
     def close_stream(self, stream, reason='REASON_MISC', **kwargs):
         """
@@ -493,8 +512,7 @@ class TorState(object):
                 reason = TorState.stream_close_reasons[reason]
             except KeyError:
                 raise ValueError(
-                    'Unknown stream close reason "%s"' % str(reason)
-                )
+                    'Unknown stream close reason "%s"' % str(reason))
 
         flags = flags_from_dict(kwargs)
 
@@ -524,8 +542,7 @@ class TorState(object):
             circid = circid.id
         flags = flags_from_dict(kwargs)
         return self.protocol.queue_command(
-            'CLOSECIRCUIT %s%s' % (circid, flags)
-        )
+            'CLOSECIRCUIT %s%s' % (circid, flags))
 
     def add_circuit_listener(self, icircuitlistener):
         listen = ICircuitListener(icircuitlistener)
@@ -574,8 +591,7 @@ class TorState(object):
             if using_guards and routers[0] not in self.entry_guards.values():
                 warnings.warn(
                     "Circuit doesn't start with a guard: %s" % routers,
-                    RuntimeWarning
-                )
+                    RuntimeWarning)
             cmd = "EXTENDCIRCUIT 0 "
             first = True
             for router in routers:
@@ -623,9 +639,7 @@ class TorState(object):
 
         # handle async or sync .attach() the same
         circ_d = defer.maybeDeferred(
-            self.attacher.attach_stream,
-            stream, self.circuits,
-        )
+            self.attacher.attach_stream, stream, self.circuits,)
 
         # actually do the attachment logic; .attach() can return 3 things:
         #    1. None: let Tor do whatever it wants
@@ -634,7 +648,8 @@ class TorState(object):
         def issue_stream_attach(circ):
             if circ is None:
                 # tell Tor to do what it likes
-                return self.protocol.queue_command("ATTACHSTREAM %d 0" % stream.id)
+                return self.protocol.queue_command("ATTACHSTREAM %d 0" %
+                                                   stream.id)
 
             elif circ is self.DO_NOT_ATTACH:
                 # do nothing; don't attach the stream
@@ -645,21 +660,17 @@ class TorState(object):
                 if not isinstance(circ, Circuit):
                     raise RuntimeError(
                         "IStreamAttacher.attach() must return a Circuit instance "
-                        "(or None or DO_NOT_ATTACH): %s"
-                    )
+                        "(or None or DO_NOT_ATTACH): %s")
                 if circ.id not in self.circuits:
                     raise RuntimeError(
-                        "Attacher returned a circuit unknown to me."
-                    )
+                        "Attacher returned a circuit unknown to me.")
                 if circ.state != 'BUILT':
                     raise RuntimeError(
                         "Can only attach to BUILT circuits; %d is in %s." %
-                        (circ.id, circ.state)
-                    )
+                        (circ.id, circ.state))
                 # we've got a valid Circuit instance; issue the command
                 return self.protocol.queue_command(
-                    "ATTACHSTREAM %d %d" % (stream.id, circ.id)
-                )
+                    "ATTACHSTREAM %d %d" % (stream.id, circ.id))
 
         circ_d.addCallback(issue_stream_attach)
         circ_d.addErrback(self._attacher_error)
@@ -784,12 +795,15 @@ class TorState(object):
         txtorlog.msg(" --> addr_map", addr)
         self.addrmap.update(addr)
 
-    event_map = {'STREAM': _stream_update,
-                 'CIRC': _circuit_update,
-                 'NS': _update_network_status,
-                 'NEWCONSENSUS': _update_network_status,
-                 'ADDRMAP': _addr_map}
+    event_map = {
+        'STREAM': _stream_update,
+        'CIRC': _circuit_update,
+        'NS': _update_network_status,
+        'NEWCONSENSUS': _update_network_status,
+        'ADDRMAP': _addr_map
+    }
     """event_map used by add_events to map event_name -> unbound method"""
+
     @defer.inlineCallbacks
     def _add_events(self):
         """
@@ -800,9 +814,7 @@ class TorState(object):
             # the map contains unbound methods, so we bind them
             # to self so they call the right thing
             yield self.protocol.add_event_listener(
-                event,
-                types.MethodType(func, self, TorState)
-            )
+                event, types.MethodType(func, self, TorState))
 
     # ICircuitContainer
 
@@ -820,7 +832,7 @@ class TorState(object):
 
         except KeyError:
             if routerid[0] != '$':
-                raise                   # just re-raise the KeyError
+                raise  # just re-raise the KeyError
 
             router = Router(self.protocol)
             idhash = routerid[1:41]
@@ -851,8 +863,8 @@ class TorState(object):
         seems you get an attach to None followed by an attach to real
         circuit fairly frequently. Perhaps related to __LeaveStreamsUnattached?
         """
-        txtorlog.msg("stream_attach", stream.id,
-                     stream.target_host, " -> ", circuit)
+        txtorlog.msg("stream_attach", stream.id, stream.target_host, " -> ",
+                     circuit)
 
     def stream_detach(self, stream, **kw):
         """
@@ -893,9 +905,8 @@ class TorState(object):
         "ICircuitListener API"
         txtorlog.msg(
             "circuit_built:", circuit.id,
-            "->".join("%s.%s" % (x.name, x.location.countrycode) for x in circuit.path),
-            circuit.streams
-        )
+            "->".join("%s.%s" % (x.name, x.location.countrycode)
+                      for x in circuit.path), circuit.streams)
 
     def circuit_new(self, circuit):
         "ICircuitListener API"

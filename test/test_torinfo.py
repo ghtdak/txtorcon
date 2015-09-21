@@ -26,10 +26,12 @@ class FakeControlProtocol:
         d = defer.succeed(self.answers[0])
         self.answers = self.answers[1:]
         return d
+
     get_info = get_info_raw
 
 
 class CheckAnswer:
+
     def __init__(self, test, ans):
         self.answer = ans
         self.test = test
@@ -103,9 +105,7 @@ class ProtocolIntegrationTests(unittest.TestCase):
 
         self.assertTrue(hasattr(info, 'multi'))
         self.assertTrue(hasattr(getattr(info, 'multi'), 'path'))
-        self.assertTrue(
-            hasattr(getattr(getattr(info, 'multi'), 'path'), 'arg')
-        )
+        self.assertTrue(hasattr(getattr(getattr(info, 'multi'), 'path'), 'arg'))
 
         # Finally! The test! We see if we can get this multi-path
         # value with an argument...
@@ -171,8 +171,8 @@ something/two a second documentation string
         info = TorInfo(self.protocol)
         yield self.protocol.post_bootstrap
         self.assertTrue('something' in dir(info))
-        self.assertTrue(dir(info.something) == ['one', 'two'] or
-                        dir(info.something) == ['two', 'one'])
+        self.assertTrue(dir(info.something) == ['one', 'two'] or dir(
+            info.something) == ['two', 'one'])
 
     def test_member_access(self):
         self.protocol.answers.append('info/names blam a thinkg\r\n')
@@ -249,9 +249,7 @@ multi/path/arg/* a documentation string
         info = TorInfo(self.protocol)
         self.assertTrue(hasattr(info, 'multi'))
         self.assertTrue(hasattr(getattr(info, 'multi'), 'path'))
-        self.assertTrue(
-            hasattr(getattr(getattr(info, 'multi'), 'path'), 'arg')
-        )
+        self.assertTrue(hasattr(getattr(getattr(info, 'multi'), 'path'), 'arg'))
 
         # FIXME should have a test that "really" goes out through
         # TorControlProtocol instance for this stuff...

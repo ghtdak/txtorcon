@@ -121,6 +121,7 @@ def setup_failed(arg):
     print "Setup Failed:", arg.getErrorMessage()
     reactor.stop()
 
+
 if len(sys.argv) == 1:
     print "usage: %s router [router] [router] ..." % sys.argv[0]
     print

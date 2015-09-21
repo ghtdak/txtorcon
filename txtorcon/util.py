@@ -61,10 +61,10 @@ def maybe_create_db(path):
     except IOError:
         return None
 
-city, asn, country = list(map(maybe_create_db,
-                         ("/usr/share/GeoIP/GeoLiteCity.dat",
-                          "/usr/share/GeoIP/GeoIPASNum.dat",
-                          "/usr/share/GeoIP/GeoIP.dat")))
+
+city, asn, country = list(map(maybe_create_db, (
+    "/usr/share/GeoIP/GeoLiteCity.dat", "/usr/share/GeoIP/GeoIPASNum.dat",
+    "/usr/share/GeoIP/GeoIP.dat")))
 
 try:
     import ipaddr as _ipaddr
@@ -100,9 +100,9 @@ def find_tor_binary(globs=('/usr/sbin/', '/usr/bin/',
         try:
             proc = subprocess.Popen(
                 ('which tor'),
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                shell=True
-            )
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=True)
         except OSError:
             pass
         else:
@@ -167,8 +167,8 @@ def delete_file_or_tree(*args):
 
 
 def ip_from_int(ip):
-        """ Convert long int back to dotted quad string """
-        return socket.inet_ntoa(struct.pack('>I', ip))
+    """ Convert long int back to dotted quad string """
+    return socket.inet_ntoa(struct.pack('>I', ip))
 
 
 def process_from_address(addr, port, torstate=None):
@@ -270,8 +270,10 @@ class NoOpProtocolFactory:
     This is an IProtocolFactory that does nothing. Used for testing,
     and for :method:`available_tcp_port`
     """
+
     def noop(self, *args, **kw):
         pass
+
     buildProtocol = noop
     doStart = noop
     doStop = noop

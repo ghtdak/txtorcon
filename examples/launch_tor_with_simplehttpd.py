@@ -86,7 +86,7 @@ def main():
             print_help()
             return
         else:
-            print 'Unknown option "%s"' % (o, )
+            print 'Unknown option "%s"' % (o,)
             return 1
 
     # Sanitize path and set working directory there (for SimpleHTTPServer)
@@ -108,23 +108,23 @@ def main():
     # Create a directory to hold our hidden service. Twisted will unlink it
     # when we exit.
     hs_temp = tempfile.mkdtemp(prefix='torhiddenservice')
-    reactor.addSystemEventTrigger('before', 'shutdown',
-                                  functools.partial(txtorcon.util.delete_file_or_tree, hs_temp))
+    reactor.addSystemEventTrigger(
+        'before', 'shutdown',
+        functools.partial(txtorcon.util.delete_file_or_tree, hs_temp))
 
     # Add the hidden service to a blank configuration
     config = txtorcon.TorConfig()
     config.SOCKSPort = 0
     config.ORPort = 9089
-    config.HiddenServices = [txtorcon.HiddenService(config, hs_temp,
-                                                    ['%i %s:%i' % (hs_public_port,
-                                                                   web_host,
-                                                                   web_port)])]
+    config.HiddenServices = [txtorcon.HiddenService(
+        config, hs_temp, ['%i %s:%i' % (hs_public_port, web_host, web_port)])]
     config.save()
 
     # Now launch tor
     # Notice that we use a partial function as a callback so we have a
     # reference to the config object when tor is fully running.
-    tordeferred = txtorcon.launch_tor(config, reactor,
+    tordeferred = txtorcon.launch_tor(config,
+                                      reactor,
                                       progress_updates=print_tor_updates)
     tordeferred.addCallback(functools.partial(setup_complete, config,
                                               hs_public_port))

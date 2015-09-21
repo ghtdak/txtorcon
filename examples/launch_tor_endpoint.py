@@ -33,6 +33,7 @@ def setup_complete(port):
 
     def blam(x):
         print "%d..." % x
+
     reactor.callLater(50, blam, 10)
     reactor.callLater(55, blam, 5)
     reactor.callLater(56, blam, 4)

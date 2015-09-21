@@ -8,12 +8,15 @@ import txtorcon
 ## change the port to 9151 for Tor Browser Bundle
 connection = TCP4ClientEndpoint(reactor, "localhost", 9051)
 
+
 def error(failure):
     print "Error:", failure.getErrorMessage()
     reactor.stop()
 
+
 class MyCircuitListener(object):
     implements(txtorcon.ICircuitListener)
+
     def circuit_new(self, circuit):
         print "new", circuit
 
@@ -55,11 +58,14 @@ def main(connection):
     state.add_circuit_listener(MyCircuitListener())
 
     print "listening for INFO events"
+
     def print_info(i):
         print "INFO:", i
+
     connection.add_event_listener('INFO', print_info)
 
     ## since we don't call reactor.stop(), we keep running
+
 
 d = txtorcon.build_tor_connection(connection, build_state=False)
 d.addCallback(main).addErrback(error)

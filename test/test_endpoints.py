@@ -33,11 +33,10 @@ from txtorcon import TCPHiddenServiceEndpointParser
 from txtorcon import IProgressProvider
 from txtorcon import TorOnionAddress
 from txtorcon.util import NoOpProtocolFactory
-from txtorcon.endpoints import get_global_tor                       # FIXME
+from txtorcon.endpoints import get_global_tor  # FIXME
 from txtorcon.endpoints import default_tcp4_endpoint_generator
 
 import util
-
 
 connectionRefusedFailure = Failure(ConnectionRefusedError())
 
@@ -53,19 +52,15 @@ class EndpointTests(unittest.TestCase):
         self.protocol = FakeControlProtocol([])
         self.protocol.event_happened('INFO', 'something craaaaaaazy')
         self.protocol.event_happened(
-            'INFO',
-            'connection_dir_client_reached_eof(): Uploaded rendezvous '
-            'descriptor (status 200 ("Service descriptor (v2) stored"))'
-        )
+            'INFO', 'connection_dir_client_reached_eof(): Uploaded rendezvous '
+            'descriptor (status 200 ("Service descriptor (v2) stored"))')
         self.config = TorConfig(self.protocol)
         self.protocol.answers.append(
-            'config/names=\nHiddenServiceOptions Virtual'
-        )
+            'config/names=\nHiddenServiceOptions Virtual')
         self.protocol.answers.append('HiddenServiceOptions')
         self.patcher = patch(
             'txtorcon.torconfig.find_tor_binary',
-            return_value='/not/tor'
-        )
+            return_value='/not/tor')
         self.patcher.start()
 
     def tearDown(self):
@@ -79,20 +74,19 @@ class EndpointTests(unittest.TestCase):
     def test_global_tor(self):
         config = yield get_global_tor(
             Mock(),
-            _tor_launcher=lambda x, y, z: True
-        )
+            _tor_launcher=lambda x, y, z: True)
         self.assertEqual(0, config.SOCKSPort)
 
     @defer.inlineCallbacks
     def test_global_tor_error(self):
         config0 = yield get_global_tor(
             Mock(),
-            _tor_launcher=lambda x, y, z: True
-        )
+            _tor_launcher=lambda x, y, z: True)
         # now if we specify a control_port it should be an error since
         # the above should have launched one.
         try:
-            config1 = yield get_global_tor(Mock(), control_port=111,
+            config1 = yield get_global_tor(Mock(),
+                                           control_port=111,
                                            _tor_launcher=lambda x, y, z: True)
             self.fail()
         except RuntimeError as e:
@@ -113,7 +107,8 @@ class EndpointTests(unittest.TestCase):
         m = Mock()
         from txtorcon import endpoints
         endpoints.launch_tor = m
-        ep = yield TCPHiddenServiceEndpoint.private_tor(Mock(), 80,
+        ep = yield TCPHiddenServiceEndpoint.private_tor(Mock(),
+                                                        80,
                                                         control_port=1234)
         self.assertTrue(m.called)
 
@@ -135,13 +130,13 @@ class EndpointTests(unittest.TestCase):
             # wrong somewhere...
             def bam(*args, **kw):
                 return self.protocol
+
             return bam
         with patch('txtorcon.endpoints.launch_tor') as launch_mock:
-            with patch('txtorcon.endpoints.build_tor_connection', new_callable=boom) as btc:
+            with patch('txtorcon.endpoints.build_tor_connection',
+                       new_callable=boom) as btc:
                 client = clientFromString(
-                    self.reactor,
-                    "tcp:host=localhost:port=9050"
-                )
+                    self.reactor, "tcp:host=localhost:port=9050")
                 ep = yield TCPHiddenServiceEndpoint.system_tor(self.reactor,
                                                                client, 80)
                 port = yield ep.listen(NoOpProtocolFactory())
@@ -210,15 +205,16 @@ class EndpointTests(unittest.TestCase):
         ep = TCPHiddenServiceEndpoint.private_tor(
             self.reactor,
             1234,
-            hidden_service_dir='/dev/null'
-        )
+            hidden_service_dir='/dev/null')
 
         # FIXME Mock() should work somehow for this, but I couldn't
         # make it "go"
         class Blam(object):
+
             @property
             def private_key(self):
                 raise IOError("blam")
+
         ep.hiddenservice = Blam()
         self.assertEqual(ep.onion_private_key, None)
         return ep
@@ -234,15 +230,18 @@ class EndpointTests(unittest.TestCase):
 
             def foo(arg):
                 return arg
+
             d1.addBoth(foo)
             defer.returnValue(arg)
             return
+
         d0.addBoth(more_listen)
         self.config.bootstrap()
 
         def check(arg):
             self.assertEqual('127.0.0.1', ep.tcp_endpoint._interface)
             self.assertEqual(len(self.config.HiddenServices), 1)
+
         d0.addCallback(check).addErrback(self.fail)
         return d0
 
@@ -263,6 +262,7 @@ class EndpointTests(unittest.TestCase):
 
         def foo(fail):
             print "ERROR", fail
+
         d.addErrback(foo)
         port = yield d
         self.assertEqual(1, len(config.HiddenServices))
@@ -289,12 +289,9 @@ class EndpointTests(unittest.TestCase):
         torconfig._global_tor_config = None
         get_global_tor(
             self.reactor,
-            _tor_launcher=lambda react, config, prog: defer.succeed(config)
-        )
+            _tor_launcher=lambda react, config, prog: defer.succeed(config))
         ep = serverFromString(
-            self.reactor,
-            'onion:88:localPort=1234:hiddenServiceDir=/foo/bar'
-        )
+            self.reactor, 'onion:88:localPort=1234:hiddenServiceDir=/foo/bar')
         self.assertEqual(ep.public_port, 88)
         self.assertEqual(ep.local_port, 1234)
         self.assertEqual(ep.hidden_service_dir, '/foo/bar')
@@ -311,19 +308,15 @@ class EndpointTests(unittest.TestCase):
         torconfig._global_tor_config = None
         get_global_tor(
             self.reactor,
-            _tor_launcher=lambda react, config, prog: defer.succeed(config)
-        )
+            _tor_launcher=lambda react, config, prog: defer.succeed(config))
         ep = serverFromString(
             self.reactor,
-            'onion:88:localPort=1234:hiddenServiceDir=~/blam/blarg'
-        )
+            'onion:88:localPort=1234:hiddenServiceDir=~/blam/blarg')
         # would be nice to have a fixed path here, but then would have
         # to run as a known user :/
         # maybe using the docker stuff to run integration tests better here?
         self.assertEqual(
-            os.path.expanduser('~/blam/blarg'),
-            ep.hidden_service_dir
-        )
+            os.path.expanduser('~/blam/blarg'), ep.hidden_service_dir)
 
     def test_parse_relative_path(self):
         # this makes sure we convert a relative path to absolute
@@ -337,8 +330,7 @@ class EndpointTests(unittest.TestCase):
         torconfig._global_tor_config = None
         get_global_tor(
             self.reactor,
-            _tor_launcher=lambda react, config, prog: defer.succeed(config)
-        )
+            _tor_launcher=lambda react, config, prog: defer.succeed(config))
 
         orig = os.path.realpath('.')
         try:
@@ -351,12 +343,8 @@ class EndpointTests(unittest.TestCase):
 
                 ep = serverFromString(
                     self.reactor,
-                    'onion:88:localPort=1234:hiddenServiceDir=foo/blam'
-                )
-                self.assertEqual(
-                    os.path.realpath(hsdir),
-                    ep.hidden_service_dir
-                )
+                    'onion:88:localPort=1234:hiddenServiceDir=foo/blam')
+                self.assertEqual(os.path.realpath(hsdir), ep.hidden_service_dir)
 
         finally:
             os.chdir(orig)
@@ -410,9 +398,7 @@ class EndpointLaunchTests(unittest.TestCase):
 
         reactor = proto_helpers.MemoryReactor()
         ep = serverFromString(
-            reactor,
-            'onion:8888:controlPort=9055:localPort=1234'
-        )
+            reactor, 'onion:8888:controlPort=9055:localPort=1234')
         r = yield ep.listen(NoOpProtocolFactory())
         self.assertEqual(global_tor.call_count, 0)
         self.assertEqual(private_tor.call_count, 0)
@@ -426,7 +412,7 @@ class EndpointLaunchTests(unittest.TestCase):
         # values from a server-endpoint-string)
 
 
-# FIXME should probably go somewhere else, so other tests can easily use these.
+        # FIXME should probably go somewhere else, so other tests can easily use these.
 class FakeProtocol(object):
     implements(IProtocol)
 
@@ -455,8 +441,7 @@ class FakeAddress(object):
         self.port = port
 
     def __repr__(self):
-        return '%s(%r, %d)' % (
-            self.__class__.__name__, self.host, self.port)
+        return '%s(%r, %d)' % (self.__class__.__name__, self.host, self.port)
 
     def __hash__(self):
         return hash((self.type, self.host, self.port))
@@ -503,6 +488,7 @@ class FakeReactorTcp(FakeReactor):
 
         def blam():
             self.protocol.outReceived("Bootstrap")
+
         self.transport.closeStdin = blam
         self.protocol.makeConnection(self.transport)
         FakeReactor.__init__(self, test, self.transport, lambda x: None)
@@ -523,20 +509,25 @@ class FakeReactorTcp(FakeReactor):
     def connectTCP(self, host, port, factory, timeout, bindAddress):
         '''should return IConnector'''
         r = tcp.Connector(
-            host, port, factory, timeout,
-            bindAddress, reactor=self
-        )
+            host,
+            port,
+            factory,
+            timeout,
+            bindAddress,
+            reactor=self)
 
         def blam(*args):
             print "BLAAAAAM", args
+
         r.connect = blam
         return r
 
 
 class FakeTorSocksEndpoint(object):
+
     def __init__(self, *args, **kw):
-        self.host     = args[1]
-        self.port     = args[2]
+        self.host = args[1]
+        self.port = args[2]
         self.transport = None
 
         if kw.has_key('failure'):
@@ -570,10 +561,15 @@ class TestTorClientEndpoint(unittest.TestCase):
         This test is equivalent to txsocksx's
         TestSOCKS4ClientEndpoint.test_clientConnectionFailed
         """
+
         def FailTorSocksEndpointGenerator(*args, **kw):
             kw['failure'] = connectionRefusedFailure
             return FakeTorSocksEndpoint(*args, **kw)
-        endpoint = TorClientEndpoint('', 0, _proxy_endpoint_generator=FailTorSocksEndpointGenerator)
+
+        endpoint = TorClientEndpoint(
+            '',
+            0,
+            _proxy_endpoint_generator=FailTorSocksEndpointGenerator)
         d = endpoint.connect(None)
         return self.assertFailure(d, ConnectionRefusedError)
 
@@ -581,12 +577,16 @@ class TestTorClientEndpoint(unittest.TestCase):
         """
         Same as above, but with a username/password.
         """
+
         def FailTorSocksEndpointGenerator(*args, **kw):
             kw['failure'] = connectionRefusedFailure
             return FakeTorSocksEndpoint(*args, **kw)
+
         endpoint = TorClientEndpoint(
-            'invalid host', 0,
-            socks_username='billy', socks_password='s333cure',
+            'invalid host',
+            0,
+            socks_username='billy',
+            socks_password='s333cure',
             _proxy_endpoint_generator=FailTorSocksEndpointGenerator)
         d = endpoint.connect(None)
         return self.assertFailure(d, ConnectionRefusedError)
@@ -596,13 +596,11 @@ class TestTorClientEndpoint(unittest.TestCase):
         default_tcp4_endpoint_generator(None, 'foo.bar', 1234)
 
     def test_no_host(self):
-        self.assertRaises(
-            ValueError,
-            TorClientEndpoint, None, None
-        )
+        self.assertRaises(ValueError, TorClientEndpoint, None, None)
 
     def test_parser_basic(self):
-        ep = clientFromString(None, 'tor:host=timaq4ygg2iegci7.onion:port=80:socksPort=9050')
+        ep = clientFromString(
+            None, 'tor:host=timaq4ygg2iegci7.onion:port=80:socksPort=9050')
 
         self.assertEqual(ep.host, 'timaq4ygg2iegci7.onion')
         self.assertEqual(ep.port, 80)
@@ -622,11 +620,17 @@ class TestTorClientEndpoint(unittest.TestCase):
         """
         This test is equivalent to txsocksx's TestSOCKS5ClientEndpoint.test_defaultFactory
         """
+
         def TorSocksEndpointGenerator(*args, **kw):
             return FakeTorSocksEndpoint(*args, **kw)
-        endpoint = TorClientEndpoint('', 0, _proxy_endpoint_generator=TorSocksEndpointGenerator)
+
+        endpoint = TorClientEndpoint(
+            '',
+            0,
+            _proxy_endpoint_generator=TorSocksEndpointGenerator)
         endpoint.connect(None)
-        self.assertEqual(endpoint.tor_socks_endpoint.transport.value(), '\x05\x01\x00')
+        self.assertEqual(endpoint.tor_socks_endpoint.transport.value(),
+                         '\x05\x01\x00')
 
     def test_good_port_retry(self):
         """
@@ -637,13 +641,19 @@ class TestTorClientEndpoint(unittest.TestCase):
         """
         success_ports = TorClientEndpoint.socks_ports_to_try
         for port in success_ports:
+
             def TorSocksEndpointGenerator(*args, **kw):
                 kw['acceptPort'] = port
-                kw['failure']    = connectionRefusedFailure
+                kw['failure'] = connectionRefusedFailure
                 return FakeTorSocksEndpoint(*args, **kw)
-            endpoint = TorClientEndpoint('', 0, _proxy_endpoint_generator=TorSocksEndpointGenerator)
+
+            endpoint = TorClientEndpoint(
+                '',
+                0,
+                _proxy_endpoint_generator=TorSocksEndpointGenerator)
             endpoint.connect(None)
-            self.assertEqual(endpoint.tor_socks_endpoint.transport.value(), '\x05\x01\x00')
+            self.assertEqual(endpoint.tor_socks_endpoint.transport.value(),
+                             '\x05\x01\x00')
 
     def test_bad_port_retry(self):
         """
@@ -651,11 +661,16 @@ class TestTorClientEndpoint(unittest.TestCase):
         """
         fail_ports = [1984, 666]
         for port in fail_ports:
+
             def TorSocksEndpointGenerator(*args, **kw):
                 kw['acceptPort'] = port
-                kw['failure']    = connectionRefusedFailure
+                kw['failure'] = connectionRefusedFailure
                 return FakeTorSocksEndpoint(*args, **kw)
-            endpoint = TorClientEndpoint('', 0, _proxy_endpoint_generator=TorSocksEndpointGenerator)
+
+            endpoint = TorClientEndpoint(
+                '',
+                0,
+                _proxy_endpoint_generator=TorSocksEndpointGenerator)
             d = endpoint.connect(None)
             return self.assertFailure(d, ConnectionRefusedError)
 
@@ -664,13 +679,20 @@ class TestTorClientEndpoint(unittest.TestCase):
         This tests that if a SOCKS port is specified, we *only* attempt to
         connect to that SOCKS port.
         """
+
         def TorSocksEndpointGenerator(*args, **kw):
             kw['acceptPort'] = 6669
-            kw['failure']    = connectionRefusedFailure
+            kw['failure'] = connectionRefusedFailure
             return FakeTorSocksEndpoint(*args, **kw)
-        endpoint = TorClientEndpoint('', 0, _proxy_endpoint_generator=TorSocksEndpointGenerator, socks_port=6669)
+
+        endpoint = TorClientEndpoint(
+            '',
+            0,
+            _proxy_endpoint_generator=TorSocksEndpointGenerator,
+            socks_port=6669)
         endpoint.connect(None)
-        self.assertEqual(endpoint.tor_socks_endpoint.transport.value(), '\x05\x01\x00')
+        self.assertEqual(endpoint.tor_socks_endpoint.transport.value(),
+                         '\x05\x01\x00')
 
     def test_bad_no_guess_socks_port(self):
         """
@@ -678,10 +700,16 @@ class TestTorClientEndpoint(unittest.TestCase):
         specified SOCKS port... even if there is a valid SOCKS port listening on
         the socks_ports_to_try list.
         """
+
         def TorSocksEndpointGenerator(*args, **kw):
             kw['acceptPort'] = 9050
-            kw['failure']    = connectionRefusedFailure
+            kw['failure'] = connectionRefusedFailure
             return FakeTorSocksEndpoint(*args, **kw)
-        endpoint = TorClientEndpoint('', 0, _proxy_endpoint_generator=TorSocksEndpointGenerator, socks_port=6669)
+
+        endpoint = TorClientEndpoint(
+            '',
+            0,
+            _proxy_endpoint_generator=TorSocksEndpointGenerator,
+            socks_port=6669)
         d = endpoint.connect(None)
         self.assertFailure(d, ConnectionRefusedError)

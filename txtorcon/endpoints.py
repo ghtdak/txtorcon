@@ -35,7 +35,6 @@ from txsocksx.client import SOCKS5ClientEndpoint
 from .torconfig import TorConfig, launch_tor, HiddenService
 from .torstate import build_tor_connection
 
-
 _global_tor_config = None
 _global_tor_lock = defer.DeferredLock()
 # we need the lock because we (potentially) yield several times while
@@ -103,6 +102,7 @@ def _create_default_config(reactor, control_port=None):
 
 class IProgressProvider(Interface):
     """FIXME move elsewhere? think harder?"""
+
     def add_progress_listener(listener):
         """
         Adds a progress listener. The listener is a callable that gets
@@ -176,8 +176,12 @@ class TCPHiddenServiceEndpoint(object):
     """
 
     @classmethod
-    def system_tor(cls, reactor, control_endpoint, public_port,
-                   hidden_service_dir=None, local_port=None):
+    def system_tor(cls,
+                   reactor,
+                   control_endpoint,
+                   public_port,
+                   hidden_service_dir=None,
+                   local_port=None):
         """
         This returns a TCPHiddenServiceEndpoint connected to the
         endpoint you specify in `control_endpoint`. After connecting, a
@@ -198,13 +202,20 @@ class TCPHiddenServiceEndpoint(object):
             config = TorConfig(tor_protocol)
             yield config.post_bootstrap
             defer.returnValue(config)
-        return TCPHiddenServiceEndpoint(reactor, _connect(), public_port,
+
+        return TCPHiddenServiceEndpoint(reactor,
+                                        _connect(),
+                                        public_port,
                                         hidden_service_dir=hidden_service_dir,
                                         local_port=local_port)
 
     @classmethod
-    def global_tor(cls, reactor, public_port, hidden_service_dir=None,
-                   local_port=None, control_port=None):
+    def global_tor(cls,
+                   reactor,
+                   public_port,
+                   hidden_service_dir=None,
+                   local_port=None,
+                   control_port=None):
         """
         This returns a TCPHiddenServiceEndpoint connected to a
         txtorcon global Tor instance. The first time you call this, a
@@ -227,19 +238,25 @@ class TCPHiddenServiceEndpoint(object):
 
         def progress(*args):
             progress.target(*args)
+
         config = get_global_tor(reactor,
                                 control_port=control_port,
                                 progress_updates=progress)
         # config is a Deferred here, but endpoint resolves in listen()
-        r = TCPHiddenServiceEndpoint(reactor, config, public_port,
+        r = TCPHiddenServiceEndpoint(reactor,
+                                     config,
+                                     public_port,
                                      hidden_service_dir=hidden_service_dir,
                                      local_port=local_port)
         progress.target = r._tor_progress_update
         return r
 
     @classmethod
-    def private_tor(cls, reactor, public_port,
-                    hidden_service_dir=None, local_port=None,
+    def private_tor(cls,
+                    reactor,
+                    public_port,
+                    hidden_service_dir=None,
+                    local_port=None,
                     control_port=None):
         """
         This returns a TCPHiddenServiceEndpoint that's always
@@ -257,15 +274,21 @@ class TCPHiddenServiceEndpoint(object):
             yield launch_tor(config, reactor, progress_updates=progress)
             yield config.post_bootstrap
             defer.returnValue(config)
-        r = TCPHiddenServiceEndpoint(reactor, _launch(control_port),
+
+        r = TCPHiddenServiceEndpoint(reactor,
+                                     _launch(control_port),
                                      public_port,
                                      hidden_service_dir=hidden_service_dir,
                                      local_port=local_port)
         progress.target = r._tor_progress_update
         return r
 
-    def __init__(self, reactor, config, public_port,
-                 hidden_service_dir=None, local_port=None):
+    def __init__(self,
+                 reactor,
+                 config,
+                 public_port,
+                 hidden_service_dir=None,
+                 local_port=None):
         """
         :param reactor:
             :api:`twisted.internet.interfaces.IReactorTCP` provider
@@ -305,7 +328,6 @@ class TCPHiddenServiceEndpoint(object):
         self.tcp_listening_port = None
         self.hiddenservice = None
         self.retries = 0
-
         '''for IProgressProvider to add_progress_listener'''
         self.progress_listeners = []
 
@@ -399,8 +421,7 @@ class TCPHiddenServiceEndpoint(object):
         if not os.path.exists(self.hidden_service_dir):
             log.msg(
                 'Noting that "%s" does not exist; letting Tor create it.' %
-                self.hidden_service_dir
-            )
+                self.hidden_service_dir)
 
         # listen for the descriptor upload event
         info_callback = defer.Deferred()
@@ -410,11 +431,15 @@ class TCPHiddenServiceEndpoint(object):
             # "real" event in Tor and listen for that.
             if 'Service descriptor (v2) stored' in msg:
                 info_callback.callback(None)
+
         self.config.protocol.add_event_listener('INFO', info_event)
 
-        if self.hidden_service_dir not in [hs.dir for hs in self.config.HiddenServices]:
+        if self.hidden_service_dir not in [hs.dir
+                                           for hs in self.config.HiddenServices
+                                          ]:
             self.hiddenservice = HiddenService(
-                self.config, self.hidden_service_dir,
+                self.config,
+                self.hidden_service_dir,
                 ['%d 127.0.0.1:%d' % (self.public_port, self.local_port)],
                 group_readable=1)
             self.config.HiddenServices.append(self.hiddenservice)
@@ -431,11 +456,9 @@ class TCPHiddenServiceEndpoint(object):
             'Started hidden service "%s" on port %d' %
             (self.onion_uri, self.public_port))
         log.msg('Keys are in "%s".' % (self.hidden_service_dir,))
-        defer.returnValue(TorOnionListeningPort(self.tcp_listening_port,
-                                                self.hidden_service_dir,
-                                                self.onion_uri,
-                                                self.public_port,
-                                                self.config))
+        defer.returnValue(TorOnionListeningPort(
+            self.tcp_listening_port, self.hidden_service_dir, self.onion_uri,
+            self.public_port, self.config))
 
 
 @implementer(IAddress)
@@ -469,8 +492,7 @@ class TorOnionAddress(FancyEqMixin, object):
 
 
 class IHiddenService(Interface):
-    local_address = Attribute(
-        'The actual machine address we are listening on.')
+    local_address = Attribute('The actual machine address we are listening on.')
     hidden_service_dir = Attribute(
         'The hidden service directory, where "hostname" and "private_key" '
         'files live.')
@@ -552,8 +574,12 @@ class TCPHiddenServiceEndpointParser(object):
     # note that these are all camelCase because Twisted uses them to
     # do magic parsing stuff, and to conform to Twisted's conventions
     # we should use camelCase in the endpoint definitions...
-    def parseStreamServer(self, reactor, public_port, localPort=None,
-                          controlPort=None, hiddenServiceDir=None):
+    def parseStreamServer(self,
+                          reactor,
+                          public_port,
+                          localPort=None,
+                          controlPort=None,
+                          hiddenServiceDir=None):
         '''
         :api:`twisted.internet.interfaces.IStreamServerEndpointStringParser`
         '''
@@ -577,12 +603,14 @@ class TCPHiddenServiceEndpointParser(object):
                     reactor, "tcp:host=127.0.0.1:port=%d" % int(controlPort))
             except ValueError:
                 ep = clientFromString(reactor, "unix:path=%s" % controlPort)
-            return TCPHiddenServiceEndpoint.system_tor(reactor, ep,
+            return TCPHiddenServiceEndpoint.system_tor(reactor,
+                                                       ep,
                                                        public_port,
                                                        hidden_service_dir=hsd,
                                                        local_port=localPort)
 
-        return TCPHiddenServiceEndpoint.global_tor(reactor, public_port,
+        return TCPHiddenServiceEndpoint.global_tor(reactor,
+                                                   public_port,
                                                    hidden_service_dir=hsd,
                                                    local_port=localPort,
                                                    control_port=controlPort)
@@ -621,9 +649,13 @@ class TorClientEndpoint(object):
     # via GETINFO net/listeners/socks or whatever
     socks_ports_to_try = [9050, 9150]
 
-    def __init__(self, host, port,
-                 socks_hostname=None, socks_port=None,
-                 socks_username=None, socks_password=None,
+    def __init__(self,
+                 host,
+                 port,
+                 socks_hostname=None,
+                 socks_port=None,
+                 socks_username=None,
+                 socks_password=None,
                  _proxy_endpoint_generator=default_tcp4_endpoint_generator):
         if host is None or port is None:
             raise ValueError('host and port must be specified')
@@ -653,24 +685,17 @@ class TorClientEndpoint(object):
 
     def _try_connect(self):
         self.tor_socks_endpoint = self._proxy_endpoint_generator(
-            reactor,
-            self.socks_hostname,
-            self.socks_port
-        )
+            reactor, self.socks_hostname, self.socks_port)
 
         if self.socks_username is None or self.socks_password is None:
             ep = SOCKS5ClientEndpoint(
-                self.host,
-                self.port,
-                self.tor_socks_endpoint
-            )
+                self.host, self.port, self.tor_socks_endpoint)
         else:
             ep = SOCKS5ClientEndpoint(
                 self.host,
                 self.port,
                 self.tor_socks_endpoint,
-                methods=dict(login=(self.socks_username, self.socks_password))
-            )
+                methods=dict(login=(self.socks_username, self.socks_password)))
 
         d = ep.connect(self.protocolfactory)
         if self._socks_guessing_enabled:
@@ -722,9 +747,13 @@ class TorClientEndpointStringParser(object):
     """
     prefix = "tor"
 
-    def _parseClient(self, host=None, port=None,
-                     socksHostname=None, socksPort=None,
-                     socksUsername=None, socksPassword=None):
+    def _parseClient(self,
+                     host=None,
+                     port=None,
+                     socksHostname=None,
+                     socksPort=None,
+                     socksUsername=None,
+                     socksPassword=None):
         if port is not None:
             port = int(port)
         if socksHostname is None:
@@ -733,10 +762,12 @@ class TorClientEndpointStringParser(object):
             socksPort = int(socksPort)
 
         return TorClientEndpoint(
-            host, port,
-            socks_hostname=socksHostname, socks_port=socksPort,
-            socks_username=socksUsername, socks_password=socksPassword
-        )
+            host,
+            port,
+            socks_hostname=socksHostname,
+            socks_port=socksPort,
+            socks_username=socksUsername,
+            socks_password=socksPassword)
 
     def parseStreamClient(self, *args, **kwargs):
         return self._parseClient(*args, **kwargs)

@@ -21,10 +21,13 @@ print sys.argv[0]
 sys.path.insert(0, '/txtorcon')
 import txtorcon
 
+
 class Simple(resource.Resource):
     isLeaf = True
+
     def render_GET(self, request):
         return "<html>Hello, world! I'm a hidden service!</html>"
+
 
 config = txtorcon.TorConfig()
 config.SOCKSPort = 0
@@ -34,13 +37,17 @@ hs_public_port = 80
 ## note that TCPHiddenServiceEndpoint adds the config to above...
 hs_endpoint = txtorcon.TCPHiddenServiceEndpoint(reactor, config, hs_public_port)
 
+
 def updates(prog, tag, summary):
-    p = ('#' * int(10*(prog/100.0))) + ('.'*(10 - int(10*(prog/100.0))))
+    p = ('#' * int(10 * (prog / 100.0))) + ('.' * (10 - int(10 *
+                                                            (prog / 100.0))))
     print "%s %s" % (p, summary)
+
 
 def failed(f):
     print "FAIL", f
     reactor.stop()
+
 
 @defer.inlineCallbacks
 def main():

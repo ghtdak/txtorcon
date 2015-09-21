@@ -31,6 +31,7 @@ class PortRange(object):
     """
     Represents a range of ports for Router policies.
     """
+
     def __init__(self, a, b):
         self.min = a
         self.max = b
@@ -72,7 +73,7 @@ class Router(object):
         self._location = None
         self.from_consensus = False
         self.ip = 'unknown'
-        self.ip_v6 = []                 # most routers have no IPv6 addresses
+        self.ip_v6 = []  # most routers have no IPv6 addresses
 
     unique_name = property(lambda x: x.name_is_unique and x.name or x.id_hex)
     "has the hex id if this router's name is not unique, or its name otherwise"
@@ -81,9 +82,7 @@ class Router(object):
     def modified(self):
         if self._modified is None:
             self._modified = datetime.strptime(
-                self._modified_unparsed,
-                '%Y-%m-%f %H:%M:%S'
-            )
+                self._modified_unparsed, '%Y-%m-%f %H:%M:%S')
         return self._modified
 
     def update(self, name, idhash, orhash, modified, ip, orport, dirport):
@@ -223,5 +222,4 @@ class Router(object):
         n = self.id_hex
         if self.name_is_unique:
             n = self.name
-        return "<Router %s %s %s>" % (n, self.location.countrycode,
-                                      self.policy)
+        return "<Router %s %s %s>" % (n, self.location.countrycode, self.policy)
