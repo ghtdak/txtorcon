@@ -10,10 +10,10 @@
 # attach_streams_by_country.py
 #
 
-from twisted.python import log
-from twisted.internet import reactor
 from zope.interface import implements
 
+from twisted.python import log
+from twisted.internet import reactor
 import txtorcon
 
 

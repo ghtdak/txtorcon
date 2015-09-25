@@ -1,18 +1,16 @@
 from datetime import datetime
+
 from twisted.trial import unittest
 from twisted.internet import defer
-
 from txtorcon.router import Router, hexIdFromHash, hashFromHexId
 
 
 class FakeController(object):
-
     def get_info_raw(self, i):
         return defer.succeed('250-ip-to-country/something=XX\r\n250 OK')
 
 
 class UtilityTests(unittest.TestCase):
-
     def test_hex_converters(self):
         self.assertEqual(
             hexIdFromHash('AHhuQ8zFQJdT8l42Axxc6m6kNwI'),
@@ -28,7 +26,6 @@ class UtilityTests(unittest.TestCase):
 
 
 class RouterTests(unittest.TestCase):
-
     def test_ctor(self):
         controller = object()
         router = Router(controller)
@@ -104,9 +101,9 @@ class RouterTests(unittest.TestCase):
     def test_countrycode(self):
 
         class CountryCodeController(object):
-
             def get_info_raw(self, i):
-                return defer.succeed('250-ip-to-country/127.1.2.3=ZZ\r\n250 OK')
+                return defer.succeed(
+                    '250-ip-to-country/127.1.2.3=ZZ\r\n250 OK')
 
         controller = CountryCodeController()
         router = Router(controller)

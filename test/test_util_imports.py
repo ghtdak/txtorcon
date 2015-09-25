@@ -1,9 +1,9 @@
-from twisted.trial import unittest
-
 import sys
 import types
 import functools
 from unittest import skipIf
+
+from twisted.trial import unittest
 
 
 def fake_import(orig, name, *args, **kw):
@@ -13,7 +13,6 @@ def fake_import(orig, name, *args, **kw):
 
 
 class TestImports(unittest.TestCase):
-
     @skipIf('pypy' in sys.version.lower(), "Doesn't work in PYPY")
     def test_no_GeoIP(self):
         """

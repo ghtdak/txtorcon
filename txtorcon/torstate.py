@@ -5,20 +5,18 @@ from __future__ import print_function
 from __future__ import with_statement
 
 import collections
-import datetime
 import os
 import stat
 import types
 import warnings
 
-from twisted.python import log
+from zope.interface import implementer
+
 from twisted.internet import defer
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.endpoints import UNIXClientEndpoint
 from twisted.internet.interfaces import IReactorCore
 from twisted.internet.interfaces import IStreamClientEndpoint
-from zope.interface import implementer
-
 from txtorcon import TorProtocolFactory
 from txtorcon.stream import Stream
 from txtorcon.circuit import Circuit
@@ -27,7 +25,6 @@ from txtorcon.addrmap import AddrMap
 from txtorcon.torcontrolprotocol import parse_keywords
 from txtorcon.log import txtorlog
 from txtorcon.torcontrolprotocol import TorProtocolError
-
 from txtorcon.interface import ITorControlProtocol
 from txtorcon.interface import IRouterContainer
 from txtorcon.interface import ICircuitListener
@@ -283,7 +280,8 @@ class TorState(object):
             waiting_p, lambda x: x.startswith('w '), self._router_bandwidth))
         waiting_w.add_transition(Transition(waiting_r, ignorable_line, None))
         waiting_w.add_transition(Transition(
-            waiting_s, lambda x: x.startswith('r '), self._router_begin))  # "w" lines are optional
+            waiting_s, lambda x: x.startswith('r '),
+            self._router_begin))  # "w" lines are optional
         waiting_w.add_transition(Transition(
             waiting_r, lambda x: not x.startswith('w '), die(
                 'Expected "w " while parsing routers not "%s"')))
@@ -294,7 +292,8 @@ class TorState(object):
             waiting_r, lambda x: x.startswith('p '), self._router_policy))
         waiting_p.add_transition(Transition(waiting_r, ignorable_line, None))
         waiting_p.add_transition(Transition(
-            waiting_s, lambda x: x.startswith('r '), self._router_begin))  # "p" lines are optional
+            waiting_s, lambda x: x.startswith('r '),
+            self._router_begin))  # "p" lines are optional
         waiting_p.add_transition(Transition(
             waiting_r, lambda x: x[:2] != 'p ', die(
                 'Expected "p " while parsing routers not "%s"')))
@@ -307,7 +306,8 @@ class TorState(object):
         self.post_bootstrap = defer.Deferred()
         if bootstrap:
             self.protocol.post_bootstrap.addCallback(self._bootstrap)
-            self.protocol.post_bootstrap.addErrback(self.post_bootstrap.errback)
+            self.protocol.post_bootstrap.addErrback(
+                self.post_bootstrap.errback)
 
     def _router_begin(self, data):
         args = data.split()
@@ -483,13 +483,16 @@ class TorState(object):
         'REASON_EXITPOLICY': 4,  # (OR refuses to connect to host or port)
         'REASON_DESTROY': 5,  # (Circuit is being destroyed)
         'REASON_DONE': 6,  # (Anonymized TCP connection was closed)
-        'REASON_TIMEOUT': 7,  # (Connection timed out, or OR timed out while connecting)
-        'REASON_NOROUTE': 8,  # (Routing error while attempting to contact destination)
+        'REASON_TIMEOUT': 7,
+    # (Connection timed out, or OR timed out while connecting)
+        'REASON_NOROUTE': 8,
+    # (Routing error while attempting to contact destination)
         'REASON_HIBERNATING': 9,  # (OR is temporarily hibernating)
         'REASON_INTERNAL': 10,  # (Internal error at the OR)
         'REASON_RESOURCELIMIT': 11,  # (OR has no resources to fulfill request)
         'REASON_CONNRESET': 12,  # (Connection was unexpectedly reset)
-        'REASON_TORPROTOCOL': 13,  # (Sent when closing connection because of Tor protocol violations.)
+        'REASON_TORPROTOCOL': 13,
+    # (Sent when closing connection because of Tor protocol violations.)
         'REASON_NOTDIRECTORY': 14
     }  # (Client sent RELAY_BEGIN_DIR to a non-directory relay.)
 
@@ -600,7 +603,7 @@ class TorState(object):
                 else:
                     cmd += ','
                 if isinstance(router, basestring) and len(router) == 40 \
-                   and hashFromHexId(router):
+                        and hashFromHexId(router):
                     cmd += router
                 else:
                     cmd += router.id_hex[1:]
@@ -629,7 +632,7 @@ class TorState(object):
             return None
 
         if stream.target_host is not None \
-           and '.exit' in stream.target_host:
+                and '.exit' in stream.target_host:
             # we want to totally ignore .exit URIs as these are
             # used to specify a particular exit node, and trying
             # to do STREAMATTACH on them will fail with an error
@@ -639,7 +642,7 @@ class TorState(object):
 
         # handle async or sync .attach() the same
         circ_d = defer.maybeDeferred(
-            self.attacher.attach_stream, stream, self.circuits,)
+            self.attacher.attach_stream, stream, self.circuits, )
 
         # actually do the attachment logic; .attach() can return 3 things:
         #    1. None: let Tor do whatever it wants

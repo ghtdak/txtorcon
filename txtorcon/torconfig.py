@@ -11,11 +11,11 @@ import tempfile
 import warnings
 from io import StringIO
 import shlex
+
 if sys.platform in ('linux2', 'darwin'):
     import pwd
 
 from twisted.python import log
-from twisted.python.failure import Failure
 from twisted.internet import defer, error, protocol
 from twisted.internet.interfaces import IReactorTime
 from twisted.internet.endpoints import TCP4ClientEndpoint
@@ -34,7 +34,6 @@ class TorNotFound(RuntimeError):
 
 
 class TorProcessProtocol(protocol.ProcessProtocol):
-
     def __init__(self,
                  connection_creator,
                  progress_updates=None,
@@ -197,7 +196,8 @@ class TorProcessProtocol(protocol.ProcessProtocol):
             if self._did_timeout:
                 err = RuntimeError("Timeout waiting for Tor launch..")
             else:
-                err = RuntimeError("Tor was killed (%s)." % status.value.signal)
+                err = RuntimeError(
+                    "Tor was killed (%s)." % status.value.signal)
         else:
             err = RuntimeError(
                 "Tor exited with error-code %d" % status.value.exitCode)
@@ -253,7 +253,7 @@ class TorProcessProtocol(protocol.ProcessProtocol):
         self.tor_protocol.is_owned = self.transport.pid
         self.tor_protocol.post_bootstrap.addCallback(
             self.protocol_bootstrapped).addErrback(
-                self.tor_connection_failed)
+            self.tor_connection_failed)
 
     def protocol_bootstrapped(self, proto):
         txtorlog.msg("Protocol is bootstrapped")
@@ -498,7 +498,6 @@ class TorConfigType(object):
 
 
 class Boolean(TorConfigType):
-
     def parse(self, s):
         if int(s):
             return True
@@ -521,7 +520,6 @@ class Boolean_Auto(TorConfigType):
 
 
 class Integer(TorConfigType):
-
     def parse(self, s):
         return int(s)
 
@@ -548,7 +546,6 @@ class DataSize(Integer):
 
 
 class Float(TorConfigType):
-
     def parse(self, s):
         return float(s)
 
@@ -559,7 +556,6 @@ class Time(TorConfigType):
 
 
 class CommaList(TorConfigType):
-
     def parse(self, s):
         return [x.strip() for x in s.split(',')]
 
@@ -585,7 +581,6 @@ class Filename(String):
 
 
 class LineList(TorConfigType):
-
     def parse(self, s):
         if isinstance(s, list):
             return [str(x).strip() for x in s]
@@ -594,7 +589,8 @@ class LineList(TorConfigType):
     def validate(self, obj, instance, name):
         if not isinstance(obj, list):
             raise ValueError("Not valid for %s: %s" % (self.__class__, obj))
-        return _ListWrapper(obj, functools.partial(instance.mark_unsaved, name))
+        return _ListWrapper(obj,
+                            functools.partial(instance.mark_unsaved, name))
 
 
 config_types = [Boolean, Boolean_Auto, LineList, Integer, SignedInteger, Port,
@@ -682,7 +678,8 @@ class HiddenService(object):
     127.0.0.1:1234']))
     """
 
-    def __init__(self, config, thedir, ports, auth=[], ver=2, group_readable=0):
+    def __init__(self, config, thedir, ports, auth=[], ver=2,
+                 group_readable=0):
         """
         config is the TorConfig to which this will belong, thedir
         corresponds to 'HiddenServiceDir' and will ultimately contain
@@ -761,7 +758,7 @@ class HiddenService(object):
 
         rtn = [('HiddenServiceDir', str(self.dir))]
         if self.conf._supports['HiddenServiceDirGroupReadable'] \
-           and self.group_readable:
+                and self.group_readable:
             rtn.append(('HiddenServiceDirGroupReadable', str(1)))
         for x in self.ports:
             rtn.append(('HiddenServicePort', str(x)))
@@ -803,8 +800,9 @@ def parse_client_keys(stream):
 
         def create_key(self):
             if self.name is not None:
-                self.keys.append(HiddenServiceClientAuth(self.name, self.cookie,
-                                                         self.key))
+                self.keys.append(
+                    HiddenServiceClientAuth(self.name, self.cookie,
+                                            self.key))
             self.reset()
 
         def set_name(self, name):
@@ -840,7 +838,8 @@ def parse_client_keys(stream):
         Transition(got_cookie,
                    lambda line: line.startswith('descriptor-cookie '),
                    parser_state.set_cookie),
-        Transition(init, lambda line: not line.startswith('descriptor-cookie '),
+        Transition(init,
+                   lambda line: not line.startswith('descriptor-cookie '),
                    parse_error),
     ])
 
@@ -856,7 +855,8 @@ def parse_client_keys(stream):
     # if we're reading an RSA key, we accumulate it in current_key.key
     # until we hit a line starting with "client-name"
     reading_key.add_transitions([
-        Transition(reading_key, lambda line: not line.startswith('client-name'),
+        Transition(reading_key,
+                   lambda line: not line.startswith('client-name'),
                    parser_state.add_key_line),
         Transition(got_name, lambda line: line.startswith('client-name '),
                    parser_state.set_name),
@@ -1101,7 +1101,8 @@ class TorConfig(object):
         pass an arg, it is ignored.
         '''
         try:
-            self.protocol.add_event_listener('CONF_CHANGED', self._conf_changed)
+            self.protocol.add_event_listener('CONF_CHANGED',
+                                             self._conf_changed)
         except RuntimeError:
             # for Tor versions which don't understand CONF_CHANGED
             # there's nothing we can really do.

@@ -1,14 +1,13 @@
-import txtorcon.spaghetti
-from txtorcon.spaghetti import *
-from twisted.trial import unittest
-
 import os
 import subprocess
 import tempfile
 
+import txtorcon.spaghetti
+from txtorcon.spaghetti import *
+from twisted.trial import unittest
+
 
 class FsmTests(unittest.TestCase):
-
     def match(self, data):
         if data.split()[0] == '250':
             return True
@@ -84,7 +83,7 @@ class FsmTests(unittest.TestCase):
                 retcode = proc.poll()
                 if retcode:
                     self.fail('Calling dot returned %i (%s)' % (retcode, stderr
-                                                               ))
+                                                                ))
         finally:
             os.unlink(fname)
 

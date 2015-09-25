@@ -1,8 +1,8 @@
 from zope.interface import implements
+
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 from twisted.internet import defer
-
 from txtorcon import ITorControlProtocol, TorInfo, TorControlProtocol
 
 
@@ -31,7 +31,6 @@ class FakeControlProtocol:
 
 
 class CheckAnswer:
-
     def __init__(self, test, ans):
         self.answer = ans
         self.test = test
@@ -41,7 +40,6 @@ class CheckAnswer:
 
 
 class MagicContainerTests(unittest.TestCase):
-
     def test_repr(self):
         from txtorcon.torinfo import MagicContainer
         m = MagicContainer('foo')
@@ -105,7 +103,8 @@ class ProtocolIntegrationTests(unittest.TestCase):
 
         self.assertTrue(hasattr(info, 'multi'))
         self.assertTrue(hasattr(getattr(info, 'multi'), 'path'))
-        self.assertTrue(hasattr(getattr(getattr(info, 'multi'), 'path'), 'arg'))
+        self.assertTrue(
+            hasattr(getattr(getattr(info, 'multi'), 'path'), 'arg'))
 
         # Finally! The test! We see if we can get this multi-path
         # value with an argument...
@@ -120,7 +119,6 @@ class ProtocolIntegrationTests(unittest.TestCase):
 
 
 class InfoTests(unittest.TestCase):
-
     def setUp(self):
         self.protocol = FakeControlProtocol([])
 
@@ -249,7 +247,8 @@ multi/path/arg/* a documentation string
         info = TorInfo(self.protocol)
         self.assertTrue(hasattr(info, 'multi'))
         self.assertTrue(hasattr(getattr(info, 'multi'), 'path'))
-        self.assertTrue(hasattr(getattr(getattr(info, 'multi'), 'path'), 'arg'))
+        self.assertTrue(
+            hasattr(getattr(getattr(info, 'multi'), 'path'), 'arg'))
 
         # FIXME should have a test that "really" goes out through
         # TorControlProtocol instance for this stuff...

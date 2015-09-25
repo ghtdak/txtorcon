@@ -4,23 +4,21 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import with_statement
 
+import os
+import re
+import base64
+
+from zope.interface import implementer
+
 from twisted.python import log
 from twisted.internet import defer
 from twisted.internet.interfaces import IProtocolFactory
 from twisted.internet.error import ConnectionDone
 from twisted.protocols.basic import LineOnlyReceiver
-
-from zope.interface import implementer
-
 from txtorcon.util import hmac_sha256, compare_via_hash
 from txtorcon.log import txtorlog
-
 from txtorcon.interface import ITorControlProtocol
 from .spaghetti import FSM, State, Transition
-
-import os
-import re
-import base64
 
 DEFAULT_VALUE = 'DEFAULT'
 
@@ -578,9 +576,9 @@ class TorControlProtocol(LineOnlyReceiver):
         if args[0] in self.events:
             self.events[args[0]].got_update(rest[len(args[0]) + 1:])
             return
-        # not considering this an error, as there's a slight window
-        # after remove_event_listener is called (so the handler is
-        # deleted) but the SETEVENTS command has not yet succeeded
+            # not considering this an error, as there's a slight window
+            # after remove_event_listener is called (so the handler is
+            # deleted) but the SETEVENTS command has not yet succeeded
 
     def _maybe_issue_command(self):
         """
@@ -824,7 +822,7 @@ class TorControlProtocol(LineOnlyReceiver):
         # print "BCAST",line
         if len(line) > 3:
             if self.code >= 200 and self.code < 300 and \
-               self.command and self.command[2] is not None:
+                    self.command and self.command[2] is not None:
                 self.command[2](line[4:])
                 resp = ''
 

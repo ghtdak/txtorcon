@@ -26,8 +26,9 @@ class TorPage(livepage.LivePage):
             tags.head[
                 tags.directive('liveglue')
             ], tags.body[
-                tags.h1["Tor Launching..."],  # obviously you might want a javascript library or
-  # something here instead of this hackery...
+                tags.h1[
+                    "Tor Launching..."],  # obviously you might want a javascript library or
+                # something here instead of this hackery...
                 tags.div(
                     id='progress',
                     style=
@@ -80,11 +81,12 @@ class TorPage(livepage.LivePage):
                 '''var newNode = document.createElement('div');
 newNode.appendChild(document.createTextNode("%d%% -- %s"));
 document.getElementById('status').appendChild(newNode);''' % (percent, summary
-                                                             )))
+                                                              )))
 
         else:
             self.client.send(livepage.set('status', "%d%% &mdash; %s" % (
                 percent, summary)))
+
 
 # This only properly works with one client (the last one to load the
 # page). To work with multiples, we'd have to track all clients so

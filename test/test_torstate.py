@@ -1,16 +1,14 @@
+import tempfile
+
 from zope.interface import implements
 from zope.interface.verify import verifyClass
+from mock import patch
+
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 from twisted.python.failure import Failure
 from twisted.internet import task, defer
 from twisted.internet.interfaces import IStreamClientEndpoint, IReactorCore
-
-import os
-import tempfile
-
-from mock import patch
-
 from txtorcon import TorControlProtocol
 from txtorcon import TorProtocolError
 from txtorcon import TorState
@@ -18,7 +16,6 @@ from txtorcon import Stream
 from txtorcon import Circuit
 from txtorcon import build_tor_connection
 from txtorcon import build_local_tor_connection
-from txtorcon.interface import ITorControlProtocol
 from txtorcon.interface import IStreamAttacher
 from txtorcon.interface import ICircuitListener
 from txtorcon.interface import IStreamListener
@@ -132,7 +129,6 @@ class FakeReactor:
 
 
 class FakeCircuit(Circuit):
-
     def __init__(self, id=-999):
         self.streams = []
         self.id = id
@@ -193,7 +189,6 @@ class FakeEndpointAnswers:
 
 
 class BootstrapTests(unittest.TestCase):
-
     def confirm_proto(self, x):
         self.assertTrue(isinstance(x, TorControlProtocol))
         self.assertTrue(x.post_bootstrap.called)
@@ -232,7 +227,8 @@ class BootstrapTests(unittest.TestCase):
         self.assertRaises(TypeError, build_tor_connection, (1, 2, 3, 4))
 
     def test_build_wrong_args_entirely(self):
-        self.assertRaises(TypeError, build_tor_connection, 'incorrect argument')
+        self.assertRaises(TypeError, build_tor_connection,
+                          'incorrect argument')
 
     def confirm_pid(self, state):
         self.assertEqual(state.tor_pid, 1234)
@@ -247,7 +243,7 @@ class BootstrapTests(unittest.TestCase):
                                  '',  # address-mappings/all
                                  '',  # entry-guards
                                  '1234'  # PID
-                                ])
+                                 ])
 
         d = build_tor_connection(p, build_state=True)
         d.addCallback(self.confirm_state).addErrback(self.fail)
@@ -261,7 +257,7 @@ class BootstrapTests(unittest.TestCase):
                                  '',  # stream-status
                                  '',  # address-mappings/all
                                  ''  # entry-guards
-                                ])
+                                 ])
 
         d = build_tor_connection(p, build_state=True)
         d.addCallback(self.confirm_state)
@@ -275,7 +271,7 @@ class BootstrapTests(unittest.TestCase):
                                  '',  # stream-status
                                  '',  # address-mappings/all
                                  '\n\nkerblam up\nOK\n'  # entry-guards
-                                ])
+                                 ])
 
         d = build_tor_connection(p, build_state=True)
         d.addCallback(self.confirm_state)
@@ -297,7 +293,6 @@ class BootstrapTests(unittest.TestCase):
 
 
 class StateTests(unittest.TestCase):
-
     def setUp(self):
         self.protocol = TorControlProtocol()
         self.state = TorState(self.protocol)
@@ -369,7 +364,8 @@ class StateTests(unittest.TestCase):
                 "",  # circuit-status
                 "",  # stream-status
                 "",  # address-mappings/all
-                "entry-guards=\r\n$0000000000000000000000000000000000000000=name up\r\n$1111111111111111111111111111111111111111=foo up\r\n$9999999999999999999999999999999999999999=eman unusable 2012-01-01 22:00:00\r\n",  # entry-guards
+                "entry-guards=\r\n$0000000000000000000000000000000000000000=name up\r\n$1111111111111111111111111111111111111111=foo up\r\n$9999999999999999999999999999999999999999=eman unusable 2012-01-01 22:00:00\r\n",
+                # entry-guards
                 "99999",  # process/pid
                 "??",  # ip-to-country/0.0.0.0
             ])
@@ -768,7 +764,8 @@ p reject 1-65535""")
     def confirm_router_state(self, x):
         self.assertTrue('$624926802351575FF7E4E3D60EFA3BFB56E67E8A' in
                         self.state.routers)
-        router = self.state.routers['$624926802351575FF7E4E3D60EFA3BFB56E67E8A']
+        router = self.state.routers[
+            '$624926802351575FF7E4E3D60EFA3BFB56E67E8A']
         self.assertTrue('exit' in router.flags)
         self.assertTrue('fast' in router.flags)
         self.assertTrue('guard' in router.flags)
@@ -1066,7 +1063,7 @@ s Fast Guard Running Stable Valid
         for ignored in self.state.event_map.items():
             self.send("250 OK")
 
-        expected = [('new', {}),]
+        expected = [('new', {}), ]
         listen = StreamListener(expected)
         self.send(
             "650 STREAM 77 NEW 0 www.yahoo.cn:80 SOURCE_ADDR=127.0.0.1:54315 PURPOSE=USER")
@@ -1084,7 +1081,6 @@ s Fast Guard Running Stable Valid
     def test_build_circuit(self):
 
         class FakeRouter:
-
             def __init__(self, i):
                 self.id_hex = i
                 self.flags = []
@@ -1098,7 +1094,8 @@ s Fast Guard Running Stable Valid
 
         self.state.build_circuit(path, using_guards=True)
         self.assertEqual(self.transport.value(
-        ), 'EXTENDCIRCUIT 0 0000000000000000000000000000000000000000,0000000000000000000000000000000000000001,0000000000000000000000000000000000000002\r\n')
+        ),
+            'EXTENDCIRCUIT 0 0000000000000000000000000000000000000000,0000000000000000000000000000000000000001,0000000000000000000000000000000000000002\r\n')
         # should have gotten a warning about this not being an entry
         # guard
         self.assertEqual(len(self.flushWarnings()), 1)
@@ -1122,7 +1119,6 @@ s Fast Guard Running Stable Valid
     def test_build_circuit_final_callback(self):
 
         class FakeRouter:
-
             def __init__(self, i):
                 self.id_hex = i
                 self.flags = []
@@ -1140,7 +1136,8 @@ s Fast Guard Running Stable Valid
         d = self.state.build_circuit(path, using_guards=True)
         d.addCallback(self.circuit_callback)
         self.assertEqual(self.transport.value(
-        ), 'EXTENDCIRCUIT 0 0000000000000000000000000000000000000000,0000000000000000000000000000000000000001,0000000000000000000000000000000000000002\r\n')
+        ),
+            'EXTENDCIRCUIT 0 0000000000000000000000000000000000000000,0000000000000000000000000000000000000001,0000000000000000000000000000000000000002\r\n')
         self.send('250 EXTENDED 1234')
         # should have gotten a warning about this not being an entry
         # guard

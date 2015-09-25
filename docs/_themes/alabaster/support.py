@@ -1,6 +1,6 @@
 from pygments.style import Style
 from pygments.token import Keyword, Name, Comment, String, Error, \
-     Number, Operator, Generic, Whitespace, Punctuation, Other, Literal
+    Number, Operator, Generic, Whitespace, Punctuation, Other, Literal
 
 
 # Originally based on FlaskyStyle which was based on 'tango'.
@@ -10,7 +10,7 @@ class Alabaster(Style):
 
     styles = {
         # No corresponding class for the following:
-        #Text:                     "", # class:  ''
+        # Text:                     "", # class:  ''
         Whitespace: "underline #f8f8f8",  # class: 'w'
         Error: "#a40000 border:#ef2929",  # class: 'err'
         Other: "#000000",  # class 'x'

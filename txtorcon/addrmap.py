@@ -5,14 +5,13 @@ from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import with_statement
 
-from txtorcon.interface import IAddrListener
-from txtorcon.util import maybe_ip_addr
-
-from twisted.internet.interfaces import IReactorTime
-from twisted.internet import reactor
-
 import datetime
 import shlex
+
+from txtorcon.interface import IAddrListener
+from txtorcon.util import maybe_ip_addr
+from twisted.internet.interfaces import IReactorTime
+from twisted.internet import reactor
 
 
 class Addr(object):

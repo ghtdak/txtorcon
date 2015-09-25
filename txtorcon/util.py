@@ -13,15 +13,15 @@ import socket
 import subprocess
 import struct
 
+from zope.interface import implementer
+
 from twisted.internet import defer
 from twisted.internet.interfaces import IProtocolFactory
-
 from twisted.internet.endpoints import serverFromString
-
-from zope.interface import implementer
 
 try:
     import GeoIP as _GeoIP
+
     GeoIP = _GeoIP
 except ImportError:
     GeoIP = None
@@ -68,6 +68,7 @@ city, asn, country = list(map(maybe_create_db, (
 
 try:
     import ipaddr as _ipaddr
+
     ipaddr = _ipaddr
 except ImportError:
     ipaddr = None

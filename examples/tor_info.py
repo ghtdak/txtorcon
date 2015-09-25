@@ -16,6 +16,7 @@
 # instead.
 
 import sys
+
 from twisted.internet import reactor, defer
 from txtorcon import TorInfo, build_local_tor_connection
 

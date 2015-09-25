@@ -27,7 +27,8 @@ def setup_complete(port):
     # the port we get back should implement this (as well as IListeningPort)
     port = txtorcon.IHiddenService(port)
     print "I have set up a hidden service, advertised at:",
-    print "http://%s:%d" % (port.getHost().onion_uri, port.getHost().onion_port)
+    print "http://%s:%d" % (
+    port.getHost().onion_uri, port.getHost().onion_port)
     print "locally listening on", port.local_address.getHost()
     print "Will stop in 60 seconds..."
 
@@ -46,6 +47,7 @@ def setup_complete(port):
 def progress(percent, tag, message):
     bar = int(percent / 10)
     print '[%s%s] %s' % ('#' * bar, '.' * (10 - bar), message)
+
 
 # several ways to proceed here and what they mean:
 #

@@ -14,6 +14,7 @@ def example(state):
     print "   with bootstrapped protocol:", state.protocol
     reactor.stop()
 
+
 ## change the port to 9151 for Tor Browser Bundle
 connection = TCP4ClientEndpoint(reactor, "localhost", 9051)
 

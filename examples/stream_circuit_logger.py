@@ -4,6 +4,7 @@
 # built circuits and all streams that succeed.
 
 import sys
+
 from twisted.python import log
 from twisted.internet import reactor
 import txtorcon
@@ -38,7 +39,6 @@ def logStream(stream, state):
 
 class StreamCircuitLogger(txtorcon.StreamListenerMixin,
                           txtorcon.CircuitListenerMixin):
-
     def __init__(self, state):
         self.state = state
 

@@ -11,8 +11,8 @@ import datetime
 from twisted.python import log
 from twisted.internet import defer
 from .interface import IRouterContainer
-
 from txtorcon.util import find_keywords
+
 
 # look like "2014-01-25T02:12:14.593772"
 TIME_FORMAT = '%Y-%m-%dT%H:%M:%S'

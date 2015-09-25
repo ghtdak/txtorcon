@@ -3,37 +3,25 @@ import shutil
 import tempfile
 import functools
 from getpass import getuser
-from mock import patch
 from StringIO import StringIO
 
 from mock import Mock, patch
-
 from zope.interface import implements
+
 from twisted.trial import unittest
 from twisted.test import proto_helpers
-from twisted.internet import defer, error, task, tcp
-from twisted.internet.endpoints import TCP4ServerEndpoint, serverFromString
+from twisted.internet import defer, error, task
 from twisted.python.failure import Failure
 from twisted.internet.interfaces import IReactorCore
-from twisted.internet.interfaces import IProtocolFactory
-from twisted.internet.interfaces import IProtocol
-from twisted.internet.interfaces import IReactorTCP
-from twisted.internet.interfaces import IListeningPort
-from twisted.internet.interfaces import IAddress
-
 from txtorcon import TorControlProtocol
 from txtorcon import ITorControlProtocol
 from txtorcon import TorConfig
 from txtorcon import DEFAULT_VALUE
 from txtorcon import HiddenService
 from txtorcon import launch_tor
-from txtorcon import TCPHiddenServiceEndpoint
 from txtorcon import TorNotFound
-from txtorcon import TCPHiddenServiceEndpointParser
-from txtorcon import IProgressProvider
 from txtorcon import torconfig
 from txtorcon.torconfig import TorProcessProtocol
-
 from txtorcon.util import delete_file_or_tree
 from txtorcon.torconfig import parse_client_keys
 
@@ -126,7 +114,6 @@ class FakeControlProtocol:
 
 
 class CheckAnswer:
-
     def __init__(self, test, ans):
         self.answer = ans
         self.test = test
@@ -438,7 +425,6 @@ class ConfigTests(unittest.TestCase):
 
 
 class LogTests(unittest.TestCase):
-
     def setUp(self):
         self.protocol = FakeControlProtocol([])
         self.protocol.answers.append('config/names=\nLog LineList' '')
@@ -568,7 +554,6 @@ class LogTests(unittest.TestCase):
 
 
 class EventTests(unittest.TestCase):
-
     def test_conf_changed(self):
         control = FakeControlProtocol([])
         config = TorConfig(control)
@@ -581,7 +566,6 @@ class EventTests(unittest.TestCase):
 
 
 class CreateTorrcTests(unittest.TestCase):
-
     def test_create_torrc(self):
         config = TorConfig()
         config.SocksPort = 1234
@@ -605,7 +589,6 @@ SocksPort 1234''')
 
 
 class HiddenServiceTests(unittest.TestCase):
-
     def setUp(self):
         self.protocol = FakeControlProtocol([])
         self.protocol.answers.append('''config/names=
@@ -879,7 +862,6 @@ class FakeReactor(task.Clock):
 
 
 class FakeProcessTransport(proto_helpers.StringTransportWithDisconnection):
-
     pid = -1
 
     def signalProcess(self, signame):
@@ -899,7 +881,6 @@ class FakeProcessTransport(proto_helpers.StringTransportWithDisconnection):
 
 
 class FakeProcessTransportNeverBootstraps(FakeProcessTransport):
-
     pid = -1
 
     def closeStdin(self):
@@ -912,13 +893,11 @@ class FakeProcessTransportNeverBootstraps(FakeProcessTransport):
 
 
 class FakeProcessTransportNoProtocol(FakeProcessTransport):
-
     def closeStdin(self):
         pass
 
 
 class LaunchTorTests(unittest.TestCase):
-
     def setUp(self):
         self.protocol = TorControlProtocol()
         self.protocol.connectionMade = lambda: None
@@ -976,13 +955,13 @@ class LaunchTorTests(unittest.TestCase):
             return proto.post_bootstrap
 
         class OnProgress:
-
             def __init__(self, test, expected):
                 self.test = test
                 self.expected = expected
 
             def __call__(self, percent, tag, summary):
-                self.test.assertEqual(self.expected[0], (percent, tag, summary))
+                self.test.assertEqual(self.expected[0],
+                                      (percent, tag, summary))
                 self.expected = self.expected[1:]
                 self.test.assertTrue('"' not in summary)
                 self.test.assertTrue(percent >= 0 and percent <= 100)
@@ -1147,13 +1126,13 @@ ControlPort Port''')
             return proto.post_bootstrap
 
         class OnProgress:
-
             def __init__(self, test, expected):
                 self.test = test
                 self.expected = expected
 
             def __call__(self, percent, tag, summary):
-                self.test.assertEqual(self.expected[0], (percent, tag, summary))
+                self.test.assertEqual(self.expected[0],
+                                      (percent, tag, summary))
                 self.expected = self.expected[1:]
                 self.test.assertTrue('"' not in summary)
                 self.test.assertTrue(percent >= 0 and percent <= 100)
@@ -1193,13 +1172,13 @@ ControlPort Port''')
             return proto.post_bootstrap
 
         class OnProgress:
-
             def __init__(self, test, expected):
                 self.test = test
                 self.expected = expected
 
             def __call__(self, percent, tag, summary):
-                self.test.assertEqual(self.expected[0], (percent, tag, summary))
+                self.test.assertEqual(self.expected[0],
+                                      (percent, tag, summary))
                 self.expected = self.expected[1:]
                 self.test.assertTrue('"' not in summary)
                 self.test.assertTrue(percent >= 0 and percent <= 100)
@@ -1277,7 +1256,8 @@ ControlPort Port''')
             def __call__(self, proto, trans):
                 self.count += 1
                 if self.count < 2:
-                    return defer.fail(error.CannotListenError(None, None, None))
+                    return defer.fail(
+                        error.CannotListenError(None, None, None))
 
                 proto._set_valid_events('STATUS_CLIENT')
                 proto.makeConnection(trans)
@@ -1307,7 +1287,6 @@ ControlPort Port''')
         config.OrPort = 1234
 
         class Connector:
-
             def __call__(self, proto, trans):
                 proto._set_valid_events('STATUS_CLIENT')
                 proto.makeConnection(trans)
@@ -1347,7 +1326,6 @@ ControlPort Port''')
         config.ControlPort = 4321
 
         class Connector:
-
             def __call__(self, proto, trans):
                 proto._set_valid_events('STATUS_CLIENT')
                 proto.makeConnection(trans)
@@ -1384,7 +1362,6 @@ ControlPort Port''')
         config = TorConfig()
 
         class Connector:
-
             def __call__(self, proto, trans):
                 proto._set_valid_events('STATUS_CLIENT')
                 proto.makeConnection(trans)
@@ -1478,7 +1455,6 @@ ControlPort Port''')
 
 
 class IteratorTests(unittest.TestCase):
-
     def test_iterate_torconfig(self):
         cfg = TorConfig()
         cfg.FooBar = 'quux'
@@ -1491,7 +1467,6 @@ class IteratorTests(unittest.TestCase):
 
 
 class ErrorTests(unittest.TestCase):
-
     @patch('txtorcon.torconfig.find_tor_binary')
     def test_no_tor_binary(self, ftb):
         """FIXME: do I really need all this crap in here?"""
@@ -1524,6 +1499,7 @@ class ErrorTests(unittest.TestCase):
 
         return d
 
+
 # the RSA keys have been shortened below for readability
 keydata = '''client-name bar
 descriptor-cookie O4rQyZ+IJr2PNHUdeXi0nA==
@@ -1546,7 +1522,6 @@ descriptor-cookie asdlkjasdlfkjalsdkfffj==
 
 
 class HiddenServiceAuthTests(unittest.TestCase):
-
     def test_parse_client_keys(self):
         data = StringIO(keydata)
 

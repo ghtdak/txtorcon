@@ -51,7 +51,6 @@ class FSM(object):
 
 
 class State(object):
-
     def __init__(self, name):
         self.name = name
         self.transitions = []
@@ -90,7 +89,6 @@ class State(object):
 
 
 class Transition(object):
-
     def __init__(self, next_state, matcher, handler):
         self.matcher = matcher
         self.handler = handler

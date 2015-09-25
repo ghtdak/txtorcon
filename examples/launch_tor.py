@@ -3,6 +3,7 @@
 # Launch a slave Tor by first making a TorConfig object.
 
 from sys import stdout
+
 from twisted.internet.task import react
 from twisted.internet.defer import inlineCallbacks
 import txtorcon

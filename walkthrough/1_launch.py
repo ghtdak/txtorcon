@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import os
+
 from twisted.internet import reactor, defer
-from twisted.internet.endpoints import TCP4ClientEndpoint
 import txtorcon
 
 

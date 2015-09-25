@@ -1,8 +1,8 @@
+from zope.interface import implements
+
 from txtorcon.util import maybe_ip_addr
 from twisted.trial import unittest
 from twisted.internet import defer
-from zope.interface import implements
-
 from txtorcon import Stream
 from txtorcon import IStreamListener
 from txtorcon import ICircuitContainer
@@ -10,7 +10,6 @@ from txtorcon import StreamListenerMixin
 
 
 class FakeCircuit:
-
     def __init__(self, id=-999):
         self.streams = []
         self.id = id
@@ -76,7 +75,6 @@ class Listener(object):
 
 
 class StreamTests(unittest.TestCase):
-
     implements(ICircuitContainer)
 
     def find_circuit(self, id):
@@ -166,7 +164,7 @@ class StreamTests(unittest.TestCase):
             [
                 ('new', {'target_host': 'www.yahoo.com',
                          'target_port': 80}
-                ), ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')})
+                 ), ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')})
             ])
 
         stream = Stream(self)
@@ -264,9 +262,11 @@ class StreamTests(unittest.TestCase):
             [
                 ('new', {'target_host': 'www.yahoo.com',
                          'target_port': 80}), ('attach', {}
-                ), ('detach',
-                    {'kwargs': dict(reason='END',
-                                    remote_reason='MISC')}), ('attach', {})
+                                               ), ('detach',
+                                                   {'kwargs': dict(
+                                                       reason='END',
+                                                       remote_reason='MISC')}),
+                ('attach', {})
             ])
 
         stream = Stream(self)
@@ -293,7 +293,7 @@ class StreamTests(unittest.TestCase):
             [
                 ('new', {'target_host': 'www.yahoo.com',
                          'target_port': 80}
-                ), ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')}),
+                 ), ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')}),
                 ('closed', {'kwargs': dict(REASON='END',
                                            REMOTE_REASON='DONE')})
             ])
@@ -313,7 +313,7 @@ class StreamTests(unittest.TestCase):
             [
                 ('new', {'target_host': 'www.yahoo.com',
                          'target_port': 80}
-                ), ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')}),
+                 ), ('attach', {'target_addr': maybe_ip_addr('1.2.3.4')}),
                 ('failed',
                  {'kwargs': dict(REASON='TIMEOUT',
                                  REMOTE_REASON='DESTROYED')})

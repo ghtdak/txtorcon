@@ -7,10 +7,7 @@ try:
     import pypissh
 except:
     print("WARNING: not using PyPi over SSH!")
-import sys
 import os
-import shutil
-import re
 from setuptools import setup
 
 ## can't just naively import these from txtorcon, as that will only
@@ -32,7 +29,7 @@ setup(
     install_requires=open('requirements.txt').readlines(),
     # "pip install -e .[dev]" will install development requirements
     extras_require=dict(
-        dev=open('dev-requirements.txt').readlines(),),
+        dev=open('dev-requirements.txt').readlines(), ),
     classifiers=
     ['Framework :: Twisted', 'Development Status :: 4 - Beta',
      'Intended Audience :: Developers',
@@ -66,5 +63,6 @@ setup(
                                           in os.listdir('docs/_static')]),
      ## include all the examples
      ('share/txtorcon/examples', [os.path.join(
-         'examples', x) for x in [x for x in os.listdir('examples') if x[-3:] ==
+         'examples', x) for x in [x for x in os.listdir('examples') if
+                                  x[-3:] ==
                                   '.py']])])

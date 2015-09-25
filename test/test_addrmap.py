@@ -1,9 +1,10 @@
 import datetime
+
+from zope.interface import implements
+
 from twisted.trial import unittest
 from twisted.internet import task
 from twisted.internet.interfaces import IReactorTime
-from zope.interface import implements
-
 from txtorcon.addrmap import AddrMap
 from txtorcon.interface import IAddrListener
 

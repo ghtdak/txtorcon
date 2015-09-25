@@ -1,48 +1,35 @@
 import os
-import shutil
-import tempfile
 
 from mock import patch
 from mock import Mock
-
 from zope.interface import implements
 
 from twisted.trial import unittest
 from twisted.test import proto_helpers
-from twisted.internet import defer, error, task, tcp
-from twisted.internet.endpoints import TCP4ServerEndpoint
+from twisted.internet import defer, error, tcp
 from twisted.internet.endpoints import serverFromString
 from twisted.internet.endpoints import clientFromString
 from twisted.python.failure import Failure
 from twisted.internet.error import ConnectionRefusedError
-from twisted.internet.interfaces import IReactorCore
-from twisted.internet.interfaces import IProtocolFactory
 from twisted.internet.interfaces import IProtocol
 from twisted.internet.interfaces import IReactorTCP
 from twisted.internet.interfaces import IListeningPort
 from twisted.internet.interfaces import IAddress
-
 from txtorcon import TorControlProtocol
-from txtorcon import ITorControlProtocol
 from txtorcon import TorConfig
-from txtorcon import launch_tor
 from txtorcon import TCPHiddenServiceEndpoint
 from txtorcon import TorClientEndpoint
-from txtorcon import TorNotFound
-from txtorcon import TCPHiddenServiceEndpointParser
 from txtorcon import IProgressProvider
 from txtorcon import TorOnionAddress
 from txtorcon.util import NoOpProtocolFactory
 from txtorcon.endpoints import get_global_tor  # FIXME
 from txtorcon.endpoints import default_tcp4_endpoint_generator
-
 import util
 
 connectionRefusedFailure = Failure(ConnectionRefusedError())
 
 
 class EndpointTests(unittest.TestCase):
-
     def setUp(self):
         from txtorcon import endpoints
         endpoints._global_tor_config = None
@@ -53,7 +40,7 @@ class EndpointTests(unittest.TestCase):
         self.protocol.event_happened('INFO', 'something craaaaaaazy')
         self.protocol.event_happened(
             'INFO', 'connection_dir_client_reached_eof(): Uploaded rendezvous '
-            'descriptor (status 200 ("Service descriptor (v2) stored"))')
+                    'descriptor (status 200 ("Service descriptor (v2) stored"))')
         self.config = TorConfig(self.protocol)
         self.protocol.answers.append(
             'config/names=\nHiddenServiceOptions Virtual')
@@ -122,7 +109,6 @@ class EndpointTests(unittest.TestCase):
 
     @defer.inlineCallbacks
     def test_system_tor(self):
-        from test_torconfig import FakeControlProtocol
 
         def boom(*args):
             # why does the new_callable thing need a callable that
@@ -132,6 +118,7 @@ class EndpointTests(unittest.TestCase):
                 return self.protocol
 
             return bam
+
         with patch('txtorcon.endpoints.launch_tor') as launch_mock:
             with patch('txtorcon.endpoints.build_tor_connection',
                        new_callable=boom) as btc:
@@ -210,7 +197,6 @@ class EndpointTests(unittest.TestCase):
         # FIXME Mock() should work somehow for this, but I couldn't
         # make it "go"
         class Blam(object):
-
             @property
             def private_key(self):
                 raise IOError("blam")
@@ -344,14 +330,14 @@ class EndpointTests(unittest.TestCase):
                 ep = serverFromString(
                     self.reactor,
                     'onion:88:localPort=1234:hiddenServiceDir=foo/blam')
-                self.assertEqual(os.path.realpath(hsdir), ep.hidden_service_dir)
+                self.assertEqual(os.path.realpath(hsdir),
+                                 ep.hidden_service_dir)
 
         finally:
             os.chdir(orig)
 
 
 class EndpointLaunchTests(unittest.TestCase):
-
     def setUp(self):
         self.reactor = FakeReactorTcp(self)
         self.protocol = FakeControlProtocol([])
@@ -413,6 +399,8 @@ class EndpointLaunchTests(unittest.TestCase):
 
 
         # FIXME should probably go somewhere else, so other tests can easily use these.
+
+
 class FakeProtocol(object):
     implements(IProtocol)
 
@@ -469,7 +457,8 @@ def port_generator():
 
 
 from test_torconfig import FakeReactor  # FIXME put in util or something?
-from test_torconfig import FakeProcessTransport  # FIXME importing from other test sucks
+from test_torconfig import \
+    FakeProcessTransport  # FIXME importing from other test sucks
 from test_torconfig import FakeControlProtocol  # FIXME
 
 
@@ -524,7 +513,6 @@ class FakeReactorTcp(FakeReactor):
 
 
 class FakeTorSocksEndpoint(object):
-
     def __init__(self, *args, **kw):
         self.host = args[1]
         self.port = args[2]
@@ -555,7 +543,6 @@ class FakeTorSocksEndpoint(object):
 
 
 class TestTorClientEndpoint(unittest.TestCase):
-
     def test_client_connection_failed(self):
         """
         This test is equivalent to txsocksx's
@@ -641,7 +628,6 @@ class TestTorClientEndpoint(unittest.TestCase):
         """
         success_ports = TorClientEndpoint.socks_ports_to_try
         for port in success_ports:
-
             def TorSocksEndpointGenerator(*args, **kw):
                 kw['acceptPort'] = port
                 kw['failure'] = connectionRefusedFailure
@@ -661,7 +647,6 @@ class TestTorClientEndpoint(unittest.TestCase):
         """
         fail_ports = [1984, 666]
         for port in fail_ports:
-
             def TorSocksEndpointGenerator(*args, **kw):
                 kw['acceptPort'] = port
                 kw['failure'] = connectionRefusedFailure

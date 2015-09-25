@@ -12,6 +12,7 @@
 import functools
 import sys
 import time
+
 from twisted.internet import reactor, task
 from twisted.python import usage
 import txtorcon
@@ -24,18 +25,19 @@ class Options(usage.Options):
 
     optParameters = [
         ['failed', 'f', 0, 'Starting value for number of failed circuits.', int
-        ], ['built', 'b', 0,
-            'Starting value for the total number of built cicuits.', int
-        ], ['connect', 'c', None, 'Tor control socket to connect to in '
-            'host:port format, like "localhost:9051" (the default).'
-        ], ['delay', 'n', 60, 'Seconds to wait between status updates.', int]
+         ], ['built', 'b', 0,
+             'Starting value for the total number of built cicuits.', int
+             ], ['connect', 'c', None, 'Tor control socket to connect to in '
+                                       'host:port format, like "localhost:9051" (the default).'
+                 ],
+        ['delay', 'n', 60, 'Seconds to wait between status updates.', int]
     ]
 
     def __init__(self):
         usage.Options.__init__(self)
         self['guards'] = []
         self.docs['guard'] = 'Specify the name, built and failed rates ' \
-            'like "SomeTorNode,10,42". Can be specified multiple times.'
+                             'like "SomeTorNode,10,42". Can be specified multiple times.'
 
     def opt_guard(self, value):
         name, built, failed = value.split(',')
@@ -43,7 +45,6 @@ class Options(usage.Options):
 
 
 class CircuitFailureWatcher(txtorcon.CircuitListenerMixin):
-
     built_circuits = 0
     failed_circuits = 0
     percent = 0.0
@@ -76,11 +77,11 @@ class CircuitFailureWatcher(txtorcon.CircuitListenerMixin):
                     current = '*'
                     break
             rtn = rtn + '\n %s %s: %d built, %d failed: %02.1f%%' % \
-                (current,
-                 g,
-                 self.per_guard_built[g],
-                 self.per_guard_failed[g],
-                 per_guard_percent)
+                        (current,
+                         g,
+                         self.per_guard_built[g],
+                         self.per_guard_failed[g],
+                         per_guard_percent)
         return rtn
 
     def circuit_built(self, circuit):

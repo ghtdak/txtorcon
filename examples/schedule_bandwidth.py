@@ -4,13 +4,13 @@
 # "BandWidthRate" and optionally "BandWidthBurst" settings in Tor.
 
 import datetime
+
 from twisted.internet import reactor
 from twisted.internet.interfaces import IReactorTime
 from txtorcon import build_local_tor_connection, TorConfig
 
 
 class BandwidthUpdater:
-
     def __init__(self, config, scheduler):
         self.bandwidth = 0
         self.config = config
@@ -68,7 +68,8 @@ def bootstrap(proto):
     print "Connection is live, bootstrapping config..."
 
 
-d = build_local_tor_connection(reactor, build_state=False, wait_for_proto=False)
+d = build_local_tor_connection(reactor, build_state=False,
+                               wait_for_proto=False)
 d.addCallback(bootstrap).addErrback(setup_failed)
 
 reactor.run()

@@ -11,13 +11,13 @@ for example:
 Note, this is downloaded from:
 
    https://bazaar.launchpad.net/~khorn/pydoctor/sphinxext/view/head:/apilinks_sphinxext.py
-   
+
 with a couple local tweaks ("label = full_name" and https for URL).
 '''
 
 
-def make_api_link(name, rawtext, text, lineno, inliner, options={}, content=[]):
-
+def make_api_link(name, rawtext, text, lineno, inliner, options={},
+                  content=[]):
     from docutils import nodes, utils
 
     # quick, dirty, and ugly...
@@ -29,7 +29,7 @@ def make_api_link(name, rawtext, text, lineno, inliner, options={}, content=[]):
         full_name = text
         label = full_name
 
-    #get the base url for api links from the config file
+    # get the base url for api links from the config file
     env = inliner.document.settings.env
     base_url = env.config.apilinks_base_url
 
@@ -43,6 +43,7 @@ def make_api_link(name, rawtext, text, lineno, inliner, options={}, content=[]):
     nodes = [node]
     sys_msgs = []
     return nodes, sys_msgs
+
 
 # setup function to register the extension
 

@@ -6,6 +6,7 @@
 # numbers.
 
 import sys
+
 from twisted.internet.task import react
 from twisted.internet.defer import inlineCallbacks, Deferred
 import txtorcon

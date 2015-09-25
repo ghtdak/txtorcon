@@ -12,15 +12,14 @@ import sys
 import functools
 import random
 
-from twisted.python import log
-from twisted.internet import reactor
 from zope.interface import implements
 
+from twisted.python import log
+from twisted.internet import reactor
 import txtorcon
 
 
 class MyStreamListener(txtorcon.StreamListenerMixin):
-
     def stream_new(self, stream):
         print "new stream:", stream.id, stream.target_host
 

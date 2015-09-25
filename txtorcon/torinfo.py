@@ -6,8 +6,8 @@ from __future__ import unicode_literals
 from __future__ import with_statement
 
 import functools
-from twisted.internet import defer
 
+from twisted.internet import defer
 from txtorcon.interface import ITorControlProtocol
 
 
@@ -74,7 +74,6 @@ class MagicContainer(object):
 
 
 class ConfigMethod(object):
-
     def __init__(self, info_key, protocol, takes_arg=False):
         self.info_key = info_key
         self.proto = protocol

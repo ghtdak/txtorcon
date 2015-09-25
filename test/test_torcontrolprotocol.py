@@ -1,25 +1,22 @@
 from __future__ import with_statement
 
 from os.path import exists
-
-from twisted.python import log, failure
-from twisted.trial import unittest
-from twisted.test import proto_helpers
-from twisted.internet import defer, error
-
-from txtorcon import TorControlProtocol, TorProtocolFactory, TorState
-from txtorcon import ITorControlProtocol
-from txtorcon.torcontrolprotocol import parse_keywords, DEFAULT_VALUE
-from txtorcon.util import hmac_sha256
-
 import types
 import functools
 import tempfile
 import base64
 
+from twisted.python import log, failure
+from twisted.trial import unittest
+from twisted.test import proto_helpers
+from twisted.internet import defer, error
+from txtorcon import TorControlProtocol, TorProtocolFactory, TorState
+from txtorcon import ITorControlProtocol
+from txtorcon.torcontrolprotocol import parse_keywords, DEFAULT_VALUE
+from txtorcon.util import hmac_sha256
+
 
 class CallbackChecker:
-
     def __init__(self, expected):
         self.expected_value = expected
         self.called_back = False
@@ -35,7 +32,6 @@ class CallbackChecker:
 
 
 class InterfaceTests(unittest.TestCase):
-
     def test_implements(self):
         self.assertTrue(ITorControlProtocol.implementedBy(TorControlProtocol))
 
@@ -44,7 +40,6 @@ class InterfaceTests(unittest.TestCase):
 
 
 class LogicTests(unittest.TestCase):
-
     def setUp(self):
         self.protocol = TorControlProtocol()
         self.protocol.connectionMade = lambda: None
@@ -63,13 +58,11 @@ class LogicTests(unittest.TestCase):
 
 
 class FactoryTests(unittest.TestCase):
-
     def test_create(self):
         TorProtocolFactory().buildProtocol(None)
 
 
 class AuthenticationTests(unittest.TestCase):
-
     def setUp(self):
         self.protocol = TorControlProtocol()
         self.transport = proto_helpers.StringTransport()
@@ -125,7 +118,8 @@ class AuthenticationTests(unittest.TestCase):
 
         # now make sure we DID try to authenticate
         self.assertEqual(
-            self.transport.value(), 'AUTHENTICATE %s\r\n' % "foo".encode("hex"))
+            self.transport.value(),
+            'AUTHENTICATE %s\r\n' % "foo".encode("hex"))
 
     def test_authenticate_password_deferred_but_no_password(self):
         d = defer.Deferred()
@@ -159,7 +153,6 @@ class AuthenticationTests(unittest.TestCase):
 
 
 class DisconnectionTests(unittest.TestCase):
-
     def setUp(self):
         self.protocol = TorControlProtocol()
         self.protocol.connectionMade = lambda: None
@@ -207,7 +200,6 @@ class DisconnectionTests(unittest.TestCase):
 
 
 class ProtocolTests(unittest.TestCase):
-
     def setUp(self):
         self.protocol = TorControlProtocol()
         self.protocol.connectionMade = lambda: None
@@ -335,7 +327,8 @@ OK''' % cookietmp.name)
 
             self.send(
                 '250 AUTHCHALLENGE SERVERHASH=%s SERVERNONCE=%s' %
-                (base64.b16encode(server_hash), base64.b16encode(server_nonce)))
+                (
+                base64.b16encode(server_hash), base64.b16encode(server_nonce)))
             self.assertTrue('AUTHENTICATE ' in self.transport.value())
 
     def test_authenticate_safecookie_wrong_hash(self):
@@ -350,7 +343,8 @@ OK''' % cookietmp.name)
         try:
             self.protocol._safecookie_authchallenge(
                 '250 AUTHCHALLENGE SERVERHASH=%s SERVERNONCE=%s' %
-                (base64.b16encode(server_hash), base64.b16encode(server_nonce)))
+                (
+                base64.b16encode(server_hash), base64.b16encode(server_nonce)))
             self.assertTrue(False)
         except RuntimeError, e:
             self.assertTrue('hash not expected' in str(e))
@@ -630,8 +624,9 @@ iO3EUE0AEYah2W9gdz8t+i3Dtr0zgqLS841GC/TyDKCm+MKmN8d098qnwK0NGF9q
 
         d = self.protocol.get_info("desc/name/moria1")
         d.addCallback(CallbackChecker({
-            'desc/name/moria1': '\n' + '\n'.join(descriptor_info.split('\n')[1:-
-                                                                             2])
+            'desc/name/moria1': '\n' + '\n'.join(
+                descriptor_info.split('\n')[1:-
+                2])
         }))
         d.addErrback(self.fail)
 
@@ -798,7 +793,6 @@ p accept 43,53,79-81,110,143,194,220,443,953,989-990,993,995,1194,1293,1723,1863
 
 
 class ParseTests(unittest.TestCase):
-
     def setUp(self):
         self.controller = TorState(TorControlProtocol())
         self.controller.connectionMade = lambda _: None
@@ -808,8 +802,9 @@ class ParseTests(unittest.TestCase):
             'events/names=CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
         self.assertTrue('events/names' in x)
         self.assertEqual(x[
-            'events/names'
-        ], 'CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
+                             'events/names'
+                         ],
+                         'CIRC STREAM ORCONN BW DEBUG INFO NOTICE WARN ERR NEWDESC ADDRMAP AUTHDIR_NEWDESCS DESCCHANGED NS STATUS_GENERAL STATUS_CLIENT STATUS_SERVER GUARD STREAM_BW CLIENTS_SEEN NEWCONSENSUS BUILDTIMEOUT_SET')
         self.assertEqual(len(x.keys()), 1)
 
     def test_keywords_mutli_equals(self):

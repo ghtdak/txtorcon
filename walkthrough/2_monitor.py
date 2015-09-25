@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+from zope.interface import implements
+
 from twisted.internet import reactor, defer
 from twisted.internet.endpoints import TCP4ClientEndpoint
-from zope.interface import implements
 import txtorcon
+
 
 ## change the port to 9151 for Tor Browser Bundle
 connection = TCP4ClientEndpoint(reactor, "localhost", 9051)

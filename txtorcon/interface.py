@@ -328,7 +328,6 @@ class ITorControlProtocol(Interface):
 
 
 class IRouterContainer(Interface):
-
     unique_routers = Attribute("contains a list of all the Router instances")
 
     def router_from_id(routerid):
@@ -349,7 +348,6 @@ class IRouterContainer(Interface):
 
 
 class IAddrListener(Interface):
-
     def addrmap_added(addr):
         """
         A new address was added to the address map.

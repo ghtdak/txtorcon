@@ -10,8 +10,11 @@ import weakref
 import tempfile
 import functools
 
-from txtorcon.util import available_tcp_port
+from zope.interface import implementer
+from zope.interface import Interface, Attribute
+from txsocksx.client import SOCKS5ClientEndpoint
 
+from txtorcon.util import available_tcp_port
 from twisted.internet import defer, reactor
 from twisted.python import log
 from twisted.internet.interfaces import IStreamServerEndpointStringParser
@@ -26,17 +29,13 @@ from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet import error
 from twisted.plugin import IPlugin
 from twisted.python.util import FancyEqMixin
-
-from zope.interface import implementer
-from zope.interface import Interface, Attribute
-
-from txsocksx.client import SOCKS5ClientEndpoint
-
 from .torconfig import TorConfig, launch_tor, HiddenService
 from .torstate import build_tor_connection
 
 _global_tor_config = None
 _global_tor_lock = defer.DeferredLock()
+
+
 # we need the lock because we (potentially) yield several times while
 # "creating" the TorConfig instance
 
@@ -436,7 +435,7 @@ class TCPHiddenServiceEndpoint(object):
 
         if self.hidden_service_dir not in [hs.dir
                                            for hs in self.config.HiddenServices
-                                          ]:
+                                           ]:
             self.hiddenservice = HiddenService(
                 self.config,
                 self.hidden_service_dir,
@@ -492,7 +491,8 @@ class TorOnionAddress(FancyEqMixin, object):
 
 
 class IHiddenService(Interface):
-    local_address = Attribute('The actual machine address we are listening on.')
+    local_address = Attribute(
+        'The actual machine address we are listening on.')
     hidden_service_dir = Attribute(
         'The hidden service directory, where "hostname" and "private_key" '
         'files live.')

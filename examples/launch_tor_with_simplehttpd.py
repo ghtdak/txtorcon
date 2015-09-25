@@ -21,7 +21,6 @@ import tempfile
 import thread
 
 from twisted.internet import reactor
-
 import txtorcon
 
 
@@ -93,7 +92,7 @@ def main():
     serve_directory = os.path.abspath(serve_directory)
     if not os.path.exists(serve_directory):
         print 'Path "%s" does not exists, can\'t serve from there...' % \
-            (serve_directory, )
+              (serve_directory,)
         return 1
     os.chdir(serve_directory)
 
@@ -103,7 +102,8 @@ def main():
     httpd = SocketServer.TCPServer((web_host, web_port),
                                    SimpleHTTPServer.SimpleHTTPRequestHandler)
     start_httpd(httpd)
-    reactor.addSystemEventTrigger('before', 'shutdown', stop_httpd, httpd=httpd)
+    reactor.addSystemEventTrigger('before', 'shutdown', stop_httpd,
+                                  httpd=httpd)
 
     # Create a directory to hold our hidden service. Twisted will unlink it
     # when we exit.

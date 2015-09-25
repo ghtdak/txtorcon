@@ -1,19 +1,19 @@
+import os
+import tempfile
+
 from mock import patch
+from zope.interface import implements
+
 from twisted.trial import unittest
 from twisted.internet import defer
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet.interfaces import IProtocolFactory
-from zope.interface import implements
-
 from txtorcon.util import process_from_address
 from txtorcon.util import delete_file_or_tree
 from txtorcon.util import find_keywords
 from txtorcon.util import ip_from_int
 from txtorcon.util import find_tor_binary
 from txtorcon.util import maybe_ip_addr
-
-import os
-import tempfile
 
 
 class FakeState:
@@ -35,13 +35,11 @@ class FakeProtocolFactory:
 
 
 class TestIPFromInt(unittest.TestCase):
-
     def test_cast(self):
         self.assertEqual(ip_from_int(0x7f000001), '127.0.0.1')
 
 
 class TestGeoIpDatabaseLoading(unittest.TestCase):
-
     def test_bad_geoip_path(self):
         "fail gracefully if a db is missing"
         from txtorcon import util
@@ -67,7 +65,6 @@ class TestGeoIpDatabaseLoading(unittest.TestCase):
 
 
 class TestFindKeywords(unittest.TestCase):
-
     def test_filter(self):
         "make sure we filter out keys that look like router IDs"
         self.assertEqual(
@@ -77,7 +74,6 @@ class TestFindKeywords(unittest.TestCase):
 
 
 class FakeGeoIP(object):
-
     def __init__(self, version=2):
         self.version = version
 
@@ -91,7 +87,6 @@ class FakeGeoIP(object):
 
 
 class TestNetLocation(unittest.TestCase):
-
     def test_valid_lookup_v2(self):
         from txtorcon import util
         orig = util.city
@@ -182,7 +177,6 @@ class TestNetLocation(unittest.TestCase):
 
 
 class TestProcessFromUtil(unittest.TestCase):
-
     def setUp(self):
         self.fakestate = FakeState()
 
@@ -224,7 +218,6 @@ class TestProcessFromUtil(unittest.TestCase):
 
 
 class TestDelete(unittest.TestCase):
-
     def test_delete_file(self):
         (fd, f) = tempfile.mkstemp()
         os.write(fd, 'some\ndata\n')
@@ -250,7 +243,6 @@ class TestDelete(unittest.TestCase):
 
 
 class TestFindTor(unittest.TestCase):
-
     def test_simple_find_tor(self):
         # just test that this doesn't raise an exception
         find_tor_binary()
@@ -271,14 +263,12 @@ class TestFindTor(unittest.TestCase):
 
 
 class TestIpAddr(unittest.TestCase):
-
     @patch('txtorcon.util.ipaddr')
     def test_create_ipaddr(self, ipaddr):
         ip = maybe_ip_addr('1.2.3.4')
 
     @patch('txtorcon.util.ipaddr')
     def test_create_ipaddr(self, ipaddr):
-
         def foo(blam):
             raise ValueError('testing')
 

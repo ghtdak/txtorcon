@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 from __future__ import with_statement
 
 from datetime import datetime
+
 from .util import NetLocation
 from .util import basestring
 
@@ -222,4 +223,5 @@ class Router(object):
         n = self.id_hex
         if self.name_is_unique:
             n = self.name
-        return "<Router %s %s %s>" % (n, self.location.countrycode, self.policy)
+        return "<Router %s %s %s>" % (
+        n, self.location.countrycode, self.policy)

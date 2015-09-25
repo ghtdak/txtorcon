@@ -1,9 +1,10 @@
 import datetime
 import time
-from twisted.trial import unittest
-from twisted.internet import defer
+
 from zope.interface import implements
 
+from twisted.trial import unittest
+from twisted.internet import defer
 from txtorcon import Circuit
 from txtorcon import Stream
 from txtorcon import TorControlProtocol
@@ -57,13 +58,11 @@ class FakeTorController(object):
 
 
 class FakeLocation:
-
     def __init__(self):
         self.countrycode = 'NA'
 
 
 class FakeRouter:
-
     def __init__(self, hsh, nm):
         self.name = nm
         self.hash = hsh
@@ -82,7 +81,6 @@ examples = [
 
 
 class CircuitTests(unittest.TestCase):
-
     def test_age(self):
         """
         make sure age does something sensible at least once.
@@ -152,7 +150,8 @@ class CircuitTests(unittest.TestCase):
             ))
         self.assertEqual(1, len(circuit.path))
         self.assertEqual(
-            '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0', circuit.path[0].id_hex)
+            '$E11D2B2269CC25E67CA6C9FB5843497539A74FD0',
+            circuit.path[0].id_hex)
         self.assertEqual('eris', circuit.path[0].name)
 
     def test_wrong_update(self):

@@ -10,7 +10,6 @@ import functools
 from twisted.internet import reactor
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.web import server, resource
-
 import txtorcon
 
 

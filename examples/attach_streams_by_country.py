@@ -29,15 +29,14 @@
 
 import random
 
-from twisted.python import log
-from twisted.internet import reactor, defer
 from zope.interface import implements
 
+from twisted.python import log
+from twisted.internet import reactor, defer
 import txtorcon
 
 
 class MyStreamListener(txtorcon.StreamListenerMixin):
-
     def stream_new(self, stream):
         print "new stream:", stream.id, stream.target_host
 
@@ -74,8 +73,9 @@ class MyAttacher(txtorcon.CircuitListenerMixin):
         if self.waiting_on(circuit):
             path = '->'.join(map(lambda x: x.location.countrycode,
                                  circuit.path))
-            print "  circuit %d (%s). Path now %s" % (circuit.id, router.id_hex,
-                                                      path)
+            print "  circuit %d (%s). Path now %s" % (
+            circuit.id, router.id_hex,
+            path)
 
     def circuit_built(self, circuit):
         "ICircuitListener"
@@ -161,13 +161,13 @@ class MyAttacher(txtorcon.CircuitListenerMixin):
         # start with an entry guard, put anything in the middle and
         # put one of our exits at the end.
         path = [random.choice(self.state.entry_guards.values()),
-                random.choice(self.state.routers.values()), random.choice(last)]
+                random.choice(self.state.routers.values()),
+                random.choice(last)]
 
         print "  requesting a circuit:", '->'.join(map(
             lambda r: r.location.countrycode, path))
 
         class AppendWaiting:
-
             def __init__(self, attacher, d, stream_cc):
                 self.attacher = attacher
                 self.d = d
