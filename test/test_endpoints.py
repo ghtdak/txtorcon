@@ -530,14 +530,8 @@ class FakeTorSocksEndpoint(object):
         self.port = args[2]
         self.transport = None
 
-        if kw.has_key('failure'):
-            self.failure = kw['failure']
-        else:
-            self.failure = None
-        if kw.has_key('acceptPort'):
-            self.acceptPort = kw['acceptPort']
-        else:
-            self.acceptPort = None
+        self.failure = kw.get('failure', None)
+        self.acceptPort = kw.get('acceptPort', None)
 
     def connect(self, fac):
         self.factory = fac
